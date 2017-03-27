@@ -1,7 +1,12 @@
 // Type definitions for Cordova Background Upload Plugin
 
-interface FileTransferManager {
-	upload(string);
+interface FileUploadOptions {
+    
+    serverUrl: String;
+	filePath: String;
+	numberOfRetries: number;
 }
 
-declare var FileTransferManager: FileTransferManager;
+interface FileTransferManager {
+	upload(payload: FileUploadOptions);
+}

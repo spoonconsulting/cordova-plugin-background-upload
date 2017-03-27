@@ -10,6 +10,7 @@ API provides an advanced file upload functionality that persists beyond app term
  var payload = {
             "filePath": "/storage/emulated/0/Download/Heli.divx",
             "serverUrl": "http://requestb.in/14cizzj1",
+            "numberOfRetries" : 2,
             "headers": {
                 "api_key": "asdasdwere123sad"
             },
