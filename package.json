@@ -1,0 +1,35 @@
+
+{
+  "name": "cordova-plugin-background-upload",
+  "version": "0.0.1",
+  "description": "Cordova Background Upload Plugin",
+  "types": "./types/index.d.ts",
+  "cordova": {
+    "id": "cordova-plugin-background-upload",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/cordova-plugin-device"
+  },
+  "keywords": [
+    "cordova",
+    "background"
+  ],
+  "scripts": {
+  },
+  "author": "Spoon Consulting Ltd",
+  "license": "Apache-2.0",
+  "engines": {
+    "cordovaDependencies": {
+      "2.0.0": {
+        "cordova": ">100"
+      }
+    }
+  },
+  "devDependencies": {
+  }
+}

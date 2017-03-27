@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+xmlns:android="http://schemas.android.com/apk/res/android"
+           id="cordova-plugin-background-upload"
+      version="0.0.1">
+    <name>Cordova Background Upload Plugin</name>
+
+    <description>Background Upload plugin for Cordova</description>
+    <license>ISC</license>
+    <keywords>cordova,background,file,download</keywords>
+
+    <dependency id="cordova-plugin-file" />
+
+    <js-module src="www/Promise.js" name="Promise">
+ 	</js-module>
+
+    <js-module src="www/FileTransferManager.js" name="FileTransferManager">
+        <clobbers target="FileTransferManager" />
+    </js-module>
+
+    <!-- android -->
+    <platform name="android">
+        <!-- Depend on v21 of appcompat-v7 support library -->
+        <framework src="com.android.support:appcompat-v7:21+" />
+        <framework src="net.gotev:uploadservice:3.2.3" />
+        <framework src="net.gotev:uploadservice-okhttp:3.2.3" />
+
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="FileTransferBackground" >
+                <param name="android-package" value="com.spoon.backgroundFileUpload.FileTransferBackground"/>
+            </feature>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+            <uses-permission android:name="android.permission.INTERNET" />
+        </config-file>
+
+
+ 
+
+        <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundFileUpload" />
+
+    </platform>
+    
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="FileTransferBackground" >
+                <param name="ios-package" value="FileTransferBackground"/>
+            </feature>
+        </config-file>
+
+        <header-file src="src/ios/FileTransferBackground.h" />
+        <header-file src="src/ios/AppDelegate+notification.h" />
+        <source-file src="src/ios/FileTransferBackground.m" />
+        <source-file src="src/ios/AppDelegate+notification.m" />
+    </platform>
+    
+</plugin>
