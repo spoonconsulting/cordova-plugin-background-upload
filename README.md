@@ -18,14 +18,14 @@ API provides an advanced file upload functionality that persists beyond app term
                 "timestamp": 112321321
             }
         };
-        var fileTransferManager = new FileTransferManager();
-        fileTransferManager.upload(payload).then(function (serverResponse) {
-            console.log('Success: ' + serverResponse);
-        }, function (err) {
-            console.log('Error: ' + err);
-        }, function (progress) {
-            console.log('upload progress: ' + progress);
-        });
+ var fileTransferManager = new FileTransferManager();
+ fileTransferManager.upload(payload).then(function (serverResponse) {
+        console.log('Success: ' + serverResponse);
+ }, function (err) {
+         console.log('Error: ' + err);
+  }, function (progress) {
+         console.log('upload progress: ' + progress);
+});
 
 ```
 
@@ -38,6 +38,6 @@ API provides an advanced file upload functionality that persists beyond app term
 
 
 **Supported platforms**
- * iOS 7.0 or later
+ * iOS (Work in progress)
  * Android
  
