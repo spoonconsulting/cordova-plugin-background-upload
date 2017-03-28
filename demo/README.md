@@ -1,16 +1,14 @@
 
 ### Instructions:
 
-Install the dependencies
+Install the dependencies and create a build folder named www
 ```bash
+$ sudo npm i -g ionic cordova --unsafe-perm
 $ npm i
+$ mkdir www
 ```
 
-Add the background upload plugin using the command below:
-
-```bash
-$ ionic plugin add https://github.com/spoonconsulting/cordova-plugin-background-uploader.git
-```
+Make sure you have install the latest android support libraries via SDK Manager.
 
 Then, to run it:
 
