@@ -4,9 +4,19 @@ interface FileUploadOptions {
     
     serverUrl: String;
 	filePath: String;
-	numberOfRetries: number;
+	numberOfRetries?: number;
+	headers?: any;
+	parameters?: any;
 }
 
 interface FileTransferManager {
+
 	upload(payload: FileUploadOptions);
 }
+
+
+declare var FileTransferManager: {
+	new (): FileTransferManager;
+    (): any;
+};
+declare var FileUploadOptions: FileUploadOptions;
