@@ -1,5 +1,6 @@
 import {
-  Component, NgZone
+  Component,
+  NgZone
 } from '@angular/core';
 
 import {
@@ -60,9 +61,21 @@ export class Media {
   zone: NgZone;
 
   constructor(url: String, private _ngZone: NgZone) {
-    this.uri = url;
+    this.uri = url.replace("file://",""); //android path needs to be cleaned
     this.status = "";
     this.zone = _ngZone;
+  }
+
+  updateStatus(stat: String) {
+    //in order to updates to propagate, we need be in anuglar zone
+    //more info here:
+    //https://www.joshmorony.com/understanding-zones-and-change-detection-in-ionic-2-angular-2/
+    //example where updates are made in angular zone:
+    //https://www.joshmorony.com/adding-background-geolocation-to-an-ionic-2-application/
+    this.zone.run(() => {
+      console.log(stat);
+      this.status = stat;
+    });
   }
 
   upload() {
@@ -73,7 +86,7 @@ export class Media {
       filePath: this.uri.replace("file://", ""),
       numberOfRetries: 1,
       headers: {
-        "a": "asd",
+        "clientKey": "343ssdfs34j3jwe",
         "apiKey": "testkey"
       },
       parameters: {
@@ -82,26 +95,18 @@ export class Media {
     };
 
     var self = this;
+
     new FileTransferManager().upload(options)
       .then(function (serverResponse: String) {
-         self.zone.run(() => {
-        console.log('Success: ' + serverResponse);
-        self.status = "successfully uploaded. server response=>"+serverResponse;
-        });
+        //the server response can be parse to an object using JSON.stringify(server)
+        //any custom error from the server like invalid signature can be handled here
+        //for example:
+        //if (JSON.stringify(server).errorMessage != null) { //server said something went wrong }
+        self.updateStatus("successfully uploaded. server response=>" + serverResponse);
       }, function (err) {
-         self.zone.run(() => {
-        console.log('Error: ' + err);
-        self.status = "upload error";
-        });
+        self.updateStatus("upload error");
       }, function (progress: number) {
-
-        self.zone.run(() => {
-          console.log('upload progress: ' + progress);
-           self.status = "uploading: " + progress + "%";
-     
-        });
-
-
+        self.updateStatus("uploading: " + progress + "%");
       });
 
   }

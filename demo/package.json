@@ -40,7 +40,8 @@
     "cordova-plugin-statusbar",
     "cordova-plugin-device",
     "cordova-plugin-splashscreen",
-    "ionic-plugin-keyboard"
+    "ionic-plugin-keyboard",
+    "cordova-plugin-image-picker"
   ],
   "cordovaPlatforms": [],
   "description": "upload_demo: An Ionic project"
