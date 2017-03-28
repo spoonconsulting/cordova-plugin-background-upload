@@ -1,0 +1,27 @@
+<ion-header>
+  <ion-navbar>
+    <ion-title>
+      File Uploader Sample
+    </ion-title>
+  </ion-navbar>
+</ion-header>
+
+<ion-content padding="">
+  <div class="gallery-button" text-center>
+    <ion-icon name="images" on-tap="openGallery()"></ion-icon>
+    <p>Select Photos</p>
+  </div>
+
+
+  <ion-list>
+    <ion-item *ngFor="let media of allMedia">
+
+      <img [src]="media.uri" style="width: 90px; height:auto;" />
+      <div class="item-text-center item-text-wrap">
+        <button ion-button color="secondary" (click)='upload(media);' style="width: 90px; height:50px;">Upload</button> 
+        {{media.status}}
+      </div>
+    </ion-item>
+  </ion-list>
+
+</ion-content>
