@@ -71,9 +71,13 @@ public class FileTransferBackground extends CordovaPlugin {
             @Override
             public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
 
-              LogMessage("App onCompleted");
-              LogMessage("server response : " + serverResponse.getBodyAsString());
-              callbackContext.success(serverResponse.getBodyAsString());
+              if (serverResponse.getHttpCode() >= 400 && serverResponse.getHttpCode() < 600 ){
+                callbackContext.error("server error code: "+ serverResponse.getHttpCode());
+              }else{
+                LogMessage("App onCompleted");
+                LogMessage("server response : " + serverResponse.getBodyAsString());
+                callbackContext.success(serverResponse.getBodyAsString());
+              }
             }
 
             @Override
