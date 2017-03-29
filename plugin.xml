@@ -23,8 +23,8 @@ xmlns:android="http://schemas.android.com/apk/res/android"
     <platform name="android">
         <!-- Depend on v21 of appcompat-v7 support library -->
         <!--<framework src="com.android.support:appcompat-v7:21+" />-->
-        <framework src="net.gotev:uploadservice:3.2.1" />
-        <framework src="net.gotev:uploadservice-okhttp:3.1" />
+        <framework src="net.gotev:uploadservice:3.2.3" />
+        <framework src="net.gotev:uploadservice-okhttp:3.2.3" />
 
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground" >
@@ -37,9 +37,6 @@ xmlns:android="http://schemas.android.com/apk/res/android"
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.INTERNET" />
         </config-file>
-
-
-
 
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundFileUpload" />
 

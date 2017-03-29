@@ -1,9 +1,13 @@
 
 ### Instructions:
 
-Install the dependencies and create a build folder named www
+Install ionic (minimum v2.2.2) and cordova (minimum v6.5.0)
 ```bash
 $ sudo npm i -g ionic cordova --unsafe-perm
+```
+
+Install the dependencies and create a build folder named www
+```bash
 $ npm i
 $ mkdir www
 ```
@@ -13,9 +17,8 @@ Make sure you have install the latest android support libraries via SDK Manager.
 Then, to run it:
 
 ```bash
-$ ionic platform add ios
-$ ionic run ios
+$ ionic platform add android
+$ ionic run android
 ```
 
-Substitute ios for android if not on a Mac.
 
