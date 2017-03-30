@@ -60,8 +60,13 @@
             
             opt.progress = { progress in
                 // DispatchQueue.main.async {}
+                let pluginResult = CDVPluginResult(status:  CDVCommandStatus_OK, messageAs: ["progress" : progress*100])
+                pluginResult!.keepCallback = true
+                self.commandDelegate!.send(
+                    pluginResult,
+                    callbackId: command.callbackId
+                )
 
-                self.returnResult(command, "progress: \(progress)")
             }
             /*
             opt.start { response in
