@@ -33,7 +33,7 @@
             let responseObject = try JSONSerialization.jsonObject(with: objectData!, options: []) as! [String:AnyObject]
             let uploadUrl  = responseObject["serverUrl"] as? String
             let filePath  = responseObject["filePath"] as? String
-
+            
             
             if uploadUrl == nil {
                 return self.returnResult(command, "invalid url", false)
@@ -44,14 +44,32 @@
             }
             
             let fileUrl = URL(fileURLWithPath: filePath!)
+            /*
+            //checking if server url exists
+            //synchronous operation blocks main thread
+            var response: URLResponse?
+            let url: URL = URL(string: uploadUrl!)!
+            let request = URLRequest(url: url)
+            _ = try NSURLConnection.sendSynchronousRequest(request, returning: &response)
+    
+            let httpResponse = response as? HTTPURLResponse
             
-            
+            if httpResponse == nil {
+                return self.returnResult(command, "server url not found", false)
+                
+            }else{
+                
+                if httpResponse!.statusCode == 404 {
+                    return self.returnResult(command, "server url not found", false)
+                }
+            }
+            */
             let opt = try HTTP.POST(uploadUrl!, parameters: ["upload_preset": "my2rjjsk", "file": Upload(fileUrl: fileUrl)])
             
             opt.onFinish = { response in
                 if let err = response.error {
                     print("error: \(err.localizedDescription)")
-                 
+                    
                     return self.returnResult(command, err.localizedDescription, false)
                     
                 }
@@ -69,15 +87,15 @@
                     pluginResult,
                     callbackId: command.callbackId
                 )
-
-            }
-            /*
-            opt.start { response in
-                // DispatchQueue.main.async {}
-                 self.returnResult(command, response.text ?? "")
                 
             }
-            */
+            /*
+             opt.start { response in
+             // DispatchQueue.main.async {}
+             self.returnResult(command, response.text ?? "")
+             
+             }
+             */
             
             operationQueue.addOperation(opt)
             
@@ -85,7 +103,7 @@
             print("got an error creating the request: \(error)")
             self.returnResult(command, "http request could not be created", false)
         }
-   
+        
     }
     
     func returnResult(_ command: CDVInvokedUrlCommand, _ msg: String, _ success:Bool = true){
