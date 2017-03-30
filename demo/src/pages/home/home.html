@@ -16,7 +16,7 @@
   <ion-list>
     <ion-item *ngFor="let media of allMedia">
 
-      <img [src]="media.uri" style="width: 90px; height:auto;" />
+      <img [src]="media.uri" style="width: 50px; height:auto;" />
       <div class="item-text-center item-text-wrap">
         <button ion-button color="secondary" (click)='upload(media);' style="width: 90px; height:50px;">Upload</button> 
         {{media.status}}
