@@ -6,9 +6,9 @@
     
     var operationQueue: OperationQueue {
         struct Static {
-            static let instance: OperationQueue = OperationQueue()
+            static let queue: OperationQueue = OperationQueue()
         }
-        return Static.instance
+        return Static.queue
     }
     
     
@@ -21,13 +21,9 @@
             return self.returnResult(command, "invalid payload", false)
         }
         
-        //let uploadUrl = "https://api.cloudinary.com/v1_1/foxfort/image/upload"
         // let uploadUrl = "http://requestb.in/1b9i7lf1"
         //"http://httpbin.org/post"
         
-        
-        let path_img = Bundle.main.path(forResource: "3mb", ofType: "jpg")
-        let fileUrl = URL(fileURLWithPath: path_img!)
         
         operationQueue.maxConcurrentOperationCount = 1
         
@@ -36,12 +32,19 @@
             let objectData = settingsString!.data(using: String.Encoding.utf8)
             let responseObject = try JSONSerialization.jsonObject(with: objectData!, options: []) as! [String:AnyObject]
             let uploadUrl  = responseObject["serverUrl"] as? String
+            let filePath  = responseObject["filePath"] as? String
+
             
             if uploadUrl == nil {
-             
                 return self.returnResult(command, "invalid url", false)
-
             }
+            
+            if filePath == nil {
+                return self.returnResult(command, "file path is required ", false)
+            }
+            
+            let fileUrl = URL(fileURLWithPath: filePath!)
+            
             
             let opt = try HTTP.POST(uploadUrl!, parameters: ["upload_preset": "my2rjjsk", "file": Upload(fileUrl: fileUrl)])
             
