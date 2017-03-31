@@ -41,13 +41,11 @@ FileTransferManager.prototype.upload = function (uploadSettings) {
     throw new Error("uploadSettings object is missing or invalid argument");
   }
 
-  if (isOnDevice() ) {
+  if (isOnDevice()) {
     console.log("Running on device!");
-} else {
-     console.log("running on browser!");
-}
-//console.log(require('superagent'))
-//return;
+  } else {
+    console.log("running on browser!");
+  }
 
   this.uploadSettings = uploadSettings;
 
@@ -68,8 +66,8 @@ FileTransferManager.prototype.upload = function (uploadSettings) {
     errorCallback = function (err) {
       deferral.reject(err);
     };
-  var settingsString = JSON.stringify(this.uploadSettings);
-  exec(successCallback, errorCallback, "FileTransferBackground", "startUpload", [isOnDevice() ? settingsString: this.uploadSettings]);
+
+  exec(successCallback, errorCallback, "FileTransferBackground", "startUpload", [isOnDevice() ? JSON.stringify(this.uploadSettings) : this.uploadSettings]);
 
   // custom mechanism to trigger stop when user cancels pending operation
   deferral.promise.onCancelled = function () {
@@ -81,10 +79,10 @@ FileTransferManager.prototype.upload = function (uploadSettings) {
 
 
 function isOnDevice() {
-    //return (window.cordova || window.PhoneGap || window.phonegap) 
-    //&& /^file:\/{3}[^\/]/i.test(window.location.href) 
-   // && 
-    return /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
+  //return (window.cordova || window.PhoneGap || window.phonegap) 
+  //&& /^file:\/{3}[^\/]/i.test(window.location.href) 
+  // && 
+  return /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
 }
 
 
