@@ -81,9 +81,10 @@ FileTransferManager.prototype.upload = function (uploadSettings) {
 
 
 function isOnDevice() {
-    return (window.cordova || window.PhoneGap || window.phonegap) 
-    && /^file:\/{3}[^\/]/i.test(window.location.href) 
-    && /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
+    //return (window.cordova || window.PhoneGap || window.phonegap) 
+    //&& /^file:\/{3}[^\/]/i.test(window.location.href) 
+   // && 
+    return /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
 }
 
 
