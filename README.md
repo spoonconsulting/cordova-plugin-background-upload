@@ -1,8 +1,7 @@
-Cordova Background Upload Plugin  for Apache Cordova
 
-==================================
 
-API provides an advanced file upload functionality that persists beyond app termination, runs in the background and continues even when the user closed/suspended the application. The plugin includes progress updates and primarily designed for long-term transfer operations for resources like video, music, and large images.
+**Background Upload Plugin  for Apache Cordova**
+This plugin provides an advanced file upload functionality that persists beyond app termination(android), runs in the background and continues even when the user closed/suspended the application. The plugin includes progress updates and primarily designed for long-term transfer operations for resources like video, music, and large images.
 
 **Sample usage**
 
@@ -37,8 +36,9 @@ API provides an advanced file upload functionality that persists beyond app term
  * custom parameters for multipart data
 
 
+ ## iOS
+The iOS API is supported on ios 9.0 and above. It is built upon [SwiftHttp](https://github.com/daltoniam/SwiftHTTP)
 
-**Supported platforms**
- * iOS (Work in progress)
- * Android
+## Android
+The minimum api level require is 21 and the background file upload is handled by the [android-upload-service](https://github.com/gotev/android-upload-service) library.
  

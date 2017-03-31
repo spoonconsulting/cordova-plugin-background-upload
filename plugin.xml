@@ -30,15 +30,6 @@
     </platform>
     <platform name="ios">
         <config-file target="config.xml" parent="/*">
-            <!--<feature name="FileTransferBackground" >
-                <param name="ios-package" value="FileTransferBackground"/>
-            </feature>
-        </config-file>
-
-        <header-file src="src/ios/FileTransferBackground.h" />
-        <header-file src="src/ios/AppDelegate+notification.h" />
-        <source-file src="src/ios/FileTransferBackground.m" />
-        <source-file src="src/ios/AppDelegate+notification.m" />-->
             <feature name="FileTransferBackground">
                 <param name="ios-package" value="FileTransferBackground" />
             </feature>
