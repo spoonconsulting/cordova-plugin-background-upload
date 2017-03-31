@@ -1,9 +1,7 @@
-//import SwiftHTTP
 
 @objc(FileTransferBackground) class FileTransferBackground : CDVPlugin {
     
-    //static let operationQueue = OperationQueue()
-    
+
     var operationQueue: OperationQueue {
         struct Static {
             static let queue: OperationQueue = OperationQueue()
@@ -21,10 +19,6 @@
             return self.returnResult(command, "invalid payload", false)
         }
         
-        // let uploadUrl = "http://requestb.in/1b9i7lf1"
-        //"http://httpbin.org/post"
-        
-        
         operationQueue.maxConcurrentOperationCount = 1
         
         do {
@@ -33,7 +27,8 @@
             let responseObject = try JSONSerialization.jsonObject(with: objectData!, options: []) as! [String:AnyObject]
             let uploadUrl  = responseObject["serverUrl"] as? String
             let filePath  = responseObject["filePath"] as? String
-            
+            let headers = responseObject["headers"] as? [String: String]
+            var parameters = responseObject["parameters"] as? [String: AnyObject]
             
             if uploadUrl == nil {
                 return self.returnResult(command, "invalid url", false)
@@ -43,7 +38,15 @@
                 return self.returnResult(command, "file path is required ", false)
             }
             
-            let fileUrl = URL(fileURLWithPath: filePath!)
+            
+            if !FileManager.default.fileExists(atPath: filePath!) {
+              return self.returnResult(command, "file does not exists", false)
+            }
+            
+            if parameters == nil {
+                parameters = [:]
+            }
+            
             /*
             //checking if server url exists
             //synchronous operation blocks main thread
@@ -64,7 +67,8 @@
                 }
             }
             */
-            let opt = try HTTP.POST(uploadUrl!, parameters: ["upload_preset": "my2rjjsk", "file": Upload(fileUrl: fileUrl)])
+            parameters!["file"] = Upload(fileUrl: URL(fileURLWithPath: filePath!))
+            let opt = try HTTP.POST(uploadUrl!, parameters: parameters, headers: headers)
             
             opt.onFinish = { response in
                 if let err = response.error {
@@ -80,7 +84,7 @@
             }
             
             opt.progress = { progress in
-                // DispatchQueue.main.async {}
+                
                 let pluginResult = CDVPluginResult(status:  CDVCommandStatus_OK, messageAs: ["progress" : progress*100])
                 pluginResult!.keepCallback = true
                 self.commandDelegate!.send(
@@ -91,9 +95,7 @@
             }
             /*
              opt.start { response in
-             // DispatchQueue.main.async {}
              self.returnResult(command, response.text ?? "")
-             
              }
              */
             

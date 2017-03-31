@@ -67,7 +67,7 @@ export class Media {
   }
 
   updateStatus(stat: String) {
-    //in order to updates to propagate, we need be in anuglar zone
+    //in order to updates to propagate, we need be in angular zone
     //more info here:
     //https://www.joshmorony.com/understanding-zones-and-change-detection-in-ionic-2-angular-2/
     //example where updates are made in angular zone:
@@ -82,7 +82,7 @@ export class Media {
     this.status = "uploading"
 
     var options: any = {
-      serverUrl: "http://requestb.in/14cizzj1",
+      serverUrl: "http://requestb.in/1b9i7lf1", //"http://httpbin.org/post"
       filePath: this.uri.replace("file://", ""),
       numberOfRetries: 1,
       headers: {
