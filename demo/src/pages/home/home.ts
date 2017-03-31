@@ -82,7 +82,7 @@ export class Media {
     this.status = "uploading"
 
     var options: any = {
-      serverUrl: "http://requestb.in/1b9i7lf1", //"http://httpbin.org/post"
+      serverUrl: "http://requestb.in/14r2ght1", //"http://httpbin.org/post"
       filePath: this.uri.replace("file://", ""),
       numberOfRetries: 1,
       headers: {

@@ -68,9 +68,9 @@
                             return self.returnResult(command, err.localizedDescription, false)
                             
                         }
-                        print("opt finished: \(response.description)")
+                        //print("opt finished: \(response.description)")
                         
-                        self.returnResult(command, "finished")
+                        self.returnResult(command, response.text ?? "")
                         
                     }
                     
