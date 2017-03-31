@@ -20,12 +20,12 @@
 
       var request = window.superagent;
       request.post('https://api.cloudinary.com/v1_1/tyets/upload')
-        //.set('Content-Type', 'application/json')
-        //.send('{"name":"tj","pet":"tobi"}')
-        .field('upload_preset', 'my2rjjsk')
+        .set(payload.headers != null ? payload.headers : {})
+        .field(payload.parameters != null ? payload.parameters : {})
+        //.field('upload_preset', 'my2rjjsk')
         .on('progress', function (e) {
           console.log('Percentage done: ', e.percent);
-          if (e.percent != null)
+          if (e.percent != null && e.percent != undefined)
             successCb({
               progress: e.percent
             });
