@@ -43,4 +43,17 @@
         <source-file src="src/ios/SwiftHTTP.modulemap" />
         <header-file src="src/ios/SwiftHTTP-umbrella.h" />
     </platform>
+
+    <platform name="browser">
+        <config-file target="config.xml" parent="/*">
+            <feature name="FileTransferBackground">
+                <param name="browser-package" value="FileTransferBackground" />
+            </feature>
+        </config-file>
+
+        <js-module src="src/browser/FileTransferBackgroundProxy.js" name="FileTransferBackgroundProxy">
+            <runs />
+        </js-module>
+    </platform>
+
 </plugin>

@@ -1,6 +1,7 @@
 
 
 **Background Upload Plugin  for Apache Cordova**
+
 This plugin provides an advanced file upload functionality that persists beyond app termination(android), runs in the background and continues even when the user closed/suspended the application. The plugin includes progress updates and primarily designed for long-term transfer operations for resources like video, music, and large images.
 
 **Sample usage**

@@ -8,7 +8,8 @@
     "id": "cordova-plugin-background-upload",
     "platforms": [
       "android",
-      "ios"
+      "ios",
+      "browser"
     ]
   },
   "repository": {
