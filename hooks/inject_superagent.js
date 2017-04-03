@@ -9,9 +9,11 @@ var path = require('path');
 
 try {
  
-  var indexPath = path.resolve(__dirname, "../../../", "platforms/browser/index.html");
+  var indexPath = path.resolve(__dirname, "../../../", "src/index.html");
 
   if (!fs.existsSync(indexPath)) {
+    console.log("could not find index.html..add the following script tag to load superagent.js manually");
+    console.log('<script src="https://cdnjs.cloudflare.com/ajax/libs/superagent/3.5.2/superagent.js"></script>');
     return
   }
   var html = fs.readFileSync(indexPath, 'utf8');

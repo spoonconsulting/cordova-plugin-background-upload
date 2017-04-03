@@ -11,7 +11,6 @@
         <clobbers target="FileTransferManager" />
     </js-module>
     <hook type="after_plugin_install" src="hooks/inject_superagent.js" />
-    <!-- android -->
     <platform name="android">
         <framework src="net.gotev:uploadservice:3.2.3" />
         <framework src="net.gotev:uploadservice-okhttp:3.2.3" />
@@ -53,6 +52,7 @@
         <js-module src="src/browser/FileTransferBackgroundProxy.js" name="FileTransferBackgroundProxy">
             <runs />
         </js-module>
+        
     </platform>
 
 </plugin>
