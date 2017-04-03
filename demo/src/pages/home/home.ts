@@ -12,13 +12,11 @@ import {
 import {
   Platform
 } from 'ionic-angular';
-/*
+
 import {
   FileTransferManager, FileUploadOptions
 } from '../../../plugins/cordova-plugin-background-upload';
-*/
-declare var FileTransferManager: any;
-declare var FileUploadOptions: any;
+
 
 @Component({
   selector: 'page-home',
@@ -33,7 +31,6 @@ export class HomePage {
   constructor(private platform: Platform, private _navCtrl: NavController, private _ngZone: NgZone) {
 
     this.isMobile = this.isOnDevice();
-
   }
 
   private openGallery(): void {

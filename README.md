@@ -24,6 +24,8 @@ cordova plugin rm cordova-plugin-background-upload
 **Sample usage**
 
 ```javascript
+import { FileTransferManager, FileUploadOptions } from '../../../plugins/cordova-plugin-background-upload';
+
  var payload = {
      "filePath": "/storage/emulated/0/Download/Heli.divx", //only on mobile
      "file": fileObject, //the file object obtained from an input type='file'. application only on browsers
@@ -80,4 +82,4 @@ The plugin runs on ios 9.0 and above. Internally it uses the swift library [Swif
 The minimum api level require is 21 and the background file upload is handled by the [android-upload-service](https://github.com/gotev/android-upload-service) library.
 
 ## License
-Cordova-plugin-backgroun-upload is licensed under the Apache v2 License.
+Cordova-plugin-background-upload is licensed under the Apache v2 License.
