@@ -6,7 +6,7 @@
       // }
 
       var payload = params[0];
-      if (payload.serverUrl == null) {
+      //if (payload.serverUrl == null) {
       //   return errorCb("server url is required");
       // }
 
