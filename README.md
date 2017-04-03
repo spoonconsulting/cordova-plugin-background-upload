@@ -13,7 +13,7 @@ This plugin provides an advanced file upload functionality that persists beyond 
 
 To add this plugin to your project using cordova cli
 ```
-cordova plugin add https://github.com/spoonconsulting/cordova-plugin-background-uploader.git
+cordova plugin add https://github.com/spoonconsulting/cordova-plugin-background-upload.git
 ```
 
 To uninstall this plugin
