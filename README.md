@@ -8,9 +8,9 @@ This plugin provides an advanced file upload functionality that persists beyond 
 
 ```javascript
  var payload = {
-            "filePath": "/storage/emulated/0/Download/Heli.divx",
+            "filePath": "/storage/emulated/0/Download/Heli.divx", //only on mobile
+            "file" : fileObject, //the file object obtained from an input type='file'. application only on browsers
             "serverUrl": "http://requestb.in/14cizzj1",
-            "numberOfRetries" : 2,
             "headers": {
                 "api_key": "asdasdwere123sad"
             },

@@ -33,18 +33,13 @@
   /**
    * Initializes an upload Operation object that contains the specified Uri.
    *
-   * @param {string} uri The location of the resource.
-   * @param {File} resultFile The file that the response will be written to.
+   * @param {Any} payload The settings for the upload
    */
   FileTransferManager.prototype.upload = function (payload) {
 
-
-    var opt = {
-      keepCallback: true
-    };
     var deferral = new Promise.Deferral(),
       me = this,
-      successCallback = function (result, opt) {
+      successCallback = function (result) {
 
         // success callback is used to both report operation progress and
         // as operation completeness handler
