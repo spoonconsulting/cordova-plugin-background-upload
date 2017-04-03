@@ -6,20 +6,27 @@
   </ion-navbar>
 </ion-header>
 
-<ion-content padding="">
-  <div class="gallery-button" text-center>
+<ion-content padding="" >
+  <div class="gallery-button" text-center [hidden]="!isMobile">
     <ion-icon name="images" on-tap="openGallery()"></ion-icon>
     <p>Select Photos</p>
   </div>
 
+  <form action="http://remote-domain.com/script.pl" enctype="multipart/form-data" method="post" name="fname" [hidden]="isMobile">
+    <input type="file" name="file" accept="image/*" >
+  </form>
 
-  <ion-list>
+  <div class="item-text-center item-text-wrap" [hidden]="isMobile">
+    <button ion-button color="secondary" (click)='uploadDesktopFile();' style="width: 80px; height:30px;">Upload</button> 
+    {{desktopStatus}}
+  </div>
+
+  <ion-list [hidden]="!isMobile">
     <ion-item *ngFor="let media of allMedia">
 
       <img [src]="media.uri" style="width: 50px; height:auto;" />
       <div class="item-text-center item-text-wrap">
-        <button ion-button color="secondary" (click)='upload(media);' style="width: 80px; height:30px;">Upload</button> 
-        {{media.status}}
+        <button ion-button color="secondary" (click)='upload(media);' style="width: 80px; height:30px;">Upload</button> {{media.status}}
       </div>
     </ion-item>
   </ion-list>

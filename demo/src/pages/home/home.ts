@@ -9,7 +9,9 @@ import {
 import {
   ImagePicker
 } from 'ionic-native';
-
+import {
+  Platform
+} from 'ionic-angular';
 /*
 import {
   FileTransferManager, FileUploadOptions
@@ -17,19 +19,29 @@ import {
 */
 declare var FileTransferManager: any;
 declare var FileUploadOptions: any;
+
+
+
 @Component({
   selector: 'page-home',
   templateUrl: 'home.html'
 })
 export class HomePage {
 
-  allMedia: Array < Media > = []
+  allMedia: Array < Media > = [];
+  isMobile: Boolean = true;
+  desktopStatus: String = "";
 
-  constructor(private _navCtrl: NavController, private _ngZone: NgZone) {
+  constructor(private platform: Platform, private _navCtrl: NavController, private _ngZone: NgZone) {
+
+    //platform.ready().then(() => {
+    this.isMobile = this.isOnDevice();
+    //});
 
   }
 
   private openGallery(): void {
+
     let options = {
       maximumImagesCount: 3
     }
@@ -43,9 +55,54 @@ export class HomePage {
       },
       err => console.log('err: ' + err)
     );
+
+
+
   }
 
+  uploadDesktopFile() {
+    if (document.forms['fname']['file'].files.length == 0) {
 
+      return alert("please select a file to upload");
+    }
+
+    var desktopFile = document.forms['fname']['file'].files[0];
+
+    console.log(desktopFile)
+    var options: any = {
+      serverUrl: "https://api.cloudinary.com/v1_1/foxfort/upload", //"http://httpbin.org/post"
+      file: desktopFile,
+      // headers: {
+      //   "clientKey": "343ssdfs34j3jwe",
+      //   "apiKey": "testkey"
+      // },
+      parameters: {
+        "upload_preset": "my2rjjsk"
+      }
+    };
+    this.desktopStatus = "uplaoding " + desktopFile.name;
+    var self = this;
+    new FileTransferManager().upload(options)
+      .then(function (serverResponse: String) {
+        //the server response can be parse to an object using JSON.stringify(server)
+        //any custom error from the server like invalid signature can be handled here
+        //for example:
+        //if (JSON.stringify(server).errorMessage != null) { //server said something went wrong }
+        alert("upload completed successfully");
+      }, function (err) {
+        alert('error while uploading: ' + err);
+      }, function (progress: number) {
+        console.log('Percentage done phonegap: ', progress);
+        self._ngZone.run(() => {
+          self.desktopStatus = "uploading " + desktopFile.name + " progress: " + progress;
+        });
+      });
+  }
+
+ isOnDevice() {
+  
+  return /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
+}
 
   upload(media: Media) {
     media.upload();
@@ -61,7 +118,7 @@ export class Media {
   zone: NgZone;
 
   constructor(url: String, private _ngZone: NgZone) {
-    this.uri = url.replace("file://",""); //android path needs to be cleaned
+    this.uri = url.replace("file://", ""); //android path needs to be cleaned
     this.status = "";
     this.zone = _ngZone;
   }
@@ -82,7 +139,7 @@ export class Media {
     this.status = "uploading"
 
     var options: any = {
-      serverUrl: "http://requestb.in/14r2ght1", //"http://httpbin.org/post"
+      serverUrl: "http://requestb.in/1j0i9en1", //"http://httpbin.org/post"
       filePath: this.uri.replace("file://", ""),
       numberOfRetries: 1,
       headers: {

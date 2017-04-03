@@ -1,6 +1,5 @@
-module.exports = {
+ module.exports = {
     startUpload: function (successCb, errorCb, params) {
-
 
       var payload = params[0];
       var request = window.superagent;
@@ -8,13 +7,15 @@ module.exports = {
         .set(payload.headers != null ? payload.headers : {})
         .field(payload.parameters != null ? payload.parameters : {})
         .on('progress', function (e) {
-          console.log('Percentage done: ', e.percent);
-          if (e.percent != null && e.percent != undefined)
+          
+          if (e.percent != null && e.percent != undefined){
             successCb({
               progress: e.percent
-            });
+            },{keepCallback:true});
+          }
+            
         })
-        .attach('file', payload.filePath)
+        .attach('file', payload.file)
         .end(function (err, res) {
           if (err != null) {
             errorCb(err);
@@ -25,7 +26,5 @@ module.exports = {
         });
     }
   };
-
-
 
   require("cordova/exec/proxy").add("FileTransferBackground", module.exports);
