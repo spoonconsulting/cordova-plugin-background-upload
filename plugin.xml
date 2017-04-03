@@ -10,7 +10,7 @@
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
         <clobbers target="FileTransferManager" />
     </js-module>
-     <hook type="after_plugin_add" src="hooks/after_plugin_add.js" />
+    <hook type="after_plugin_install" src="hooks/inject_superagent.js" />
     <!-- android -->
     <platform name="android">
         <framework src="net.gotev:uploadservice:3.2.3" />
