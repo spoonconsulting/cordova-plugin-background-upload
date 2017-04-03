@@ -8,9 +8,7 @@ var fs = require('fs');
 var path = require('path');
 
 try {
-  console.log("Running hook: " + path.resolve());
-  console.log(path.resolve(__dirname, "../../../", "platforms/browser/index.html"));
-
+ 
   var indexPath = path.resolve(__dirname, "../../../", "platforms/browser/index.html");
 
   if (!fs.existsSync(indexPath)) {
