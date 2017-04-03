@@ -59,7 +59,7 @@ export class HomePage {
     }
 
     var desktopFile = document.forms['fname']['file'].files[0];
-    var options: any = {
+    var options: FileUploadOptions = {
       serverUrl: "http://httpbin.org/post",
       file: desktopFile,
       headers: {
@@ -127,10 +127,9 @@ export class Media {
   upload() {
     this.status = "uploading"
 
-    var options: any = {
+    var options: FileUploadOptions = {
       serverUrl: "http://requestb.in/1j0i9en1", //"http://httpbin.org/post"
       filePath: this.uri.replace("file://", ""),
-      numberOfRetries: 1,
       headers: {
         "clientKey": "343ssdfs34j3jwe",
         "apiKey": "testkey"
