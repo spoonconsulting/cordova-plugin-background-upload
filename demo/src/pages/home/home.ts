@@ -20,8 +20,6 @@ import {
 declare var FileTransferManager: any;
 declare var FileUploadOptions: any;
 
-
-
 @Component({
   selector: 'page-home',
   templateUrl: 'home.html'
@@ -34,9 +32,7 @@ export class HomePage {
 
   constructor(private platform: Platform, private _navCtrl: NavController, private _ngZone: NgZone) {
 
-    //platform.ready().then(() => {
     this.isMobile = this.isOnDevice();
-    //});
 
   }
 
@@ -49,7 +45,6 @@ export class HomePage {
     ImagePicker.getPictures(options).then(
       file_uris => {
         for (var i = 0; i < file_uris.length; i++) {
-          console.log('Image URI: ' + file_uris[i]);
           this.allMedia.push(new Media(file_uris[i], this._ngZone));
         }
       },
@@ -67,15 +62,13 @@ export class HomePage {
     }
 
     var desktopFile = document.forms['fname']['file'].files[0];
-
-    console.log(desktopFile)
     var options: any = {
-      serverUrl: "https://api.cloudinary.com/v1_1/foxfort/upload", //"http://httpbin.org/post"
+      serverUrl: "http://httpbin.org/post",
       file: desktopFile,
-      // headers: {
-      //   "clientKey": "343ssdfs34j3jwe",
-      //   "apiKey": "testkey"
-      // },
+      headers: {
+        "clientKey": "343ssdfs34j3jwe",
+        "apiKey": "testkey"
+      },
       parameters: {
         "upload_preset": "my2rjjsk"
       }
@@ -86,7 +79,7 @@ export class HomePage {
       .then(function (serverResponse: String) {
         //the server response can be parse to an object using JSON.stringify(server)
         //any custom error from the server like invalid signature can be handled here
-        //for example:
+        //for example, of your server returns a key 'errorMessage', you can access it as follows:
         //if (JSON.stringify(server).errorMessage != null) { //server said something went wrong }
         alert("upload completed successfully");
       }, function (err) {
@@ -100,7 +93,6 @@ export class HomePage {
   }
 
  isOnDevice() {
-  
   return /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
 }
 
@@ -157,7 +149,7 @@ export class Media {
       .then(function (serverResponse: String) {
         //the server response can be parse to an object using JSON.stringify(server)
         //any custom error from the server like invalid signature can be handled here
-        //for example:
+        //for example, of your server returns a key 'errorMessage', you can access it as follows:
         //if (JSON.stringify(server).errorMessage != null) { //server said something went wrong }
         self.updateStatus("successfully uploaded. server response=>" + serverResponse);
       }, function (err) {

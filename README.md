@@ -1,8 +1,7 @@
 
+## Background Upload Plugin for Cordova
 
-**Background Upload Plugin for Cordova**
-
-This plugin provides an advanced file upload functionality that persists beyond app termination(android), runs in the background and continues even when the user closed/suspended the application. The plugin includes progress updates and primarily designed for long-term transfer operations for resources like video, music, and large images. Due to platform limitations, only 1 concurrent upload is possible at any time.
+This plugin provides an advanced file upload functionality that persists beyond app termination(android), runs in the background and continues even when the user suspended the application. The plugin includes progress updates and primarily designed for long-term transfer operations for resources like video, music, and large images. Due to platform limitations, only 1 concurrent upload is possible at any time.
 
 **Supported Platforms**
 - iOS
