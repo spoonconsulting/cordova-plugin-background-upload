@@ -11,6 +11,7 @@ This plugin provides an advanced file upload functionality that persists beyond 
 
 
 **Installation**
+
 To add this plugin to your project using cordova cli
 ```
 cordova plugin add https://github.com/spoonconsulting/cordova-plugin-background-uploader.git
@@ -74,8 +75,10 @@ If you cannot upload via your browser, please make sure the js has been properly
 </head>
 ```
  ## iOS
-The iOS API is supported on ios 9.0 and above. It is built upon [SwiftHttp](https://github.com/daltoniam/SwiftHTTP)
+The plugin runs on ios 9.0 and above. Internally it uses the swift library [SwiftHttp](https://github.com/daltoniam/SwiftHTTP)
 
 ## Android
 The minimum api level require is 21 and the background file upload is handled by the [android-upload-service](https://github.com/gotev/android-upload-service) library.
- 
+
+## License
+Cordova-plugin-backgroun-upload is licensed under the Apache v2 License.
