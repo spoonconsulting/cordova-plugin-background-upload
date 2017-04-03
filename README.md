@@ -24,8 +24,7 @@ cordova plugin rm cordova-plugin-background-upload
 **Sample usage**
 
 ```javascript
-import { FileTransferManager, FileUploadOptions } from '../../../plugins/cordova-plugin-background-upload';
-
+ declare var FileTransferManager: any;
  var payload = {
      "filePath": "/storage/emulated/0/Download/Heli.divx", //only on mobile
      "file": fileObject, //the file object obtained from an input type='file'. application only on browsers
