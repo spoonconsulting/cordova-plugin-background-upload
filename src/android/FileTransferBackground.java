@@ -44,7 +44,6 @@ public class FileTransferBackground extends CordovaPlugin {
 
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.serverUrl)//"https://api-de.cloudinary.com/v1_1/hclcistqq/auto/upload")
           .addFileToUpload(payload.filePath, "file")
-          .setMaxRetries(payload.numRetries)
           .setDelegate(new UploadStatusDelegate() {
             @Override
             public void onProgress(Context context, UploadInfo uploadInfo) {
@@ -116,8 +115,6 @@ class FileTransferSettings {
 
   String filePath = "";
   String serverUrl = "";
-  int numRetries = 0;
-
 
   HashMap<String, String> headers = new HashMap<String, String>();
   HashMap<String, String> parameters = new HashMap<String, String>();
@@ -130,8 +127,7 @@ class FileTransferSettings {
 
       filePath = settings.getString("filePath");
       serverUrl = settings.getString("serverUrl");
-      numRetries = settings.getInt("numberOfRetries");
-
+     
       JSONObject headersObject = settings.getJSONObject("headers");
       if (headersObject != null) {
 

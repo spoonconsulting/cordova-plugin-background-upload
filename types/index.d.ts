@@ -4,7 +4,7 @@ interface FileUploadOptions {
     
     serverUrl: String;
 	filePath: String;
-	numberOfRetries?: number;
+	file?: Any; 
 	headers?: any;
 	parameters?: any;
 }
