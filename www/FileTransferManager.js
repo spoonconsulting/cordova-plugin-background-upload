@@ -35,19 +35,9 @@ var FileTransferManager = function () {
  * @param {string} uri The location of the resource.
  * @param {File} resultFile The file that the response will be written to.
  */
-FileTransferManager.prototype.upload = function (uploadSettings) {
+FileTransferManager.prototype.upload = function (payload) {
 
-  if (uploadSettings == null) {
-    throw new Error("uploadSettings object is missing or invalid argument");
-  }
 
-  if (isOnDevice()) {
-    console.log("Running on device!");
-  } else {
-    console.log("running on browser!");
-  }
-
-  this.uploadSettings = uploadSettings;
 
   var deferral = new Promise.Deferral(),
     me = this,
@@ -67,7 +57,25 @@ FileTransferManager.prototype.upload = function (uploadSettings) {
       deferral.reject(err);
     };
 
-  exec(successCallback, errorCallback, "FileTransferBackground", "startUpload", [isOnDevice() ? JSON.stringify(this.uploadSettings) : this.uploadSettings]);
+
+  if (payload == null) {
+    return errorCallback("upload settings object is missing or invalid argument");
+  }
+
+  if (payload.serverUrl == null) {
+    return errorCallback("server url is required");
+  }
+
+  if (payload.serverUrl.trim() == '') {
+    return errorCallback("invalid server url");
+  }
+
+  if (!isOnDevice() && payload.file == null) {
+    return errorCallback("file is required");
+  }
+
+
+  exec(successCallback, errorCallback, "FileTransferBackground", "startUpload", [isOnDevice() ? JSON.stringify(payload) : payload]);
 
   // custom mechanism to trigger stop when user cancels pending operation
   deferral.promise.onCancelled = function () {

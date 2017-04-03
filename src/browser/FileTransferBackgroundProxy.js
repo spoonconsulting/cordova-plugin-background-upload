@@ -1,22 +1,22 @@
   module.exports = {
     startUpload: function (successCb, errorCb, params) {
 
-      if (params[0] == null) {
-        return errorCb("invalid payload");
-      }
+      // if (params[0] == null) {
+      //   return errorCb("invalid payload");
+      // }
 
       var payload = params[0];
       if (payload.serverUrl == null) {
-        return errorCb("server url is required");
-      }
+      //   return errorCb("server url is required");
+      // }
 
-      if (payload.serverUrl.trim() == '') {
-        return errorCb("invalid server url");
-      }
+      // if (payload.serverUrl.trim() == '') {
+      //   return errorCb("invalid server url");
+      // }
 
-      if (payload.filePath == null) {
-        return errorCb("server url is required");
-      }
+      // if (payload.file == null) {
+      //   return errorCb("file is required");
+      // }
 
       var request = window.superagent;
       request.post('https://api.cloudinary.com/v1_1/tyets/upload')
