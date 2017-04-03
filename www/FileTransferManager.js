@@ -59,19 +59,23 @@ FileTransferManager.prototype.upload = function (payload) {
 
 
   if (payload == null) {
-    return errorCallback("upload settings object is missing or invalid argument");
+    errorCallback("upload settings object is missing or invalid argument");
+    return deferral.promise;
   }
 
   if (payload.serverUrl == null) {
-    return errorCallback("server url is required");
+    errorCallback("server url is required");
+    return deferral.promise;
   }
 
   if (payload.serverUrl.trim() == '') {
-    return errorCallback("invalid server url");
+    errorCallback("invalid server url");
+    return deferral.promise;
   }
 
   if (!isOnDevice() && payload.file == null) {
-    return errorCallback("file is required");
+    errorCallback("file is required");
+    return deferral.promise;
   }
 
 
