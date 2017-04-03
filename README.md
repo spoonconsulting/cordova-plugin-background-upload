@@ -62,7 +62,7 @@ Supports the following browsers:
 - Latest Firefox, Chrome, Safari
 - IE10 through latest
 
-For this platform, a hook is used to inject the superagent.js into your index.html which noramlly should be present into src/index.html.
+For this platform, a hook is used to inject the superagent.js into your index.html which normally should be present into src/ folder.
 If you cannot upload via your browser, please make sure the js has been properly injected in your index.html file. If it has not, add it manually into the head tag:
 
 ```html
