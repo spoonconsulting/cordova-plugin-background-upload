@@ -14,11 +14,23 @@ $ mkdir www
 
 Make sure you have install the latest android support libraries via SDK Manager.
 
-Then, to run it:
+Then, to run it on android:
 
 ```bash
 $ ionic platform add android
 $ ionic run android
+```
+
+For ios:
+```bash
+$ ionic platform add ios
+$ ionic run ios
+```
+
+To run on your browser
+```
+$ ionic platform add browser
+$ ionic run browser
 ```
 
 
