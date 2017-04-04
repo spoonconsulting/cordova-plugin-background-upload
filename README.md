@@ -11,9 +11,12 @@ This plugin provides an advanced file upload functionality that persists beyond 
 
 **Installation**
 
-To add this plugin to your project using cordova cli
+The preferred method for installing the plugin is via [`cordova-fetch` feature](https://cordova.apache.org/news/2016/05/24/tools-release.html), added in `cordova@6.2.0`, which is used to resolve the dependencies for this plugin.
+
+To install the plugin with its dependencies, use the `--fetch` argument:
+
 ```
-cordova plugin add https://github.com/spoonconsulting/cordova-plugin-background-upload.git
+cordova plugin add https://github.com/spoonconsulting/cordova-plugin-background-upload.git --fetch --save
 ```
 
 To uninstall this plugin
