@@ -1,9 +1,9 @@
-
 {
   "name": "cordova-plugin-background-upload",
   "version": "0.0.1",
   "description": "Cordova Background Upload Plugin",
   "types": "./types/index.d.ts",
+  "main": "dist/backgroundupload.min.js",
   "cordova": {
     "id": "cordova-plugin-background-upload",
     "platforms": [
@@ -21,10 +21,11 @@
     "background"
   ],
   "scripts": {
+    "build": "webpack"
   },
-   "dependencies": {
+  "dependencies": {
     "cheerio": "0.22.0"
-   },
+  },
   "author": "Spoon Consulting Ltd",
   "license": "Apache-2.0",
   "engines": {
@@ -35,5 +36,8 @@
     }
   },
   "devDependencies": {
+    "coffee-loader": "0.7.3",
+    "superagent": "3.5.2",
+    "webpack": "2.3.3"
   }
 }
