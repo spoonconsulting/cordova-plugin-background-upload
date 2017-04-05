@@ -4,7 +4,6 @@
     <description>Background Upload plugin for Cordova</description>
     <license>ISC</license>
     <keywords>cordova,background,file,download</keywords>
-    <dependency id="cordova-plugin-file" />
     <dependency id="cordova-plugin-add-swift-support" version="1.6.1" />
     <js-module src="www/Promise.js" name="Promise"></js-module>
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
