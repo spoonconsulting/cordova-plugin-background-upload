@@ -71,13 +71,15 @@
       return deferral.promise;
     }
 
-    if (!isOnDevice() && payload.file == null) {
-      errorCallback("file is required");
+    if (!payload.filePath) {
+      errorCallback("filePath is required");
       return deferral.promise;
     }
 
+    //remove the pefix for mobile urls
+    payload.filePath = payload.filePath.replace('file://','');
 
-    exec(successCallback, errorCallback, "FileTransferBackground", "startUpload", [isOnDevice() ? JSON.stringify(payload) : payload]);
+    exec(successCallback, errorCallback, "FileTransferBackground", "startUpload", JSON.stringify(payload));
 
     // custom mechanism to trigger stop when user cancels pending operation
     deferral.promise.onCancelled = function () {
@@ -86,14 +88,6 @@
 
     return deferral.promise;
   };
-
-
-  function isOnDevice() {
-    //return (window.cordova || window.PhoneGap || window.phonegap) 
-    //&& /^file:\/{3}[^\/]/i.test(window.location.href) 
-    // && 
-    return /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
-  }
 
 
   module.exports = FileTransferManager;
