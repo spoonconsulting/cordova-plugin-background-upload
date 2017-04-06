@@ -1,7 +1,6 @@
-
 {
   "name": "cordova-plugin-background-upload",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Cordova Background Upload Plugin",
   "types": "./types/index.d.ts",
   "cordova": {
@@ -19,10 +18,8 @@
     "cordova",
     "background"
   ],
-  "scripts": {
-  },
-   "dependencies": {
-   },
+  "scripts": {},
+  "dependencies": {},
   "author": "Mevin Dhunnooa",
   "contributors": [
     {
@@ -40,6 +37,5 @@
       }
     }
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }
