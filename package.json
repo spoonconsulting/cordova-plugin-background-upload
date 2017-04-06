@@ -8,8 +8,7 @@
     "id": "cordova-plugin-background-upload",
     "platforms": [
       "android",
-      "ios",
-      "browser"
+      "ios"
     ]
   },
   "repository": {
@@ -25,7 +24,7 @@
    "dependencies": {
     "cheerio": "0.22.0"
    },
-  "author": "Spoon Consulting Ltd",
+  "author": "Mevin Dhunnooa",
   "license": "Apache-2.0",
   "engines": {
     "cordovaDependencies": {

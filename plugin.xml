@@ -9,7 +9,7 @@
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
         <clobbers target="FileTransferManager" />
     </js-module>
-    <hook type="after_plugin_install" src="hooks/inject_superagent.js" />
+   
     <platform name="android">
         <framework src="net.gotev:uploadservice:3.2.3" />
         <framework src="net.gotev:uploadservice-okhttp:3.2.3" />
@@ -41,17 +41,6 @@
         <header-file src="src/ios/SwiftHTTP-umbrella.h" />
     </platform>
 
-    <platform name="browser">
-        <config-file target="config.xml" parent="/*">
-            <feature name="FileTransferBackground">
-                <param name="browser-package" value="FileTransferBackground" />
-            </feature>
-        </config-file>
-
-        <js-module src="src/browser/FileTransferBackgroundProxy.js" name="FileTransferBackgroundProxy">
-            <runs />
-        </js-module>
-        
-    </platform>
+  
 
 </plugin>

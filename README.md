@@ -6,20 +6,17 @@ This plugin provides an advanced file upload functionality that persists beyond 
 **Supported Platforms**
 - iOS
 - Android
-- Browser
 
 
 **Installation**
 
-The preferred method for installing the plugin is via [`cordova-fetch` feature](https://cordova.apache.org/news/2016/05/24/tools-release.html), added in `cordova@6.2.0`, which is used to resolve the dependencies for this plugin.
-
-To install the plugin with its dependencies, use the `--fetch` argument:
+To install the plugin:
 
 ```
-cordova plugin add https://github.com/spoonconsulting/cordova-plugin-background-upload.git --fetch --save
+cordova plugin add https://github.com/spoonconsulting/cordova-plugin-background-upload.git --save
 ```
 
-To uninstall this plugin
+To uninstall this plugin:
 ```
 cordova plugin rm cordova-plugin-background-upload
 ```
@@ -29,8 +26,7 @@ cordova plugin rm cordova-plugin-background-upload
 ```javascript
  declare var FileTransferManager: any;
  var payload = {
-     "filePath": "/storage/emulated/0/Download/Heli.divx", //only on mobile
-     "file": fileObject, //the file object obtained from an input type='file'. application only on browsers
+     "filePath": "/storage/emulated/0/Download/Heli.divx", 
      "serverUrl": "http://requestb.in/14cizzj1",
      "headers": {
          "api_key": "asdasdwere123sad"
@@ -53,30 +49,11 @@ cordova plugin rm cordova-plugin-background-upload
 
 **Configuration** 
  * filePath: the absolute path for the file to upload (applicable only on mobile platforms)
- * file:  the file object obtained from an input type='file'. application only on browsers, ignored on ios/android
  * serverUrl: remote server url
  * headers: custom http headers
  * parameters: custom parameters for multipart data
 
 
-## Browser
-[SuperAgent](https://github.com/visionmedia/superagent) is used on the browser to post the requests. Since it is done via Ajax, make sure your server supports CORS ([cross origin requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS)).
-Supports the following browsers:
-
-- Latest Firefox, Chrome, Safari
-- IE10 through latest
-
-For this platform, a hook is used to inject the superagent.js into your index.html which normally should be present into src/ folder.
-If you cannot upload via your browser, please make sure the js has been properly injected in your index.html file. If it has not, add it manually into the head tag:
-
-```html
-<head>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/superagent/3.5.2/superagent.js"></script>
-.
-.
-.
-</head>
-```
  ## iOS
 The plugin runs on ios 9.0 and above. Internally it uses the swift library [SwiftHttp](https://github.com/daltoniam/SwiftHTTP)
 
