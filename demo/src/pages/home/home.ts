@@ -34,7 +34,6 @@ export class HomePage {
 
   constructor(private platform: Platform, private _navCtrl: NavController, private _ngZone: NgZone) {
 
-    this.isMobile = this.isOnDevice();
   }
 
   private openGallery(): void {
@@ -56,46 +55,6 @@ export class HomePage {
 
   }
 
-  uploadDesktopFile() {
-    if (document.forms['fname']['file'].files.length == 0) {
-
-      return alert("please select a file to upload");
-    }
-
-    var desktopFile = document.forms['fname']['file'].files[0];
-    var options: any = {
-      serverUrl: "http://httpbin.org/post",
-      file: desktopFile,
-      headers: {
-        "clientKey": "343ssdfs34j3jwe",
-        "apiKey": "testkey"
-      },
-      parameters: {
-        "upload_preset": "my2rjjsk"
-      }
-    };
-    this.desktopStatus = "uplaoding " + desktopFile.name;
-    var self = this;
-    new FileTransferManager().upload(options)
-      .then(function (serverResponse: String) {
-        //the server response can be parse to an object using JSON.stringify(server)
-        //any custom error from the server like invalid signature can be handled here
-        //for example, of your server returns a key 'errorMessage', you can access it as follows:
-        //if (JSON.stringify(server).errorMessage != null) { //server said something went wrong }
-        alert("upload completed successfully");
-      }, function (err) {
-        alert('error while uploading: ' + err);
-      }, function (progress: number) {
-        console.log('Percentage done phonegap: ', progress);
-        self._ngZone.run(() => {
-          self.desktopStatus = "uploading " + desktopFile.name + " progress: " + progress;
-        });
-      });
-  }
-
- isOnDevice() {
-  return /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
-}
 
   upload(media: Media) {
     media.upload();
