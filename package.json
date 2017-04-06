@@ -22,9 +22,16 @@
   "scripts": {
   },
    "dependencies": {
-    "cheerio": "0.22.0"
    },
   "author": "Mevin Dhunnooa",
+  "contributors": [
+    {
+      "name": "Luc Boissaye",
+      "email": "luc@boissaye.fr",
+      "url": "https://github.com/ombr",
+      "hireable": true
+    }
+  ],
   "license": "Apache-2.0",
   "engines": {
     "cordovaDependencies": {

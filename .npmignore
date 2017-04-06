@@ -1,0 +1,8 @@
+coffeelint.json
+index.html
+src/demo*
+src/index*
+webpack.config.js
+dist/demo*
+.git*
+.npmignore
