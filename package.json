@@ -1,7 +1,7 @@
 {
   "name": "cordova-plugin-background-upload",
   "version": "0.0.2",
-  "description": "Cordova Background Upload Plugin",
+  "description": "Cordova plugin for uploading file in the background",
   "types": "./types/index.d.ts",
   "cordova": {
     "id": "cordova-plugin-background-upload",
@@ -16,7 +16,9 @@
   },
   "keywords": [
     "cordova",
-    "background"
+    "background",
+    "file",
+    "upload"
   ],
   "scripts": {},
   "dependencies": {},
