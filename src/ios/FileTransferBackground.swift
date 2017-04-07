@@ -43,7 +43,7 @@
     
             
             //check if server url exists before attempting any upload
-            let checkForServerOperation = try HTTP.GET(uploadUrl!)
+            let checkForServerOperation = try HTTP.HEAD(uploadUrl!)
             checkForServerOperation.start { responseCheck in
                 
                 if let err = responseCheck.error {
