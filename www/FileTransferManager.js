@@ -76,10 +76,10 @@
       return deferral.promise;
     }
 
-    //remove the pefix for mobile urls
+    //remove the prefix for mobile urls
     payload.filePath = payload.filePath.replace('file://','');
 
-    exec(successCallback, errorCallback, "FileTransferBackground", "startUpload", JSON.stringify(payload));
+    exec(successCallback, errorCallback, "FileTransferBackground", "startUpload", [payload]);
 
     // custom mechanism to trigger stop when user cancels pending operation
     deferral.promise.onCancelled = function () {

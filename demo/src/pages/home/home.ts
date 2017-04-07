@@ -19,8 +19,6 @@ import {
 } from 'cordova-plugin-background-upload';
 */
 declare var FileTransferManager: any;
-//declare var FileUploadOptions: any;
-
 
 @Component({
   selector: 'page-home',

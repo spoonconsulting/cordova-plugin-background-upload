@@ -13,22 +13,16 @@
     @objc(startUpload:)
     func startUpload(_ command: CDVInvokedUrlCommand) {
         
-        let settingsString = command.arguments[0] as? String
-        
-        if settingsString == nil {
-            return self.returnResult(command, "invalid payload", false)
-        }
+         let payload = command.arguments[0] as! [String:AnyObject]
         
         operationQueue.maxConcurrentOperationCount = 1
         
         do {
             
-            let objectData = settingsString!.data(using: String.Encoding.utf8)
-            let responseObject = try JSONSerialization.jsonObject(with: objectData!, options: []) as! [String:AnyObject]
-            let uploadUrl  = responseObject["serverUrl"] as? String
-            let filePath  = responseObject["filePath"] as? String
-            let headers = responseObject["headers"] as? [String: String]
-            var parameters = responseObject["parameters"] as? [String: AnyObject]
+            let uploadUrl  = payload["serverUrl"] as? String
+            let filePath  = payload["filePath"] as? String
+            let headers = payload["headers"] as? [String: String]
+            var parameters = payload["parameters"] as? [String: AnyObject]
     
             if uploadUrl == nil {
                 return self.returnResult(command, "invalid url", false)
