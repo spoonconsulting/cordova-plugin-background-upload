@@ -18,7 +18,10 @@
     "cordova",
     "background",
     "file",
-    "upload"
+    "upload",
+     "ecosystem:cordova",
+    "cordova-android",
+    "cordova-ios"
   ],
   "scripts": {},
   "dependencies": {},
