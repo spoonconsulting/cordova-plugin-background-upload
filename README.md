@@ -13,7 +13,7 @@ This plugin provides a file upload functionality that can continue to run while 
 To install the plugin:
 
 ```
-cordova plugin add https://github.com/spoonconsulting/cordova-plugin-background-upload.git --save
+cordova plugin add cordova-plugin-background-upload --save
 ```
 
 To uninstall this plugin:
