@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-background-upload",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Cordova plugin for uploading file in the background",
   "types": "./types/index.d.ts",
   "cordova": {
@@ -19,7 +19,7 @@
     "background",
     "file",
     "upload",
-     "ecosystem:cordova",
+    "ecosystem:cordova",
     "cordova-android",
     "cordova-ios"
   ],
