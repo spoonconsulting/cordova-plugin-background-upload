@@ -62,3 +62,6 @@ The minimum api level require is 21 and the background file upload is handled by
 
 ## License
 Cordova-plugin-background-upload is licensed under the Apache v2 License.
+
+## Credits
+Cordova-plugin-background-upload is brought to you by [Spoon Consulting](http://www.spoonconsulting.com/).
