@@ -89,7 +89,7 @@ export class Media {
     this.status = "uploading"
 
     var options: any = {
-      serverUrl: "http://requestb.in/1j0i9en1", //"http://httpbin.org/post"
+      serverUrl: "http://requestb.in/14xyzdo1", //"http://httpbin.org/post"
       filePath: this.uri.replace("file://", ""),
       headers: {
         "clientKey": "343ssdfs34j3jwe",
@@ -102,18 +102,53 @@ export class Media {
 
     var self = this;
 
-    new FileTransferManager().upload(options)
-      .then(function (serverResponse: String) {
-        //the server response can be parse to an object using JSON.stringify(server)
-        //any custom error from the server like invalid signature can be handled here
-        //for example, of your server returns a key 'errorMessage', you can access it as follows:
-        //if (JSON.stringify(server).errorMessage != null) { //server said something went wrong }
-        self.updateStatus("successfully uploaded. server response=>" + serverResponse);
-      }, function (err) {
-        self.updateStatus("upload error");
-      }, function (progress: number) {
-        self.updateStatus("uploading: " + progress + "%");
-      });
+    var uploader = FileTransferManager.init({}); //init setups event listeners
+    uploader.on('resume', function (uploadHistory: [{id: string, state: string}]) {
+      // uploadHistory is an array of uploads previously queued
+      //these uploads may have been completed even when the app was closed
+      //check the state of each upload to get more info
+      console.log(JSON.stringify(uploadHistory));
+    });
+
+    uploader.on('success', function (upload) {
+       console.log("upload: "+ upload.id + " has been completed successfully");
+    });
+
+    uploader.on('progress', function (upload) {
+      console.log("uploading: " + upload.id+ " progress: " +upload.progress + "%");
+    });
+
+    uploader.on('error', function (e) {
+      // e.message
+      console.error("upload error: "+  e.message);
+    });
+
+    uploader.startUpload(options, function (result) {
+      if (result.error) {
+        //the upload could not be queued,
+        //check the err object to find out what went wrong
+        console.error(result.error);
+      }else{
+        //upload has been successfully queued
+        //use the result.id to track the upload state
+      }
+
+    });
+
+    /*
+        new FileTransferManager().upload(options)
+          .then(function (serverResponse: String) {
+            //the server response can be parse to an object using JSON.stringify(server)
+            //any custom error from the server like invalid signature can be handled here
+            //for example, of your server returns a key 'errorMessage', you can access it as follows:
+            //if (JSON.stringify(server).errorMessage != null) { //server said something went wrong }
+            self.updateStatus("successfully uploaded. server response=>" + serverResponse);
+          }, function (err) {
+            self.updateStatus("upload error");
+          }, function (progress: number) {
+            self.updateStatus("uploading: " + progress + "%");
+          });
+          */
 
   }
 }

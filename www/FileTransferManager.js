@@ -19,22 +19,101 @@
   * under the License.
   *
   */
-  var exec = require('cordova/exec');
-  var Promise = require('./Promise');
+var exec = require('cordova/exec');
+var Promise = require('./Promise');
 
-  /**
-   * Initializes a new instance of FileTransferManager object.
-   * Used to configure upload prior to the actual creation of the upload operation.
-   */
-  var FileTransferManager = function () {
+var FileTransferManager = function(options) {
+    this._handlers = {
+        'resume': [],
+        'progress': [],
+        'success': [],
+        'error': []
+    };
 
-  };
+    // require options parameter
+    if (typeof options === 'undefined') {
+        throw new Error('The options argument is required.');
+    }
 
-  /**
-   * Initializes an upload Operation object that contains the specified Uri.
-   *
-   * @param {Any} payload The settings for the upload
-   */
+    // store the options to this object instance
+    this.options = options;
+
+    var that = this;
+    this.options.success = function(result) {
+
+        // success callback is used to both report operation progress and
+        // as operation completeness handler
+        if (result && typeof result.completed != 'undefined') {
+            that.emit('success', result);
+        } else if (result && typeof result.progress != 'undefined') {
+            that.emit('progress', result);
+        } else if (result && typeof result.resuming) {
+            that.emit('resume', result);
+        } else {
+            that.emit('success', result);
+        }
+
+    };
+
+    // triggered on error
+    this.options.fail = function(msg) {
+        var e = (typeof msg === 'string') ? new Error(msg) : msg;
+        that.emit('error', e);
+    };
+
+
+    exec(success, fail, 'FileTransferManager', 'initManager', []);
+
+};
+
+module.exports = {
+
+    init: function(options) {
+        return new FileTransferManager(options ? options : {});
+    },
+
+    upload: function(payload, callback) {
+
+        if (payload == null) {
+            return callback(new Error("upload settings object is missing or invalid argument"));
+        }
+
+        if (payload.serverUrl == null) {
+            return callback(new Error("server url is required"));
+
+        }
+
+        if (payload.serverUrl.trim() == '') {
+            return callback(new Error("invalid server url"));
+        }
+
+        if (!payload.filePath) {
+            return callback(new Error("filePath is required"));
+        }
+
+        if (!this.options) {
+            return callback(new Error("FileTransferManager not properly initialised. Call FileTransferManager.init(options) first"));
+        }
+
+        //remove the prefix for mobile urls
+        payload.filePath = payload.filePath.replace('file://', '');
+
+        exec(this.options.success, this.options.fail, "FileTransferBackground", "startUpload", [payload]);
+
+    },
+
+    /**
+     * FileTransferManager Object.
+     *
+     * Expose the FileTransferManager object for direct use
+     * and testing. Typically, you should use the
+     * .init helper method.
+     */
+
+    FileTransferManager: FileTransferManager
+};
+
+/*
   FileTransferManager.prototype.upload = function (payload) {
 
     var deferral = new Promise.Deferral(),
@@ -91,3 +170,4 @@
 
 
   module.exports = FileTransferManager;
+  */
