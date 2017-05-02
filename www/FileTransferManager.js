@@ -24,7 +24,7 @@ var Promise = require('./Promise');
 
 var FileTransferManager = function(options) {
     this._handlers = {
-        'resume': [],
+
         'progress': [],
         'success': [],
         'error': []
@@ -43,14 +43,16 @@ var FileTransferManager = function(options) {
 
         // success callback is used to both report operation progress and
         // as operation completeness handler
+        //console.log(JSON.stringify(result));
+
         if (result && typeof result.completed != 'undefined') {
             that.emit('success', result);
-        } else if (result && typeof result.progress != 'undefined') {
+        }
+        // else if (result && typeof result.progress != 'undefined') {
+        //     that.emit('progress', result);
+        // } 
+        else {
             that.emit('progress', result);
-        } else if (result && typeof result.resuming) {
-            that.emit('resume', result);
-        } else {
-            that.emit('success', result);
         }
 
     };
@@ -62,9 +64,118 @@ var FileTransferManager = function(options) {
     };
 
 
-    exec(success, fail, 'FileTransferManager', 'initManager', []);
+    exec(this.options.success, this.options.fail, 'FileTransferBackground', 'initManager', []);
 
 };
+
+
+/**
+ * Listen for an event.
+ *
+ * Any event is supported, but the following are built-in:
+ *
+ *   - registration
+ *   - notification
+ *   - error
+ *
+ * @param {String} eventName to subscribe to.
+ * @param {Function} callback triggered on the event.
+ */
+
+FileTransferManager.prototype.on = function(eventName, callback) {
+    if (!this._handlers.hasOwnProperty(eventName)) {
+        this._handlers[eventName] = [];
+    }
+    this._handlers[eventName].push(callback);
+};
+
+/**
+ * Remove event listener.
+ *
+ * @param {String} eventName to match subscription.
+ * @param {Function} handle function associated with event.
+ */
+
+FileTransferManager.prototype.off = function(eventName, handle) {
+    if (this._handlers.hasOwnProperty(eventName)) {
+        var handleIndex = this._handlers[eventName].indexOf(handle);
+        if (handleIndex >= 0) {
+            this._handlers[eventName].splice(handleIndex, 1);
+        }
+    }
+};
+
+/**
+ * Emit an event.
+ *
+ * This is intended for internal use only.
+ *
+ * @param {String} eventName is the event to trigger.
+ * @param {*} all arguments are passed to the event listeners.
+ *
+ * @return {Boolean} is true when the event is triggered otherwise false.
+ */
+
+FileTransferManager.prototype.emit = function() {
+    var args = Array.prototype.slice.call(arguments);
+    var eventName = args.shift();
+
+    if (!this._handlers.hasOwnProperty(eventName)) {
+        return false;
+    }
+
+    for (var i = 0, length = this._handlers[eventName].length; i < length; i++) {
+        var callback = this._handlers[eventName][i];
+        if (typeof callback === 'function') {
+            callback.apply(undefined, args);
+        } else {
+            console.log('event handler: ' + eventName + ' must be a function');
+        }
+    }
+
+    return true;
+};
+
+FileTransferManager.prototype.startUpload = function(payload, callback) {
+
+    if (payload == null) {
+        return callback({
+            error: "upload settings object is missing or invalid argument"
+        });
+    }
+    if (payload.serverUrl == null) {
+        return callback({
+            error: "server url is required"
+        });
+
+    }
+
+    if (payload.serverUrl.trim() == '') {
+        return callback({
+            error: "invalid server url"
+        });
+    }
+
+    if (!payload.filePath) {
+        return callback({
+            error: "filePath is required"
+        });
+    }
+
+    if (!this.options) {
+        return callback({
+            error: "FileTransferManager not properly initialised. Call FileTransferManager.init(options) first"
+        });
+    }
+
+    //remove the prefix for mobile urls
+    payload.filePath = payload.filePath.replace('file://', '');
+
+    exec(this.options.success, callback, "FileTransferBackground", "startUpload", [payload]);
+
+};
+
+
 
 module.exports = {
 
@@ -72,35 +183,6 @@ module.exports = {
         return new FileTransferManager(options ? options : {});
     },
 
-    upload: function(payload, callback) {
-
-        if (payload == null) {
-            return callback(new Error("upload settings object is missing or invalid argument"));
-        }
-
-        if (payload.serverUrl == null) {
-            return callback(new Error("server url is required"));
-
-        }
-
-        if (payload.serverUrl.trim() == '') {
-            return callback(new Error("invalid server url"));
-        }
-
-        if (!payload.filePath) {
-            return callback(new Error("filePath is required"));
-        }
-
-        if (!this.options) {
-            return callback(new Error("FileTransferManager not properly initialised. Call FileTransferManager.init(options) first"));
-        }
-
-        //remove the prefix for mobile urls
-        payload.filePath = payload.filePath.replace('file://', '');
-
-        exec(this.options.success, this.options.fail, "FileTransferBackground", "startUpload", [payload]);
-
-    },
 
     /**
      * FileTransferManager Object.
@@ -112,62 +194,3 @@ module.exports = {
 
     FileTransferManager: FileTransferManager
 };
-
-/*
-  FileTransferManager.prototype.upload = function (payload) {
-
-    var deferral = new Promise.Deferral(),
-      me = this,
-      successCallback = function (result) {
-
-        // success callback is used to both report operation progress and
-        // as operation completeness handler
-        if (result && typeof result.completed != 'undefined') {
-          deferral.notify(result.completed);
-        } else if (result && typeof result.progress != 'undefined') {
-          deferral.notify(result.progress);
-        } else {
-          deferral.resolve(result);
-        }
-      },
-      errorCallback = function (err) {
-        deferral.reject(err);
-      };
-
-
-    if (payload == null) {
-      errorCallback("upload settings object is missing or invalid argument");
-      return deferral.promise;
-    }
-
-    if (payload.serverUrl == null) {
-      errorCallback("server url is required");
-      return deferral.promise;
-    }
-
-    if (payload.serverUrl.trim() == '') {
-      errorCallback("invalid server url");
-      return deferral.promise;
-    }
-
-    if (!payload.filePath) {
-      errorCallback("filePath is required");
-      return deferral.promise;
-    }
-
-    //remove the prefix for mobile urls
-    payload.filePath = payload.filePath.replace('file://','');
-
-    exec(successCallback, errorCallback, "FileTransferBackground", "startUpload", [payload]);
-
-    // custom mechanism to trigger stop when user cancels pending operation
-    deferral.promise.onCancelled = function () {
-      me.stop();
-    };
-
-    return deferral.promise;
-  };
-
-
-  module.exports = FileTransferManager;
-  */

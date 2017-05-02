@@ -103,12 +103,6 @@ export class Media {
     var self = this;
 
     var uploader = FileTransferManager.init({}); //init setups event listeners
-    uploader.on('resume', function (uploadHistory: [{id: string, state: string}]) {
-      // uploadHistory is an array of uploads previously queued
-      //these uploads may have been completed even when the app was closed
-      //check the state of each upload to get more info
-      console.log(JSON.stringify(uploadHistory));
-    });
 
     uploader.on('success', function (upload) {
        console.log("upload: "+ upload.id + " has been completed successfully");
