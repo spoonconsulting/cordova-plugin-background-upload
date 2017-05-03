@@ -37,7 +37,7 @@ export class HomePage {
 
       self.uploader.on('success', function (upload) {
         console.log("upload: " + upload.id + " has been completed successfully");
-        console.log(upload.serverResponse);
+        //console.log(upload.serverResponse);
         var correspondingMedia = self.getMediaWithId(upload.id);
         if (correspondingMedia) {
           correspondingMedia.updateStatus("uploaded successfully");
@@ -101,13 +101,13 @@ export class HomePage {
               "colors": 1,
               "faces": 1,
               "image_metadata": 1,
-              "notification_url": "https://scpix.herokuapp.com/api/v1/cloudinary?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE0OTM3MzA5MTcsImlhdCI6MTQ5MzcxNjUxNywiYWxidW1faWQiOiJ0ZXN0X3VwbG9hZCIsIm9yZ2FuaXphdGlvbl9pZCI6IjI1MTFlYWJmLWJlZjUtNDlmNi05ZmRkLTA2YTdmMzllYjU3ZCJ9.eA5dRRqwHgehVWuZSuNaCQyyWE4fNMr1RyYtVrmIcOw",
+              "notification_url": "https://scpix.herokuapp.com/api/v1/cloudinary?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE0OTM4MjU4ODMsImlhdCI6MTQ5MzgxMTQ4MywiYWxidW1faWQiOiJ0ZXN0X3VwbG9hZCIsIm9yZ2FuaXphdGlvbl9pZCI6IjI1MTFlYWJmLWJlZjUtNDlmNi05ZmRkLTA2YTdmMzllYjU3ZCJ9.Yf2t6QIsElSAh9aU2l0p02kxMLmujQan38gppgIZaFc",
               "phash": 1,
               "tags": "test_upload",
-              "timestamp": 1494321317,
+              "timestamp": 1494416283,
               "transformation": "a_exif",
               "type": "authenticated",
-              "signature": "105286a57b32dbb2e2dc33a3c067cf69d9ba207c",
+              "signature": "795eb9b391098ef8fb036a07157ad44d014af8d0",
               "api_key": "549516561145346"
             }
           };
@@ -135,7 +135,7 @@ export class Media {
 
   constructor(url: String, private _ngZone: NgZone) {
     this.uri = url;
-    this.status = "";
+    this.status = "uploading";
     this.zone = _ngZone;
     this.id = "" + Math.random().toString(36).substr(2, 5);
   }
