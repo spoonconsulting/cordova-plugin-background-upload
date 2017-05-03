@@ -214,7 +214,8 @@ NSString *const FormatTypeName[5] = {
                                                       messageAsDictionary:@{
                                                                             @"completed":@YES,
                                                                             @"id" :upload.uploadUUID.UUIDString,
-                                                                            @"state": FormatTypeName[upload.state]
+                                                                            @"state": FormatTypeName[upload.state],
+                                                                            @"serverResponse": upload.serverResponse
                                                                             }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
     }

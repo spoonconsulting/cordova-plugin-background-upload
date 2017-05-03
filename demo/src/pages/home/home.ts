@@ -40,6 +40,7 @@ export class HomePage {
       self.uploader.on('success', function (upload) {
         if (upload.state == 'UPLOADED'){
           console.log("upload: " + upload.id + " has been completed successfully");
+          console.log(upload.serverResponse);
         }else{
           console.log("upload: " + upload.id + " has been queued successfully");
         }
@@ -76,7 +77,7 @@ export class HomePage {
           this.allMedia.push(new Media(file_uris[i], this._ngZone));
 
           var options: any = {
-            serverUrl: "http://requestb.in/qesje2qe", //"http://httpbin.org/post"
+            serverUrl: "https://api-de.cloudinary.com/v1_1/hclcistqq/auto/upload", //"http://httpbin.org/post"
             filePath: file_uris[i],
             headers: {
               "someKey": "testkey"

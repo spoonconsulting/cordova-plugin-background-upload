@@ -63,6 +63,7 @@ typedef enum FileUploadState FileUploadState;
 @property (nonatomic, assign, readonly ) double                 progress;           // 0..1
 @property (nonatomic, copy,   readonly ) NSHTTPURLResponse *    response;
 @property (nonatomic, copy,   readonly ) NSError *              error;
+@property (nonatomic, copy ) id          serverResponse;
 
 - (void)start;      // state must be kFileUploadStateStopped or kFileUploadStateFailed
 - (void)stop;       // state must be kFileUploadStateStarted

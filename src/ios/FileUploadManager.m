@@ -41,7 +41,7 @@
 @interface FileUploadManager () <NSURLSessionDataDelegate>
 
 // read/write versions of public properties
-
+@property (nonatomic, strong, readonly ) NSMutableDictionary *responsesData;
 @property (nonatomic, strong, readonly ) NSMutableDictionary *          uploadsByUUID;
 
 // private properties
@@ -80,6 +80,7 @@ static NSString * kImmutableInfoCreationDateNumKey = @"creationDateNum";
 // Keys for the "MutableInfo.plist" file.
 
 static NSString * kMutableInfoStateKey = @"state";
+static NSString * kMutableInfoResponseJsonKey = @"responseJson";
 static NSString * kMutableInfoResponseDataKey = @"responseData";
 static NSString * kMutableInfoErrorDataKey = @"errorData";
 static NSString * kMutableInfoProgressKey = @"progress";
@@ -110,6 +111,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
     NSParameterAssert(workDirectoryURL != nil);
     self = [super init];
     if (self != nil) {
+        self->_responsesData  = [[NSMutableDictionary alloc] init];
         self->_workDirectoryURL  = [workDirectoryURL copy];
         self->_uploadsByUUID   = [[NSMutableDictionary alloc] init];
         self->_sessionIdentifier = [NSString stringWithFormat:@"%@.BackgroundSession", [[NSBundle mainBundle] bundleIdentifier]];
@@ -590,6 +592,9 @@ static NSString * kMutableInfoProgressKey = @"progress";
     if (upload.response != nil) {
         [mutableInfo setObject:[NSKeyedArchiver archivedDataWithRootObject:upload.response] forKey:kMutableInfoResponseDataKey];
     }
+    if (upload.serverResponse != nil) {
+        [mutableInfo setObject:[NSKeyedArchiver archivedDataWithRootObject:upload.serverResponse] forKey:kMutableInfoResponseJsonKey];
+    }
     if (upload.error != nil) {
         NSLog(@"Error: %@", upload.error.localizedDescription);
         [mutableInfo setObject:[NSKeyedArchiver archivedDataWithRootObject:upload.error] forKey:kMutableInfoErrorDataKey];
@@ -734,15 +739,24 @@ static NSString * kMutableInfoProgressKey = @"progress";
 #pragma mark * Delegate Callbacks
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data {
     
-    if (data) {
-        
-        NSDictionary *response = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-        if (response) {
-            NSLog(@"response = %@", response);
-        } else {
-            NSLog(@"responseData = %@", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
-        }
+    
+    NSMutableData *responseData = self.responsesData[@(dataTask.taskIdentifier)];
+    if (!responseData) {
+        responseData = [NSMutableData dataWithData:data];
+        self.responsesData[@(dataTask.taskIdentifier)] = responseData;
+    } else {
+        [responseData appendData:data];
     }
+    
+//    if (data) {
+//        
+//        NSDictionary *response = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+//        if (response) {
+//            NSLog(@"response = %@", response);
+//        } else {
+//            NSLog(@"responseData = %@", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
+//        }
+//    }
 }
 
 - (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session
@@ -799,7 +813,27 @@ static NSString * kMutableInfoProgressKey = @"progress";
             upload.error = nil;
             upload.task = nil;
             upload.state = kFileUploadStateUploaded;
-            [self logWithFormat:@"completed %@, finished", upload];
+           
+            
+            NSMutableData *responseData = self.responsesData[@(task.taskIdentifier)];
+            
+            if (responseData) {
+                
+                NSDictionary *response = [NSJSONSerialization JSONObjectWithData:responseData options:0 error:nil];
+                
+                if (response) {
+                    upload.serverResponse = response;
+                    NSLog(@"response = %@", response);
+                } else {
+                    upload.serverResponse =[[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
+                    NSLog(@"responseData = %@", upload.serverResponse);
+                }
+                
+                [self.responsesData removeObjectForKey:@(task.taskIdentifier)];
+            }
+            
+             [self logWithFormat:@"completed %@, finished", upload];
+            
         } else if ([[error domain] isEqual:NSURLErrorDomain] && ([error code] == NSURLErrorCancelled)) {
             // The upload was stopped by us.
             
