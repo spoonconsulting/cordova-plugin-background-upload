@@ -33,20 +33,32 @@ export class HomePage {
 
   constructor(private platform: Platform, private _navCtrl: NavController, private _ngZone: NgZone) {
 
-    this.uploader = FileTransferManager.init();
+    let self = this;
+    setTimeout(() => {
+      self.uploader = FileTransferManager.init();
 
-    this.uploader.on('success', function (upload) {
-      console.log("upload: " + upload.id + " has been completed successfully");
-    });
+      self.uploader.on('success', function (upload) {
+        if (upload.state == 'UPLOADED'){
+          console.log("upload: " + upload.id + " has been completed successfully");
+        }else{
+          console.log("upload: " + upload.id + " has been queued successfully");
+        }
+        
+      });
 
-    this.uploader.on('progress', function (upload) {
-      console.log("uploading: " + upload.id + " progress: " + upload.progress + "%");
-    });
+      self.uploader.on('progress', function (upload) {
+        console.log("uploading: " + upload.id + " progress: " + upload.progress + "%");
+      });
 
-    this.uploader.on('error', function (e) {
-      // e.message
-      console.error("upload error: " + e.message);
-    });
+      self.uploader.on('error', function (uploadException) {
+        if (uploadException.id){
+          console.log("upload: " + uploadException.id + " has failed");
+        }else{
+          console.error("uploader caught an error: " + uploadException.error);
+        }
+        
+      });
+    }, 1000);
 
 
 

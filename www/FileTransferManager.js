@@ -58,9 +58,8 @@ var FileTransferManager = function (options) {
     };
 
     // triggered on error
-    this.options.fail = function (msg) {
-        var e = (typeof msg === 'string') ? new Error(msg) : msg;
-        that.emit('error', e);
+    this.options.fail = function (errorObj) {
+        that.emit('error', errorObj);
     };
 
 
@@ -71,30 +70,30 @@ var FileTransferManager = function (options) {
 FileTransferManager.prototype.startUpload = function (payload) {
 
     if (payload == null) {
-        this.options.fail(
-            "upload settings object is missing or invalid argument"
-        );
+        this.options.fail({
+            error: "upload settings object is missing or invalid argument"
+        });
         return;
     }
     if (payload.serverUrl == null) {
-        this.options.fail(
-            "server url is required"
-        );
+        this.options.fail({
+            error: "server url is required"
+        });
         return;
 
     }
 
     if (payload.serverUrl.trim() == '') {
-        this.options.fail(
-            "invalid server url"
-        );
+        this.options.fail({
+            error: "invalid server url"
+        });
         return;
     }
 
     if (!payload.filePath) {
-        this.options.fail(
-            "filePath is required"
-        );
+        this.options.fail({
+            error: "filePath is required"
+        });
         return;
     }
 

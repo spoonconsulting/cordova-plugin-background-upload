@@ -158,8 +158,18 @@ NSString *const FormatTypeName[5] = {
     FileUploadManager* uploader = [FileUploadManager sharedInstance];
     
     FileUpload* job=[uploader createUploadWithRequest:request fileURL:[NSURL URLWithString:[NSString stringWithFormat:@"file:%@", tmpFilePath]]];
+    
     if(job){
         [job start];
+        
+        CDVPluginResult*pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                     messageAsDictionary:@{
+                                                                           @"id" :job.uploadUUID.UUIDString,
+                                                                           @"state": FormatTypeName[job.state]
+                                                                           }];
+        
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        
     }else{
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                       messageAsDictionary:@{ @"error" : @"Error adding upload" }];
@@ -213,7 +223,6 @@ NSString *const FormatTypeName[5] = {
 }
 
 - (void)uploadManager:(FileUploadManager *)manager didChangeStateForUpload:(FileUpload *)upload{
-    NSLog(@"native upload %@ progress: %f",upload.uploadUUID,upload.progress);
     
     if (upload.state == kFileUploadStateFailed){
         [self returnResult:pluginCommand withMsg:@"Upload failed" success:NO];
@@ -222,9 +231,23 @@ NSString *const FormatTypeName[5] = {
     
     if (upload.state == kFileUploadStateUploaded) {
         //upload for a file completed
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"completed":@YES, @"id" :upload.uploadUUID.UUIDString }];
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                      messageAsDictionary:@{
+                                                                            @"completed":@YES,
+                                                                            @"id" :upload.uploadUUID.UUIDString,
+                                                                            @"state": FormatTypeName[upload.state]
+                                                                            }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
-    }else{
+    }
+    else if (upload.state == kFileUploadStateFailed) {
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                      messageAsDictionary:@{
+                                                                            @"id" :upload.uploadUUID.UUIDString,
+                                                                            @"error" : @"upload failed"
+                                                                            }];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
+    }
+    else{
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"progress" : @(upload.progress*100), @"id" :upload.uploadUUID.UUIDString }];
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
