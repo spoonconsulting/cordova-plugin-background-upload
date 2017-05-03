@@ -207,6 +207,7 @@ NSString *const FormatTypeName[5] = {
                                                                             @"state": FormatTypeName[upload.state],
                                                                             @"serverResponse": upload.serverResponse
                                                                             }];
+        [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
     }
     else if (upload.state == kFileUploadStateFailed) {
@@ -224,7 +225,7 @@ NSString *const FormatTypeName[5] = {
         }
         
         float roundedProgress =roundf(10 * (upload.progress*100)) / 10.0;
-        NSLog(@"native upload: %@ progress: %f", [[FileUploadManager sharedInstance] getFileIdForUpload:upload], roundedProgress);
+       // NSLog(@"native upload: %@ progress: %f", [[FileUploadManager sharedInstance] getFileIdForUpload:upload], roundedProgress);
         
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"progress" : @(roundedProgress), @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload] }];
         [pluginResult setKeepCallback:@YES];

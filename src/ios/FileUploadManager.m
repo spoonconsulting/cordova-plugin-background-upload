@@ -370,7 +370,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
         NSString* directoryName = [itemURL lastPathComponent];
         if ([directoryName hasPrefix:kUploadDirectoryPrefix] && [directoryName containsString:upload.uploadUUID.UUIDString]) {
             
-            return [[[[itemURL lastPathComponent] componentsSeparatedByString:@"*"] firstObject]
+            return [[[directoryName componentsSeparatedByString:@"*"] firstObject]
                     stringByReplacingOccurrencesOfString:kUploadDirectoryPrefix withString:@""];
         }
     }
