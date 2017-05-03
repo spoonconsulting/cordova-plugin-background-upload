@@ -20,7 +20,6 @@
   *
   */
 var exec = require('cordova/exec');
-var Promise = require('./Promise');
 
 var FileTransferManager = function (options) {
     this._handlers = {
@@ -45,14 +44,14 @@ var FileTransferManager = function (options) {
         // as operation completeness handler
         //console.log(JSON.stringify(result));
 
-        if (result && typeof result.completed != 'undefined') {
-            that.emit('success', result);
+        if (result && typeof result.progress != 'undefined') {
+            that.emit('progress', result);
         }
         // else if (result && typeof result.progress != 'undefined') {
         //     that.emit('progress', result);
         // } 
         else {
-            that.emit('progress', result);
+            that.emit('success', result);
         }
 
     };
@@ -105,7 +104,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
     //remove the prefix for mobile urls
     payload.filePath = payload.filePath.replace('file://', '');
 
-    exec(null, null, "FileTransferBackground", "startUpload", [payload]);
+    exec(this.options.success, this.options.fail, "FileTransferBackground", "startUpload", [payload]);
 
 };
 

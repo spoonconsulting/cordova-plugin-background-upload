@@ -106,33 +106,12 @@ NSString *const FormatTypeName[5] = {
         headers = @{};
     }
     
-    NSURL *                 url;
-    NSMutableURLRequest *   request;
     
-    //  url = [NSURL URLWithString:@"https://api.cloudinary.com/v1_1/foxfort/auto/upload"];
-    //url = [NSURL URLWithString:@"https://api-de.cloudinary.com/v1_1/hclcistqq/auto/upload"];
-    url = [NSURL URLWithString:@"http://requestb.in/qesje2qe"];
+    NSURL * url = [NSURL URLWithString:uploadUrl];
     
-    request = [NSMutableURLRequest requestWithURL:url];
-    
+    NSMutableURLRequest * request = [NSMutableURLRequest requestWithURL:url];
     [request setHTTPMethod:@"POST"];
     
-    
-    //    NSDictionary *formParameters = @{/*@"upload_preset" :@"my2rjjsk",*/
-    //                                     @"colors": @1,
-    //                                     @"faces": @1,
-    //                                     @"image_metadata": @1,
-    //                                     @"notification_url": @"https://scpix.herokuapp.com/api/v1/cloudinary?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE0OTM3MzA5MTcsImlhdCI6MTQ5MzcxNjUxNywiYWxidW1faWQiOiJ0ZXN0X3VwbG9hZCIsIm9yZ2FuaXphdGlvbl9pZCI6IjI1MTFlYWJmLWJlZjUtNDlmNi05ZmRkLTA2YTdmMzllYjU3ZCJ9.eA5dRRqwHgehVWuZSuNaCQyyWE4fNMr1RyYtVrmIcOw",
-    //                                     @"phash": @1,
-    //                                     @"tags": @"test_upload",
-    //                                     @"timestamp": @1494321317,
-    //                                     @"transformation": @"a_exif",
-    //                                     @"type": @"authenticated",
-    //                                     @"signature": @"105286a57b32dbb2e2dc33a3c067cf69d9ba207c",
-    //                                     @"api_key": @"549516561145346"
-    //
-    //                                     };
-    //    NSDictionary *_headers = @{};
     
     NSString *boundary = [NSString stringWithFormat:@"Boundary-%@", [[NSUUID UUID] UUIDString]];
     
@@ -149,7 +128,7 @@ NSString *const FormatTypeName[5] = {
     
     NSString *tmpFilePath = [NSTemporaryDirectory() stringByAppendingPathComponent:boundary];
     if (![body writeToFile:tmpFilePath atomically:YES] ) {
-        NSLog(@"Error writing file");
+        
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                       messageAsDictionary:@{ @"error" : @"Error writing temp file" }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -248,6 +227,11 @@ NSString *const FormatTypeName[5] = {
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
     }
     else{
+        
+        if (upload.progress == 0) {
+            return;
+        }
+        
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"progress" : @(upload.progress*100), @"id" :upload.uploadUUID.UUIDString }];
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];

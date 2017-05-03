@@ -4,7 +4,6 @@
     <description>Background Upload plugin for Cordova</description>
     <license>ISC</license>
     <keywords>cordova,background,file,download</keywords>
-    <js-module src="www/Promise.js" name="Promise"></js-module>
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
         <clobbers target="FileTransferManager" />
     </js-module>
