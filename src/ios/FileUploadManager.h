@@ -39,8 +39,9 @@
     // unit tests, you should design your app so that the FileUploadManager 
     // object exists for the lifetime of the app, at least for the moment.
 
-- (FileUpload *)createUploadWithRequest:(NSURLRequest *)request fileURL:(NSURL *)fileURL;
+- (FileUpload *)createUploadWithRequest:(NSURLRequest *)request fileId:(NSString*)fileId fileURL:(NSURL *)fileURL;
     // upload's initial state is kFileUploadStateStopped
+-(NSString*) getFileIdForUpload:(FileUpload*)upload;
 
 @end
 

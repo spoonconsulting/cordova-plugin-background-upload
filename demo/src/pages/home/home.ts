@@ -27,8 +27,6 @@ declare var FileTransferManager: any;
 export class HomePage {
 
   allMedia: Array < Media > = [];
-  isMobile: Boolean = true;
-  desktopStatus: String = "";
   uploader: any;
 
   constructor(private platform: Platform, private _navCtrl: NavController, private _ngZone: NgZone) {
@@ -38,19 +36,17 @@ export class HomePage {
       self.uploader = FileTransferManager.init();
 
       self.uploader.on('success', function (upload) {
-        if (upload.state == 'UPLOADED') {
-          console.log("upload: " + upload.id + " has been completed successfully");
-          console.log(upload.serverResponse);
-        } else {
-
-          console.log("upload: " + upload.id + " has been queued successfully");
+        console.log("upload: " + upload.id + " has been completed successfully");
+        console.log(upload.serverResponse);
+        var correspondingMedia = self.getMediaWithId(upload.id);
+        if (correspondingMedia) {
+          correspondingMedia.updateStatus("uploaded successfully");
         }
-
       });
 
       self.uploader.on('progress', function (upload) {
         console.log("uploading: " + upload.id + " progress: " + upload.progress + "%");
-        var correspondingMedia = self.getMediaWithPath(upload.filePath);
+        var correspondingMedia = self.getMediaWithId(upload.id);
         if (correspondingMedia) {
           correspondingMedia.updateStatus("uploading: " + upload.progress + "%");
         }
@@ -59,7 +55,7 @@ export class HomePage {
       self.uploader.on('error', function (uploadException) {
         if (uploadException.id) {
           console.log("upload: " + uploadException.id + " has failed");
-          
+
         } else {
           console.error("uploader caught an error: " + uploadException.error);
         }
@@ -71,10 +67,10 @@ export class HomePage {
 
   }
 
-  private getMediaWithPath(path) {
+  private getMediaWithId(mediaId) {
 
     for (var media of this.allMedia) {
-      if (media.uri.indexOf(path) != -1) {
+      if (media.id == mediaId) {
         return media;
       }
     }
@@ -91,11 +87,13 @@ export class HomePage {
     }).then(
       file_uris => {
         for (var i = 0; i < file_uris.length; i++) {
-          this.allMedia.push(new Media(file_uris[i], this._ngZone));
+          var media = new Media(file_uris[i], this._ngZone);
+          this.allMedia.push(media);
 
           var options: any = {
             serverUrl: "https://api-de.cloudinary.com/v1_1/hclcistqq/auto/upload", //"http://httpbin.org/post"
             filePath: file_uris[i],
+            id: media.id,
             headers: {
               "someKey": "testkey"
             },
@@ -133,11 +131,13 @@ export class Media {
   uri: String;
   status: String;
   zone: NgZone;
+  id: string;
 
   constructor(url: String, private _ngZone: NgZone) {
-    this.uri = url.replace("file://", ""); //android path needs to be cleaned
+    this.uri = url;
     this.status = "";
     this.zone = _ngZone;
+    this.id = "" + Math.random().toString(36).substr(2, 5);
   }
 
   updateStatus(stat: String) {
@@ -147,31 +147,8 @@ export class Media {
     //example where updates are made in angular zone:
     //https://www.joshmorony.com/adding-background-geolocation-to-an-ionic-2-application/
     this.zone.run(() => {
-      console.log(stat);
       this.status = stat;
     });
   }
 
-  upload() {
-    this.status = "uploading"
-
-
-
-
-    /*
-        new FileTransferManager().upload(options)
-          .then(function (serverResponse: String) {
-            //the server response can be parse to an object using JSON.stringify(server)
-            //any custom error from the server like invalid signature can be handled here
-            //for example, of your server returns a key 'errorMessage', you can access it as follows:
-            //if (JSON.stringify(server).errorMessage != null) { //server said something went wrong }
-            self.updateStatus("successfully uploaded. server response=>" + serverResponse);
-          }, function (err) {
-            self.updateStatus("upload error");
-          }, function (progress: number) {
-            self.updateStatus("uploading: " + progress + "%");
-          });
-          */
-
-  }
 }

@@ -213,7 +213,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
     [self  didChangeValueForKey:@"uploads" withSetMutation:NSKeyValueUnionSetMutation usingObjects:mutation];
 }
 
-- (FileUpload *)createUploadWithRequest:(NSURLRequest *)request fileURL:(NSURL *)fileURL
+- (FileUpload *)createUploadWithRequest:(NSURLRequest *)request fileId:(NSString*)fileId fileURL:(NSURL *)fileURL
 {
     NSUUID *        uploadUUID;
     NSURL *         uploadDirURL;
@@ -227,12 +227,14 @@ static NSString * kMutableInfoProgressKey = @"progress";
     upload = nil;
     
     uploadUUID = [NSUUID UUID];
+    //append the fileId at end
+    uploadUUID =[[NSUUID alloc]initWithUUIDString:uploadUUID.UUIDString];
     creationDate = [NSDate date];
     
     // Create a upload directory containing our immutable info, including a hard link
     // to the file to upload.
     
-    uploadDirURL = [self createImmutableInfoForOriginalURL:fileURL request:request uploadUUID:uploadUUID creationDate:creationDate];
+    uploadDirURL = [self createImmutableInfoForOriginalURL:fileURL request:request  fileId:(NSString*)fileId  uploadUUID:uploadUUID creationDate:creationDate];
     
     // Create a upload object to match.
     
@@ -298,8 +300,8 @@ static NSString * kMutableInfoProgressKey = @"progress";
     NSDate *        creationDate;
     
     // First try to restore the immutable info.
-    
-    uploadUUID = [[NSUUID alloc] initWithUUIDString:[[uploadDirURL lastPathComponent] substringFromIndex:[kUploadDirectoryPrefix length]]];
+    NSString* directoryName= [uploadDirURL lastPathComponent];
+    uploadUUID = [[NSUUID alloc] initWithUUIDString:[[directoryName componentsSeparatedByString:@"*"] lastObject]];
     success = (uploadUUID != nil);
     if (success) {
         immutableInfo = [[NSDictionary alloc] initWithContentsOfURL:[uploadDirURL URLByAppendingPathComponent:kImmutableInfoFileName]];
@@ -360,6 +362,21 @@ static NSString * kMutableInfoProgressKey = @"progress";
     }
     
     return success;
+}
+
+-(NSString*) getFileIdForUpload:(FileUpload*)upload{
+    
+    for (NSURL * itemURL in [[NSFileManager defaultManager] contentsOfDirectoryAtURL:self.workDirectoryURL includingPropertiesForKeys:@[NSURLIsDirectoryKey] options:NSDirectoryEnumerationSkipsSubdirectoryDescendants error:NULL]) {
+
+        if ([[itemURL lastPathComponent] hasPrefix:kUploadDirectoryPrefix] ) {
+            
+            return [[[[itemURL lastPathComponent] componentsSeparatedByString:@"*"] firstObject]
+                    stringByReplacingOccurrencesOfString:kUploadDirectoryPrefix withString:@""];
+        }
+    }
+    
+    return @"";
+
 }
 
 - (void)restoreAllUploadsInWorkDirectory
@@ -512,7 +529,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
 
 #pragma mark * Upload Directory Management
 
-- (NSURL *)createImmutableInfoForOriginalURL:(NSURL *)originalURL request:(NSURLRequest *)request uploadUUID:(NSUUID *)uploadUUID creationDate:(NSDate *)creationDate
+- (NSURL *)createImmutableInfoForOriginalURL:(NSURL *)originalURL request:(NSURLRequest *)request fileId:(NSString*)fileId  uploadUUID:(NSUUID *)uploadUUID creationDate:(NSDate *)creationDate
 {
     BOOL            success;
     NSURL *         uploadDirURL;
@@ -522,9 +539,9 @@ static NSString * kMutableInfoProgressKey = @"progress";
     assert(uploadUUID != nil);
     assert(creationDate != nil);
     
-    // Create the upload directory as "Upload-<UUID>".
-    
-    uploadDirURL = [self.workDirectoryURL URLByAppendingPathComponent:[kUploadDirectoryPrefix stringByAppendingString:[uploadUUID UUIDString]]];
+    // Create the upload directory as "Upload-fileId*<UUID>".
+    NSString* directoryPrefix= [NSString stringWithFormat:@"%@%@*%@", kUploadDirectoryPrefix, fileId,[uploadUUID UUIDString]];
+    uploadDirURL = [self.workDirectoryURL URLByAppendingPathComponent:directoryPrefix];
     success = [[NSFileManager defaultManager] createDirectoryAtURL:uploadDirURL withIntermediateDirectories:NO attributes:nil error:NULL];
     assert(success);
     
