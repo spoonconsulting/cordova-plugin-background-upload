@@ -185,9 +185,8 @@ NSString *const FormatTypeName[5] = {
 
 - (void)uploadManager:(FileUploadManager *)manager willCreateSessionWithConfiguration:(NSURLSessionConfiguration *)configuration
 {
-    // In our case we don't want any (NSURLCache-level) caching to get in the way
-    // of our tests, so we always disable the cache.
-    
+  
+    configuration.HTTPMaximumConnectionsPerHost =1;
     configuration.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
     //configuration.discretionary = YES;
 }
@@ -218,13 +217,15 @@ NSString *const FormatTypeName[5] = {
                                                                             }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
     }
-    else{
+    else  if (upload.state == kFileUploadStateStarted) {
         
         if (upload.progress == 0) {
             return;
         }
         
         float roundedProgress =roundf(10 * (upload.progress*100)) / 10.0;
+        NSLog(@"native upload: %@ progress: %f", [[FileUploadManager sharedInstance] getFileIdForUpload:upload], roundedProgress);
+        
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"progress" : @(roundedProgress), @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload] }];
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];

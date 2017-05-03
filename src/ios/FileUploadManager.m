@@ -234,7 +234,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
     // Create a upload directory containing our immutable info, including a hard link
     // to the file to upload.
     
-    uploadDirURL = [self createImmutableInfoForOriginalURL:fileURL request:request  fileId:(NSString*)fileId  uploadUUID:uploadUUID creationDate:creationDate];
+    uploadDirURL = [self createImmutableInfoForOriginalURL:fileURL request:request  fileId:fileId  uploadUUID:uploadUUID creationDate:creationDate];
     
     // Create a upload object to match.
     
@@ -367,8 +367,8 @@ static NSString * kMutableInfoProgressKey = @"progress";
 -(NSString*) getFileIdForUpload:(FileUpload*)upload{
     
     for (NSURL * itemURL in [[NSFileManager defaultManager] contentsOfDirectoryAtURL:self.workDirectoryURL includingPropertiesForKeys:@[NSURLIsDirectoryKey] options:NSDirectoryEnumerationSkipsSubdirectoryDescendants error:NULL]) {
-
-        if ([[itemURL lastPathComponent] hasPrefix:kUploadDirectoryPrefix] ) {
+        NSString* directoryName = [itemURL lastPathComponent];
+        if ([directoryName hasPrefix:kUploadDirectoryPrefix] && [directoryName containsString:upload.uploadUUID.UUIDString]) {
             
             return [[[[itemURL lastPathComponent] componentsSeparatedByString:@"*"] firstObject]
                     stringByReplacingOccurrencesOfString:kUploadDirectoryPrefix withString:@""];
