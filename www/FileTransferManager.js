@@ -22,7 +22,7 @@
 var exec = require('cordova/exec');
 var Promise = require('./Promise');
 
-var FileTransferManager = function(options) {
+var FileTransferManager = function (options) {
     this._handlers = {
 
         'progress': [],
@@ -39,7 +39,7 @@ var FileTransferManager = function(options) {
     this.options = options;
 
     var that = this;
-    this.options.success = function(result) {
+    this.options.success = function (result) {
 
         // success callback is used to both report operation progress and
         // as operation completeness handler
@@ -58,13 +58,55 @@ var FileTransferManager = function(options) {
     };
 
     // triggered on error
-    this.options.fail = function(msg) {
+    this.options.fail = function (msg) {
         var e = (typeof msg === 'string') ? new Error(msg) : msg;
         that.emit('error', e);
     };
 
 
     exec(this.options.success, this.options.fail, 'FileTransferBackground', 'initManager', []);
+
+};
+
+FileTransferManager.prototype.startUpload = function (payload) {
+
+    if (payload == null) {
+        this.options.fail(
+            "upload settings object is missing or invalid argument"
+        );
+        return;
+    }
+    if (payload.serverUrl == null) {
+        this.options.fail(
+            "server url is required"
+        );
+        return;
+
+    }
+
+    if (payload.serverUrl.trim() == '') {
+        this.options.fail(
+            "invalid server url"
+        );
+        return;
+    }
+
+    if (!payload.filePath) {
+        this.options.fail(
+            "filePath is required"
+        );
+        return;
+    }
+
+    if (!this.options) {
+        console.error("FileTransferManager not properly initialised. Call FileTransferManager.init(options) first");
+        return;
+    }
+
+    //remove the prefix for mobile urls
+    payload.filePath = payload.filePath.replace('file://', '');
+
+    exec(null, null, "FileTransferBackground", "startUpload", [payload]);
 
 };
 
@@ -82,7 +124,7 @@ var FileTransferManager = function(options) {
  * @param {Function} callback triggered on the event.
  */
 
-FileTransferManager.prototype.on = function(eventName, callback) {
+FileTransferManager.prototype.on = function (eventName, callback) {
     if (!this._handlers.hasOwnProperty(eventName)) {
         this._handlers[eventName] = [];
     }
@@ -96,7 +138,7 @@ FileTransferManager.prototype.on = function(eventName, callback) {
  * @param {Function} handle function associated with event.
  */
 
-FileTransferManager.prototype.off = function(eventName, handle) {
+FileTransferManager.prototype.off = function (eventName, handle) {
     if (this._handlers.hasOwnProperty(eventName)) {
         var handleIndex = this._handlers[eventName].indexOf(handle);
         if (handleIndex >= 0) {
@@ -116,7 +158,7 @@ FileTransferManager.prototype.off = function(eventName, handle) {
  * @return {Boolean} is true when the event is triggered otherwise false.
  */
 
-FileTransferManager.prototype.emit = function() {
+FileTransferManager.prototype.emit = function () {
     var args = Array.prototype.slice.call(arguments);
     var eventName = args.shift();
 
@@ -136,50 +178,13 @@ FileTransferManager.prototype.emit = function() {
     return true;
 };
 
-FileTransferManager.prototype.startUpload = function(payload, callback) {
 
-    if (payload == null) {
-        return callback({
-            error: "upload settings object is missing or invalid argument"
-        });
-    }
-    if (payload.serverUrl == null) {
-        return callback({
-            error: "server url is required"
-        });
-
-    }
-
-    if (payload.serverUrl.trim() == '') {
-        return callback({
-            error: "invalid server url"
-        });
-    }
-
-    if (!payload.filePath) {
-        return callback({
-            error: "filePath is required"
-        });
-    }
-
-    if (!this.options) {
-        return callback({
-            error: "FileTransferManager not properly initialised. Call FileTransferManager.init(options) first"
-        });
-    }
-
-    //remove the prefix for mobile urls
-    payload.filePath = payload.filePath.replace('file://', '');
-
-    exec(this.options.success, callback, "FileTransferBackground", "startUpload", [payload]);
-
-};
 
 
 
 module.exports = {
 
-    init: function(options) {
+    init: function (options) {
         return new FileTransferManager(options ? options : {});
     },
 

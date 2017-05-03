@@ -29,21 +29,62 @@ export class HomePage {
   allMedia: Array < Media > = [];
   isMobile: Boolean = true;
   desktopStatus: String = "";
+  uploader: any;
 
   constructor(private platform: Platform, private _navCtrl: NavController, private _ngZone: NgZone) {
+
+    this.uploader = FileTransferManager.init();
+
+    this.uploader.on('success', function (upload) {
+      console.log("upload: " + upload.id + " has been completed successfully");
+    });
+
+    this.uploader.on('progress', function (upload) {
+      console.log("uploading: " + upload.id + " progress: " + upload.progress + "%");
+    });
+
+    this.uploader.on('error', function (e) {
+      // e.message
+      console.error("upload error: " + e.message);
+    });
+
+
 
   }
 
   private openGallery(): void {
 
-    let options = {
-      maximumImagesCount: 3
-    }
+    var self = this;
 
-    ImagePicker.getPictures(options).then(
+    ImagePicker.getPictures({
+      maximumImagesCount: 3
+    }).then(
       file_uris => {
         for (var i = 0; i < file_uris.length; i++) {
           this.allMedia.push(new Media(file_uris[i], this._ngZone));
+
+          var options: any = {
+            serverUrl: "http://requestb.in/qesje2qe", //"http://httpbin.org/post"
+            filePath: file_uris[i],
+            headers: {
+              "someKey": "testkey"
+            },
+            parameters: {
+              "colors": 1,
+              "faces": 1,
+              "image_metadata": 1,
+              "notification_url": "https://scpix.herokuapp.com/api/v1/cloudinary?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE0OTM3MzA5MTcsImlhdCI6MTQ5MzcxNjUxNywiYWxidW1faWQiOiJ0ZXN0X3VwbG9hZCIsIm9yZ2FuaXphdGlvbl9pZCI6IjI1MTFlYWJmLWJlZjUtNDlmNi05ZmRkLTA2YTdmMzllYjU3ZCJ9.eA5dRRqwHgehVWuZSuNaCQyyWE4fNMr1RyYtVrmIcOw",
+              "phash": 1,
+              "tags": "test_upload",
+              "timestamp": 1494321317,
+              "transformation": "a_exif",
+              "type": "authenticated",
+              "signature": "105286a57b32dbb2e2dc33a3c067cf69d9ba207c",
+              "api_key": "549516561145346"
+            }
+          };
+
+          self.uploader.startUpload(options);
         }
       },
       err => console.log('err: ' + err)
@@ -53,10 +94,6 @@ export class HomePage {
 
   }
 
-
-  upload(media: Media) {
-    media.upload();
-  }
 
 }
 
@@ -88,46 +125,8 @@ export class Media {
   upload() {
     this.status = "uploading"
 
-    var options: any = {
-      serverUrl: "http://requestb.in/14xyzdo1", //"http://httpbin.org/post"
-      filePath: this.uri.replace("file://", ""),
-      headers: {
-        "clientKey": "343ssdfs34j3jwe",
-        "apiKey": "testkey"
-      },
-      parameters: {
-        "upload_preset": "my2rjjsk"
-      }
-    };
 
-    var self = this;
 
-    var uploader = FileTransferManager.init({}); //init setups event listeners
-
-    uploader.on('success', function (upload) {
-       console.log("upload: "+ upload.id + " has been completed successfully");
-    });
-
-    uploader.on('progress', function (upload) {
-      console.log("uploading: " + upload.id+ " progress: " +upload.progress + "%");
-    });
-
-    uploader.on('error', function (e) {
-      // e.message
-      console.error("upload error: "+  e.message);
-    });
-
-    uploader.startUpload(options, function (result) {
-      if (result.error) {
-        //the upload could not be queued,
-        //check the err object to find out what went wrong
-        console.error(result.error);
-      }else{
-        //upload has been successfully queued
-        //use the result.id to track the upload state
-      }
-
-    });
 
     /*
         new FileTransferManager().upload(options)
