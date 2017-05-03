@@ -96,6 +96,13 @@ FileTransferManager.prototype.startUpload = function (payload) {
         return;
     }
 
+     if (!payload.id) {
+        this.options.fail({
+            error: "upload id is required"
+        });
+        return;
+    }
+
     if (!this.options) {
         console.error("FileTransferManager not properly initialised. Call FileTransferManager.init(options) first");
         return;
