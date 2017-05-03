@@ -38,31 +38,48 @@ export class HomePage {
       self.uploader = FileTransferManager.init();
 
       self.uploader.on('success', function (upload) {
-        if (upload.state == 'UPLOADED'){
+        if (upload.state == 'UPLOADED') {
           console.log("upload: " + upload.id + " has been completed successfully");
           console.log(upload.serverResponse);
-        }else{
+        } else {
+
           console.log("upload: " + upload.id + " has been queued successfully");
         }
-        
+
       });
 
       self.uploader.on('progress', function (upload) {
         console.log("uploading: " + upload.id + " progress: " + upload.progress + "%");
+        var correspondingMedia = self.getMediaWithPath(upload.filePath);
+        if (correspondingMedia) {
+          correspondingMedia.updateStatus("uploading: " + upload.progress + "%");
+        }
       });
 
       self.uploader.on('error', function (uploadException) {
-        if (uploadException.id){
+        if (uploadException.id) {
           console.log("upload: " + uploadException.id + " has failed");
-        }else{
+          
+        } else {
           console.error("uploader caught an error: " + uploadException.error);
         }
-        
+
       });
     }, 1000);
 
 
 
+  }
+
+  private getMediaWithPath(path) {
+
+    for (var media of this.allMedia) {
+      if (media.uri.indexOf(path) != -1) {
+        return media;
+      }
+    }
+
+    return null;
   }
 
   private openGallery(): void {
