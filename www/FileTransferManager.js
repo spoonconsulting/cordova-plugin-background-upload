@@ -42,14 +42,9 @@ var FileTransferManager = function (options) {
 
         // success callback is used to both report operation progress and
         // as operation completeness handler
-        //console.log(JSON.stringify(result));
-
         if (result && typeof result.progress != 'undefined') {
             that.emit('progress', result);
         }
-        // else if (result && typeof result.progress != 'undefined') {
-        //     that.emit('progress', result);
-        // } 
         else {
             that.emit('success', result);
         }
