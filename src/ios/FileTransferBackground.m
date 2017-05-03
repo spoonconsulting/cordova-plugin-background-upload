@@ -27,14 +27,6 @@
 
 @implementation FileTransferBackground
 
-//-(void)resume:(CDVInvokedUrlCommand*)command{
-//
-//    [FileUploadManager sharedInstance].delegate = self;
-//
-//    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-//                                                       messageAsArray:[[FileUploadManager sharedInstance].uploads allObjects]];
-//    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-//}
 
 NSString *const FormatTypeName[5] = {
     [kFileUploadStateStopped] = @"STOPPED",
@@ -47,13 +39,14 @@ NSString *const FormatTypeName[5] = {
 
 -(void)initManager:(CDVInvokedUrlCommand*)command{
     
+    pluginCommand = command;
+    NSLog(@"methodName: %@", pluginCommand.methodName);
+    
     [FileUploadManager sharedInstance].delegate = self;
     [[FileUploadManager sharedInstance] start];
     
     NSArray* uploads= [[FileUploadManager sharedInstance].uploads allObjects];
-    // NSMutableArray* history =[[NSMutableArray alloc]init];
     for (FileUpload *upload in uploads) {
-        //   [history addObject:@{@"id": upload.uploadUUID.UUIDString, @"state": FormatTypeName[upload.state]}];
         CDVPluginResult* pluginResult;
         if(upload.state == kFileUploadStateFailed) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
@@ -68,7 +61,8 @@ NSString *const FormatTypeName[5] = {
         }else if(upload.state == kFileUploadStateUploaded) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
                                          messageAsDictionary:@{@"completed":@YES,
-                                                               @"id" :upload.uploadUUID.UUIDString,  @"state": FormatTypeName[upload.state]
+                                                               @"id" :upload.uploadUUID.UUIDString,
+                                                               @"state": FormatTypeName[upload.state]
                                                                }];
             [pluginResult setKeepCallback:@YES];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -78,19 +72,11 @@ NSString *const FormatTypeName[5] = {
         
     }
     
-    //    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-    //                                                  messageAsDictionary:@{ @"resuming" :@YES,
-    //                                                                         @"history":history
-    //                                                                         }];
-    //    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    
-    
 }
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command
 {
-    pluginCommand = command;
-    NSLog(@"methodName: %@", pluginCommand.methodName);
+    
     
     NSDictionary* payload = command.arguments[0];
     NSString* uploadUrl  = payload[@"serverUrl"];
@@ -125,28 +111,28 @@ NSString *const FormatTypeName[5] = {
     
     //  url = [NSURL URLWithString:@"https://api.cloudinary.com/v1_1/foxfort/auto/upload"];
     //url = [NSURL URLWithString:@"https://api-de.cloudinary.com/v1_1/hclcistqq/auto/upload"];
-     url = [NSURL URLWithString:@"http://requestb.in/qesje2qe"];
+    url = [NSURL URLWithString:@"http://requestb.in/qesje2qe"];
     
     request = [NSMutableURLRequest requestWithURL:url];
     
     [request setHTTPMethod:@"POST"];
     
     
-    NSDictionary *formParameters = @{/*@"upload_preset" :@"my2rjjsk",*/
-                                     @"colors": @1,
-                                     @"faces": @1,
-                                     @"image_metadata": @1,
-                                     @"notification_url": @"https://scpix.herokuapp.com/api/v1/cloudinary?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE0OTM3MzA5MTcsImlhdCI6MTQ5MzcxNjUxNywiYWxidW1faWQiOiJ0ZXN0X3VwbG9hZCIsIm9yZ2FuaXphdGlvbl9pZCI6IjI1MTFlYWJmLWJlZjUtNDlmNi05ZmRkLTA2YTdmMzllYjU3ZCJ9.eA5dRRqwHgehVWuZSuNaCQyyWE4fNMr1RyYtVrmIcOw",
-                                     @"phash": @1,
-                                     @"tags": @"test_upload",
-                                     @"timestamp": @1494321317,
-                                     @"transformation": @"a_exif",
-                                     @"type": @"authenticated",
-                                     @"signature": @"105286a57b32dbb2e2dc33a3c067cf69d9ba207c",
-                                     @"api_key": @"549516561145346"
-                                     
-                                     };
-    NSDictionary *_headers = @{};
+    //    NSDictionary *formParameters = @{/*@"upload_preset" :@"my2rjjsk",*/
+    //                                     @"colors": @1,
+    //                                     @"faces": @1,
+    //                                     @"image_metadata": @1,
+    //                                     @"notification_url": @"https://scpix.herokuapp.com/api/v1/cloudinary?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE0OTM3MzA5MTcsImlhdCI6MTQ5MzcxNjUxNywiYWxidW1faWQiOiJ0ZXN0X3VwbG9hZCIsIm9yZ2FuaXphdGlvbl9pZCI6IjI1MTFlYWJmLWJlZjUtNDlmNi05ZmRkLTA2YTdmMzllYjU3ZCJ9.eA5dRRqwHgehVWuZSuNaCQyyWE4fNMr1RyYtVrmIcOw",
+    //                                     @"phash": @1,
+    //                                     @"tags": @"test_upload",
+    //                                     @"timestamp": @1494321317,
+    //                                     @"transformation": @"a_exif",
+    //                                     @"type": @"authenticated",
+    //                                     @"signature": @"105286a57b32dbb2e2dc33a3c067cf69d9ba207c",
+    //                                     @"api_key": @"549516561145346"
+    //
+    //                                     };
+    //    NSDictionary *_headers = @{};
     
     NSString *boundary = [NSString stringWithFormat:@"Boundary-%@", [[NSUUID UUID] UUIDString]];
     
@@ -154,18 +140,17 @@ NSString *const FormatTypeName[5] = {
     [request setValue:contentType forHTTPHeaderField: @"Content-Type"];
     
     
-    NSData *body = [self createBodyWithBoundary:boundary parameters:formParameters paths:@[filePath] fieldName:@"file"];
+    NSData *body = [self createBodyWithBoundary:boundary parameters:parameters paths:@[filePath] fieldName:@"file"];
     
-    if (_headers) {
-        for (NSString *key in _headers) {
-            [request setValue:[_headers objectForKey:key] forHTTPHeaderField:key];
-        }
+    for (NSString *key in headers) {
+        [request setValue:[headers objectForKey:key] forHTTPHeaderField:key];
     }
+    
     
     NSString *tmpFilePath = [NSTemporaryDirectory() stringByAppendingPathComponent:boundary];
     if (![body writeToFile:tmpFilePath atomically:YES] ) {
         NSLog(@"Error writing file");
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                       messageAsDictionary:@{ @"error" : @"Error writing temp file" }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         return;
@@ -173,11 +158,14 @@ NSString *const FormatTypeName[5] = {
     FileUploadManager* uploader = [FileUploadManager sharedInstance];
     
     FileUpload* job=[uploader createUploadWithRequest:request fileURL:[NSURL URLWithString:[NSString stringWithFormat:@"file:%@", tmpFilePath]]];
-    [job start];
+    if(job){
+        [job start];
+    }else{
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                      messageAsDictionary:@{ @"error" : @"Error adding upload" }];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }
     
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                  messageAsDictionary:@{ @"id" : job.uploadUUID.UUIDString ,@"tes":@"es" }];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     
 }
 
@@ -255,10 +243,6 @@ NSString *const FormatTypeName[5] = {
         completionHandler();
     }
     
-    //    if (self.backgroundCompletionBlock != nil) {
-    //        self.backgroundCompletionBlock();
-    //        self.backgroundCompletionBlock = nil;
-    //    }
 }
 
 - (void)uploadManager:(FileUploadManager *)manager logWithFormat:(NSString *)format arguments:(va_list)arguments
