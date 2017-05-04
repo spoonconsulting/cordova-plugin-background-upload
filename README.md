@@ -31,6 +31,7 @@ The plugin needs to be initialised before any upload. Ideally this should be cal
 
  uploader.on('success', function(upload) {
      console.log("upload: " + upload.id + " has been completed successfully");
+     console.log(upload.serverResponse);
 
  });
 
