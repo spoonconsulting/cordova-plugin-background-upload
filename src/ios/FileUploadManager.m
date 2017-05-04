@@ -765,15 +765,6 @@ static NSString * kMutableInfoProgressKey = @"progress";
         [responseData appendData:data];
     }
     
-//    if (data) {
-//        
-//        NSDictionary *response = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-//        if (response) {
-//            NSLog(@"response = %@", response);
-//        } else {
-//            NSLog(@"responseData = %@", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
-//        }
-//    }
 }
 
 - (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session

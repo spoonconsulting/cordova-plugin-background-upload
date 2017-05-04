@@ -55,7 +55,8 @@ NSString *const FormatTypeName[5] = {
                                                                }];
             [pluginResult setKeepCallback:@YES];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-            
+            //delete upload info from disk
+            [upload remove];
             
         }else if(upload.state == kFileUploadStateUploaded) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
@@ -65,6 +66,9 @@ NSString *const FormatTypeName[5] = {
                                                                }];
             [pluginResult setKeepCallback:@YES];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+            //delete upload info from disk
+            [upload remove];
+
             
         }
         
@@ -209,6 +213,9 @@ NSString *const FormatTypeName[5] = {
                                                                             }];
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
+        //delete upload info from disk
+        [upload remove];
+
     }
     else if (upload.state == kFileUploadStateFailed) {
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
