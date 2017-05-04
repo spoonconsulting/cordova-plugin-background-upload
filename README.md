@@ -22,6 +22,7 @@ cordova plugin rm cordova-plugin-background-upload
 ```
 
 **Sample usage**
+
 The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploaders will provide global events which can be used to check the progress of the uploads.
 ```javascript
  declare var FileTransferManager: any;
@@ -47,7 +48,9 @@ The plugin needs to be initialised before any upload. Ideally this should be cal
  });
 
 ```
-Adding an upload is done via the startUpload method. In case the plugin was not able to enqueue the upload, an exception will be thrown in the error event listener.
+Adding an upload is done via the ``` 
+startUpload``` 
+method. In case the plugin was not able to enqueue the upload, an exception will be thrown in the error event listener.
 ```javascript
  var payload = {
      "id": "sj5f9"
@@ -76,7 +79,7 @@ Adding an upload is done via the startUpload method. In case the plugin was not 
 The plugin runs on ios 9.0 and above. The code was based on the following blog:
  [https://krumelur.me/2015/11/25/ios-background-transfer-what-about-uploads/](https://krumelur.me/2015/11/25/ios-background-transfer-what-about-uploads/).
 
- Internally it uses [NSUrlSession](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/URLLoadingSystem/Articles/UsingNSURLSession.html#//apple_ref/doc/uid/TP40013509-SW44) to perform the upload in a background session. When an uploaded is initiated, it will continue until it has been completed successfully or if the user kills the application. If the application is terminated by the OS, the uploads will still continue. When the user relanches the application, after calling the init method, the success and error events will be emitted with the ids of these uploads. If the user chose to kill the application by swiping it up from the multitasking pane, the uploads will not be continued. Upload tasks in background sessions are automatically retried by the URL loading system after network errors as decided by the OS.
+ Internally it uses [NSUrlSession](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/URLLoadingSystem/Articles/UsingNSURLSession.html#//apple_ref/doc/uid/TP40013509-SW44) to perform the upload in a background session. When an uploaded is initiated, it will continue until it has been completed successfully or if the user kills the application. If the application is terminated by the OS, the uploads will still continue. When the user relaunches the application, after calling the init method, the success and error events will be emitted with the ids of these uploads. If the user chose to kill the application by swiping it up from the multitasking pane, the uploads will not be continued. Upload tasks in background sessions are automatically retried by the URL loading system after network errors as decided by the OS.
 
 ## Android
 The minimum api level require is 21 and the background file upload is handled by the [android-upload-service](https://github.com/gotev/android-upload-service) library. If the application is killed while uploading, either by the user or the OS, all uploads will be stopped. When the app is relaunched, the ids of these uploads will be emitted to the error listener.
