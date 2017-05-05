@@ -11,6 +11,7 @@
     <platform name="android">
         <framework src="net.gotev:uploadservice:3.2.3" />
         <framework src="net.gotev:uploadservice-okhttp:3.2.3" />
+        <framework src="com.sromku:simple-storage:1.2.0" />
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
                 <param name="android-package" value="com.spoon.backgroundFileUpload.FileTransferBackground" />

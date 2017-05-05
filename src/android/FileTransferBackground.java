@@ -19,7 +19,6 @@ import com.sromku.simple.storage.helpers.OrderType;
 import net.gotev.uploadservice.MultipartUploadRequest;
 import net.gotev.uploadservice.ServerResponse;
 import net.gotev.uploadservice.UploadInfo;
-import net.gotev.uploadservice.UploadNotificationConfig;
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadStatusDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
@@ -46,18 +45,8 @@ public class FileTransferBackground extends CordovaPlugin {
 
                 final FileTransferSettings payload = new FileTransferSettings((args.get(0)).toString());
 
-                String fileName = payload.filePath.substring(payload.filePath.lastIndexOf("/") + 1);
-
-
-                UploadNotificationConfig notificationConfig = new UploadNotificationConfig()
-                        .setTitle("Uploading " + fileName)
-                        .setInProgressMessage("Uploading at [[UPLOAD_RATE]] ([[PROGRESS]])")
-                        .setErrorMessage("Error while uploading")
-                        .setCompletedMessage("Successfully uploaded ");
-
                 MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.serverUrl)
                         .addFileToUpload(payload.filePath, "file")
-                        .setNotificationConfig(notificationConfig)
                         .setDelegate(new UploadStatusDelegate() {
                             @Override
                             public void onProgress(Context context, UploadInfo uploadInfo) {
