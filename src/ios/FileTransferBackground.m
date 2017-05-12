@@ -30,7 +30,7 @@
 
 NSString *const FormatTypeName[5] = {
     [kFileUploadStateStopped] = @"STOPPED",
-    [kFileUploadStateStarted] = @"STARTED",
+    [kFileUploadStateStarted] = @"UPLOADING",
     [kFileUploadStateUploaded] = @"UPLOADED",
     [kFileUploadStateFailed] = @"FAILED",
     [kFileUploadStateStopping] = @"STOPPING",
@@ -222,6 +222,7 @@ NSString *const FormatTypeName[5] = {
                                                       messageAsDictionary:@{
                                                                             @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
                                                                             @"error" : @"upload failed"
+                                                                            @"state": FormatTypeName[upload.state]
                                                                             }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
     }
@@ -234,7 +235,11 @@ NSString *const FormatTypeName[5] = {
         float roundedProgress =roundf(10 * (upload.progress*100)) / 10.0;
        // NSLog(@"native upload: %@ progress: %f", [[FileUploadManager sharedInstance] getFileIdForUpload:upload], roundedProgress);
         
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"progress" : @(roundedProgress), @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload] }];
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@
+        {@"progress" : @(roundedProgress), 
+        @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
+        @"state": FormatTypeName[upload.state] 
+        }];
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
     }
