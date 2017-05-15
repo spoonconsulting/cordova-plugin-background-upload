@@ -56,6 +56,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                     JSONObject objResult = new JSONObject();
                                     objResult.put("id", payload.id);
                                     objResult.put("progress", uploadInfo.getProgressPercent());
+                                    objResult.put("state", "UPLOADING");
                                     PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
                                     progressUpdate.setKeepCallback(true);
                                     callbackContext.sendPluginResult(progressUpdate);
@@ -75,6 +76,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                     JSONObject errorObj = new JSONObject();
                                     errorObj.put("id", payload.id);
                                     errorObj.put("error", "upload failed");
+                                    objResult.put("state", "FAILED");
                                     PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
                                     errorResult.setKeepCallback(true);
                                     callbackContext.sendPluginResult(errorResult);
@@ -94,6 +96,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                     objResult.put("id", payload.id);
                                     objResult.put("completed", true);
                                     objResult.put("serverResponse", serverResponse.getBodyAsString());
+                                    objResult.put("state", "UPLOADED");
                                     PluginResult completedUpdate = new PluginResult(PluginResult.Status.OK, objResult);
                                     completedUpdate.setKeepCallback(true);
                                     callbackContext.sendPluginResult(completedUpdate);
