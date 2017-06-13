@@ -76,7 +76,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                     JSONObject errorObj = new JSONObject();
                                     errorObj.put("id", payload.id);
                                     errorObj.put("error", "upload failed");
-                                    objResult.put("state", "FAILED");
+                                    errorObj.put("state", "FAILED");
                                     PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
                                     errorResult.setKeepCallback(true);
                                     callbackContext.sendPluginResult(errorResult);
