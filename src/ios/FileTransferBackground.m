@@ -217,13 +217,14 @@ NSString *const FormatTypeName[5] = {
         [upload remove];
         
     }
-    else if (upload.state == kFileUploadStateFailed) {
+    else if (upload.state == kFileUploadStateFailed || upload.state == kFileUploadStateStopped) {
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                       messageAsDictionary:@{
                                                                             @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
                                                                             @"error" : @"upload failed",
                                                                             @"state": FormatTypeName[upload.state]
                                                                             }];
+        [pluginResult setKeepCallback:@YES];                                                                           
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
     }
     else  if (upload.state == kFileUploadStateStarted) {
