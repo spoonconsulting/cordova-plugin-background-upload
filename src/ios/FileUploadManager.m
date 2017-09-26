@@ -203,6 +203,11 @@ static NSString * kMutableInfoProgressKey = @"progress";
     return [NSSet setWithArray:[self.uploadsByUUID allValues]];
 }
 
+-(FileUpload*) getUploadById: (NSString*)uploadUUID
+{
+   return [self.uploadsByUUID objectForKey:uploadUUID];
+}
+
 - (void)addUpload:(FileUpload *)upload
 {
     NSSet *         mutation;

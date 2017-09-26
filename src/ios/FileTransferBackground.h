@@ -27,7 +27,8 @@
 }
 
 
-- (void)startUpload:(CDVInvokedUrlCommand*)command;
+-(void)startUpload:(CDVInvokedUrlCommand*)command;
+-(void)removeUpload:(CDVInvokedUrlCommand*)command;
 -(void)initManager:(CDVInvokedUrlCommand*)command;
 
 @end

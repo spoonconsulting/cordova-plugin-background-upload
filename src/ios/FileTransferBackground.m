@@ -153,14 +153,27 @@ NSString *const FormatTypeName[5] = {
     
 }
 
+- (void)removeUpload:(CDVInvokedUrlCommand*)command
+{
+    NSString* fileId = command.arguments[0];
+    FileUploadManager* uploader = [FileUploadManager sharedInstance];
+    
+    FileUpload* upload =[uploader getUploadById:fileId];
+    if (upload){
+        [upload stop];
+        [upload remove];
+    }
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [pluginResult setKeepCallback:@YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    
+}
 
 - (NSData *)createBodyWithBoundary:(NSString *)boundary
                         parameters:(NSDictionary *)parameters
                              paths:(NSArray *)paths
                          fieldName:(NSString *)fieldName {
     NSMutableData *httpBody = [NSMutableData data];
-    
-    
     
     [parameters enumerateKeysAndObjectsUsingBlock:^(NSString *parameterKey, NSString *parameterValue, BOOL *stop) {
         [httpBody appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];

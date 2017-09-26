@@ -110,7 +110,15 @@ FileTransferManager.prototype.startUpload = function (payload) {
 
 };
 
+FileTransferManager.prototype.removeUpload = function (id, success, fail) {
 
+    if (!id) {
+        fail({error: "upload id is required" });
+        return;
+    }
+
+    exec(success,fail, "FileTransferBackground", "removeUpload", [id]);
+}
 /**
  * Listen for an event.
  *

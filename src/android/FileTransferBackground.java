@@ -41,6 +41,9 @@ public class FileTransferBackground extends CordovaPlugin {
 
             if (action.equalsIgnoreCase("initManager")) {
                 this.initManager(args.length() > 0 ? args.get(0).toString() : null, callbackContext);
+            }
+            else if (action.equalsIgnoreCase("removeUpload")) {
+                this.removeUpload(args.length() > 0 ? args.get(0).toString() : null, callbackContext);
             } else {
 
                 final FileTransferSettings payload = new FileTransferSettings((args.get(0)).toString());
@@ -141,6 +144,23 @@ public class FileTransferBackground extends CordovaPlugin {
     private void LogMessage(String message) {
 
         Log.d("FileTransferBG", message);
+    }
+
+      private void removeUpload(String fileId, CallbackContext callbackContext) {
+        try {
+            if (fileId == null)
+                return;
+            UploadService.stopUpload(fileId);
+            removeUploadInfoFile(fileId);
+            PluginResult res = new PluginResult(PluginResult.Status.OK);
+            res.setKeepCallback(true);
+            callbackContext.sendPluginResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+            PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, e.toString());
+            errorResult.setKeepCallback(true);
+            callbackContext.sendPluginResult(errorResult);
+        }
     }
 
     private void createUploadInfoFile(String fileId) {

@@ -30,7 +30,7 @@
 // main API
 
 - (void)start;
-
+-(FileUpload*) getUploadById: (NSString*)uploadUUID;
 - (void)stop;
     // WARNING: This method is here to support unit test and its semantics 
     // have not been well thought out.  It's not that implementing such a method 
