@@ -30,7 +30,7 @@
 // main API
 
 - (void)start;
--(FileUpload*) getUploadById: (NSString*)uploadUUID;
+-(FileUpload*) getUploadById: (NSString*)fileId;
 - (void)stop;
     // WARNING: This method is here to support unit test and its semantics 
     // have not been well thought out.  It's not that implementing such a method 
@@ -65,6 +65,7 @@ typedef enum FileUploadState FileUploadState;
 @property (nonatomic, copy,   readonly ) NSHTTPURLResponse *    response;
 @property (nonatomic, copy,   readonly ) NSError *              error;
 @property (nonatomic, copy ) id          serverResponse;
+@property (nonatomic, copy ) NSString *              fileId;
 
 - (void)start;      // state must be kFileUploadStateStopped or kFileUploadStateFailed
 - (void)stop;       // state must be kFileUploadStateStarted

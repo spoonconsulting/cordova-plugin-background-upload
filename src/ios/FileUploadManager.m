@@ -72,6 +72,7 @@ static NSString * kImmutableInfoRequestDataKey = @"requestData";                
 static NSString * kImmutableInfoOriginalURLDataKey = @"originalURLData";                // we archive this so that we preserve relative URL info
 static NSString * kImmutableInfoCreationDateKey = @"creationDate";
 static NSString * kImmutableInfoCreationDateNumKey = @"creationDateNum";
+static NSString * kImmutableInfoFileId = @"fileId";
 
 // Note: We write the creation date as a date because it's a nice, human-readable value,
 // but we /read/ the creation date as a floating point number because that preserves
@@ -203,9 +204,16 @@ static NSString * kMutableInfoProgressKey = @"progress";
     return [NSSet setWithArray:[self.uploadsByUUID allValues]];
 }
 
--(FileUpload*) getUploadById: (NSString*)uploadUUID
+-(FileUpload*) getUploadById: (NSString*)fileId
 {
-   return [self.uploadsByUUID objectForKey:uploadUUID];
+    for(id key in self.uploadsByUUID){
+        FileUpload* upload = [self.uploadsByUUID objectForKey:key];
+        if ([upload.fileId isEqualToString:fileId]){
+            return upload;
+        }
+    }
+    return nil;
+    
 }
 
 - (void)addUpload:(FileUpload *)upload
@@ -246,7 +254,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
     if (uploadDirURL != nil) {
         
         upload = [[FileUpload alloc] initWithRequest:request uploadUUID:uploadUUID uploadDirURL:uploadDirURL originalURL:fileURL creationDate:creationDate manager:self];
-        
+        upload.fileId = fileId;
         // Add it to our uploads dictionary (and hence to the public uploads set).
         
         [self addUpload:upload];
@@ -610,6 +618,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
     
     mutableInfoURL = [upload.uploadDirURL URLByAppendingPathComponent:kMutableInfoFileName];
     mutableInfo = [[NSMutableDictionary alloc] init];
+    [mutableInfo setObject:upload.fileId forKey:kImmutableInfoFileId];
     [mutableInfo setObject:@(upload.state) forKey:kMutableInfoStateKey];
     if (upload.response != nil) {
         [mutableInfo setObject:[NSKeyedArchiver archivedDataWithRootObject:upload.response] forKey:kMutableInfoResponseDataKey];
@@ -648,6 +657,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
         NSError *           error;
         NSNumber *          progressNum;
         FileUploadState     state;
+        NSString * fileId;
         
         // Extract the state.
         
@@ -655,6 +665,12 @@ static NSString * kMutableInfoProgressKey = @"progress";
         responseData = [mutableInfo objectForKey:kMutableInfoResponseDataKey];
         errorData  =   [mutableInfo objectForKey:kMutableInfoErrorDataKey];
         progressNum =  [mutableInfo objectForKey:kMutableInfoProgressKey];
+        if ([mutableInfo objectForKey:kImmutableInfoFileId]){
+            fileId =  [mutableInfo objectForKey:kImmutableInfoFileId];
+        }else{
+            fileId = @"";
+        }
+        
         
         // Do a rough validity check.
         
@@ -691,6 +707,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
             upload.error = error;
             upload.progress = [progressNum doubleValue];
             success = [upload isStateValidIncludingTask:NO];
+            upload.fileId =fileId;
         }
     }
     return success;

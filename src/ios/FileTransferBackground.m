@@ -160,7 +160,8 @@ NSString *const FormatTypeName[5] = {
     
     FileUpload* upload =[uploader getUploadById:fileId];
     if (upload){
-        [upload stop];
+        if (upload.state == kFileUploadStateStarted)
+            [upload stop];
         [upload remove];
     }
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
