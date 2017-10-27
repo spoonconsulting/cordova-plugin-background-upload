@@ -16,13 +16,30 @@
             <feature name="FileTransferBackground">
                 <param name="android-package" value="com.spoon.backgroundFileUpload.FileTransferBackground" />
             </feature>
+			<feature name="NetworkMonitor">
+                <param name="android-package" value="com.spoon.backgroundFileUpload.NetworkMonitor" />
+            </feature>
+			<feature name="UploadState">
+                <param name="android-package" value="com.spoon.backgroundFileUpload.UploadState" />
+            </feature>
+			<feature name="FileTransferSettings">
+                <param name="android-package" value="com.spoon.backgroundFileUpload.FileTransferSettings" />
+            </feature>
+			<feature name="ConnectionStatusListener">
+                <param name="android-package" value="com.spoon.backgroundFileUpload.ConnectionStatusListener" />
+            </feature>
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/*">
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.INTERNET" />
+			<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
         </config-file>
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundFileUpload" />
+		<source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/backgroundFileUpload" />
+		<source-file src="src/android/UploadState.java" target-dir="src/com/spoon/backgroundFileUpload" />
+		<source-file src="src/android/FileTransferSettings.java" target-dir="src/com/spoon/backgroundFileUpload" />
+		<source-file src="src/android/ConnectionStatusListener.java" target-dir="src/com/spoon/backgroundFileUpload" />
     </platform>
     <platform name="ios">
         <config-file target="config.xml" parent="/*">

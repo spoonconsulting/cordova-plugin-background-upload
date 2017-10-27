@@ -25,17 +25,12 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FileTransferBackground extends CordovaPlugin implements ConnectionStatusListener {
+public class FileTransferBackground extends CordovaPlugin {
 
   private final String uploadDirectoryName = "FileTransferBackground";
   private Storage storage;
   private CallbackContext uploadCallback;
-
-  @Override
-  protected void pluginInitialize() {
-    Connection.init(this.cordova.getActivity().getApplicationContext());
-    Connection.setDelegate(this);
-  }
+  private NetworkMonitor networkMonitor;
 
   @Override
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
@@ -68,7 +63,7 @@ public class FileTransferBackground extends CordovaPlugin implements ConnectionS
     final FileTransferSettings payload = new FileTransferSettings(jsonPayload.toString());
     this.createUploadInfoFile(payload.id, jsonPayload);
 
-    if (Connection.isConnected) {
+    if (NetworkMonitor.isConnected) {
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.serverUrl)
         .addFileToUpload(payload.filePath, "file")
         .setMaxRetries(0)
@@ -237,8 +232,15 @@ public class FileTransferBackground extends CordovaPlugin implements ConnectionS
 
       storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
       storage.createDirectory(uploadDirectoryName);
-
       LogMessage("created working directory ");
+
+      networkMonitor = new NetworkMonitor(webView.getContext(),new ConnectionStatusListener() {
+        @Override
+        public void connectionDidChange(Boolean isConnected, String networkType){
+          LogMessage("Connection change, Connected:" + isConnected);
+          uploadPendingList();
+        }
+      });
 
       if (options != null) {
         //initialised global configuration parameters here
@@ -292,9 +294,8 @@ public class FileTransferBackground extends CordovaPlugin implements ConnectionS
     }
   }
 
-  @Override
-  public void connectionDidChange() {
-    LogMessage("Connection change");
-    uploadPendingList();
+  public void onDestroy() {
+    if(networkMonitor != null)
+      networkMonitor.stopMonitoring();
   }
 }
