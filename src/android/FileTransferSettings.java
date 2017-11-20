@@ -16,6 +16,7 @@ public class FileTransferSettings {
   String filePath = "";
   String serverUrl = "";
   String id = "";
+  String fileKey = "file";
 
   HashMap<String, String> headers = new HashMap<String, String>();
   HashMap<String, String> parameters = new HashMap<String, String>();
@@ -28,6 +29,8 @@ public class FileTransferSettings {
       filePath = settings.getString("filePath");
       serverUrl = settings.getString("serverUrl");
       id = settings.getString("id");
+      fileKey = settings.getString("fileKey");
+
 
       if (settings.has("headers")) {
         JSONObject headersObject = settings.getJSONObject("headers");

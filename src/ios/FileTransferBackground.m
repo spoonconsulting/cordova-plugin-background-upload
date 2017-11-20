@@ -123,7 +123,7 @@ NSString *const FormatTypeName[5] = {
     [request setValue:contentType forHTTPHeaderField: @"Content-Type"];
     
     
-    NSData *body = [self createBodyWithBoundary:boundary parameters:parameters paths:@[filePath] fieldName:@"file"];
+    NSData *body = [self createBodyWithBoundary:boundary parameters:parameters paths:@[filePath] fieldName:payload[@"fileKey"]];
     
     for (NSString *key in headers) {
         [request setValue:[headers objectForKey:key] forHTTPHeaderField:key];
