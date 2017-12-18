@@ -80,7 +80,7 @@ public class FileTransferBackground extends CordovaPlugin {
               PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
               progressUpdate.setKeepCallback(true);
               callbackContext.sendPluginResult(progressUpdate);
-            } catch (JSONException e) {
+            } catch (Exception e) {
               e.printStackTrace();
             }
           }
@@ -99,7 +99,7 @@ public class FileTransferBackground extends CordovaPlugin {
               PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
               errorResult.setKeepCallback(true);
               callbackContext.sendPluginResult(errorResult);
-            } catch (JSONException e) {
+            } catch (Exception e) {
               e.printStackTrace();
             }
           }
@@ -119,7 +119,7 @@ public class FileTransferBackground extends CordovaPlugin {
               PluginResult completedUpdate = new PluginResult(PluginResult.Status.OK, objResult);
               completedUpdate.setKeepCallback(true);
               callbackContext.sendPluginResult(completedUpdate);
-            } catch (JSONException e) {
+            } catch (Exception e) {
               e.printStackTrace();
             }
           }
