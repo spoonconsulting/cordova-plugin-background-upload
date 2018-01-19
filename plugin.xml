@@ -29,11 +29,11 @@
                 <param name="android-package" value="com.spoon.backgroundFileUpload.ConnectionStatusListener" />
             </feature>
         </config-file>
-        <config-file target="AndroidManifest.xml" parent="/*">
+        <config-file target="app/src/main/AndroidManifest.xml" parent="/*">
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.INTERNET" />
-			<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+		<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
         </config-file>
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundFileUpload" />
 		<source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/backgroundFileUpload" />
