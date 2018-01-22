@@ -77,6 +77,14 @@ method. In case the plugin was not able to enqueue the upload, an exception will
  * headers: custom http headers
  * parameters: custom parameters for multipart data
 
+**To remove/abort an upload:** 
+```javascript
+uploader.removeUpload(uploadId, function(){
+    //upload aborted
+}, function(err){
+    //could abort the upload
+});
+```
 
  ## iOS
 The plugin runs on ios 9.0 and above. The code was based on the following blog:
