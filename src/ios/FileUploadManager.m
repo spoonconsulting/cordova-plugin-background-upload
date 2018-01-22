@@ -763,7 +763,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
     [self logWithFormat:@"will remove %@", upload];
     
     NSParameterAssert(self.session != nil);     // manager must be started
-    NSParameterAssert((upload.state == kFileUploadStateStopped) || (upload.state == kFileUploadStateUploaded) || (upload.state == kFileUploadStateFailed));
+    //NSParameterAssert((upload.state == kFileUploadStateStopped) || (upload.state == kFileUploadStateUploaded) || (upload.state == kFileUploadStateFailed));
     assert([self.uploadsByUUID objectForKey:upload.uploadUUID] != nil);
     
     mutation = [NSSet setWithObject:upload];
