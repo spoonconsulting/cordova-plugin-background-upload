@@ -67,7 +67,7 @@ method. In case the plugin was not able to enqueue the upload, an exception will
      }
  };
 
- uploader.startUpload(options);
+ uploader.startUpload(payload);
 ```
 **Configuration** 
  * id: the id of the file you want to upload (String). this will be used to track uploads
