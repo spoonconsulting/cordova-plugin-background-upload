@@ -62,7 +62,7 @@ public class FileTransferBackground extends CordovaPlugin {
   private void upload(JSONObject jsonPayload, final CallbackContext callbackContext) throws Exception {
     final FileTransferSettings payload = new FileTransferSettings(jsonPayload.toString());
     this.createUploadInfoFile(payload.id, jsonPayload);
-
+    final FileTransferBackground self = this;
     if (NetworkMonitor.isConnected) {
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.serverUrl)
         .addFileToUpload(payload.filePath, payload.fileKey)
@@ -79,7 +79,8 @@ public class FileTransferBackground extends CordovaPlugin {
               objResult.put("state", "UPLOADING");
               PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
               progressUpdate.setKeepCallback(true);
-              callbackContext.sendPluginResult(progressUpdate);
+              if (callbackContext !=null && self.webView !=null )
+                callbackContext.sendPluginResult(progressUpdate);
             } catch (Exception e) {
               e.printStackTrace();
             }
@@ -98,7 +99,9 @@ public class FileTransferBackground extends CordovaPlugin {
               errorObj.put("state", "FAILED");
               PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
               errorResult.setKeepCallback(true);
-              callbackContext.sendPluginResult(errorResult);
+              if (callbackContext !=null  && self.webView !=null )
+                callbackContext.sendPluginResult(errorResult);
+
             } catch (Exception e) {
               e.printStackTrace();
             }
@@ -118,7 +121,8 @@ public class FileTransferBackground extends CordovaPlugin {
               objResult.put("state", "UPLOADED");
               PluginResult completedUpdate = new PluginResult(PluginResult.Status.OK, objResult);
               completedUpdate.setKeepCallback(true);
-              callbackContext.sendPluginResult(completedUpdate);
+              if (callbackContext !=null  && self.webView !=null)
+                callbackContext.sendPluginResult(completedUpdate);
             } catch (Exception e) {
               e.printStackTrace();
             }
@@ -295,6 +299,7 @@ public class FileTransferBackground extends CordovaPlugin {
   }
 
   public void onDestroy() {
+    Log.d("FileTransferBackground"," FileTransferBackground onDestroy");
     if(networkMonitor != null)
       networkMonitor.stopMonitoring();
   }
