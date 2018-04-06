@@ -93,12 +93,11 @@ export class HomePage {
     }).then(
       file_uris => {
         for (var i = 0; i < file_uris.length; i++) {
-          console.log(file_uris[i])
           var media = new Media(file_uris[i], this._ngZone);
           this.allMedia.push(media);
 
           var options: any = {
-            serverUrl: "http://2467a69f.ngrok.io/",
+            serverUrl: "https://putsreq.com/efxwhEHBaJJeXNwkOxS8/",
             filePath: file_uris[i],
             fileKey: "file",
             id: media.id,
