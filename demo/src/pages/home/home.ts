@@ -13,11 +13,7 @@ import {
   Platform
 } from 'ionic-angular';
 
-/*
-import {
-  FileTransferManager, FileUploadOptions
-} from 'cordova-plugin-background-upload';
-*/
+
 declare var FileTransferManager: any;
 
 @Component({
@@ -37,7 +33,7 @@ export class HomePage {
 
       self.uploader.on('success', function (upload) {
         console.log("upload: " + upload.id + " has been completed successfully");
-        //console.log(upload.serverResponse);
+        console.log(upload.serverResponse);
         var correspondingMedia = self.getMediaWithId(upload.id);
         if (correspondingMedia) {
           correspondingMedia.updateStatus("uploaded successfully");
@@ -55,6 +51,9 @@ export class HomePage {
       self.uploader.on('error', function (uploadException) {
         if (uploadException.id) {
           console.log("upload: " + uploadException.id + " has failed");
+          var correspondingMedia = self.getMediaWithId(uploadException.id);
+          if (correspondingMedia)
+            correspondingMedia.updateStatus("Error while uploading");
 
         } else {
           console.error("uploader caught an error: " + uploadException.error);
@@ -68,7 +67,6 @@ export class HomePage {
   }
 
   private getMediaWithId(mediaId) {
-
     for (var media of this.allMedia) {
       if (media.id == mediaId) {
         return media;
@@ -76,6 +74,14 @@ export class HomePage {
     }
 
     return null;
+  }
+
+  
+  private cancelUpload(media: Media): void {
+    this.uploader.removeUpload(media.id, res=>{
+      console.log('removeUpload result: ', res);
+      media.updateStatus("Aborted");
+    },err=>alert('Error removing upload'));  
   }
 
   private openGallery(): void {
@@ -87,28 +93,19 @@ export class HomePage {
     }).then(
       file_uris => {
         for (var i = 0; i < file_uris.length; i++) {
+          console.log(file_uris[i])
           var media = new Media(file_uris[i], this._ngZone);
           this.allMedia.push(media);
 
           var options: any = {
-            serverUrl: "https://api-de.cloudinary.com/v1_1/hclcistqq/auto/upload", //"http://httpbin.org/post"
+            serverUrl: "http://2467a69f.ngrok.io/",
             filePath: file_uris[i],
+            fileKey: "file",
             id: media.id,
             headers: {
-              "someKey": "testkey"
             },
             parameters: {
-              "colors": 1,
-              "faces": 1,
-              "image_metadata": 1,
-              "notification_url": "https://scpix.herokuapp.com/api/v1/cloudinary?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE0OTM4MjU4ODMsImlhdCI6MTQ5MzgxMTQ4MywiYWxidW1faWQiOiJ0ZXN0X3VwbG9hZCIsIm9yZ2FuaXphdGlvbl9pZCI6IjI1MTFlYWJmLWJlZjUtNDlmNi05ZmRkLTA2YTdmMzllYjU3ZCJ9.Yf2t6QIsElSAh9aU2l0p02kxMLmujQan38gppgIZaFc",
-              "phash": 1,
-              "tags": "test_upload",
-              "timestamp": 1494416283,
-              "transformation": "a_exif",
-              "type": "authenticated",
-              "signature": "795eb9b391098ef8fb036a07157ad44d014af8d0",
-              "api_key": "549516561145346"
+              
             }
           };
 
