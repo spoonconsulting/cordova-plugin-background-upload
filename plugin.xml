@@ -53,9 +53,10 @@
         <source-file src="src/ios/FileTransferBackground.m" />
          <header-file src="src/ios/FileUploadManager.h" />
         <source-file src="src/ios/FileUploadManager.m" />
-       
     </platform>
-
-  
-
+    <platform name="windows">
+        <js-module src="src/windows/FileTransferBackgroundProxy.js" name="FileTransferBackgroundProxy">
+            <runs />
+        </js-module>
+    </platform>
 </plugin>
