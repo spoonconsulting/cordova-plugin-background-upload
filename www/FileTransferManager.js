@@ -84,15 +84,16 @@ FileTransferManager.prototype.startUpload = function (payload) {
         return;
     }
 
-    if (payload.file){
-        payload.filePath = payload.file;
-    }
 
     if (!payload.filePath) {
-        this.options.fail({
-            error: "filePath is required"
-        });
-        return;
+        if (payload.file){
+            payload.filePath = payload.file;
+        }else{
+            this.options.fail({
+                error: "filePath is required"
+            });
+            return;
+        }
     }
 
      if (!payload.id) {
