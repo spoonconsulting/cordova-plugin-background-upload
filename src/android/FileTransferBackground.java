@@ -119,6 +119,7 @@ public class FileTransferBackground extends CordovaPlugin {
               objResult.put("completed", true);
               objResult.put("serverResponse", serverResponse.getBodyAsString());
               objResult.put("state", "UPLOADED");
+              objResult.put("statusCode", serverResponse.getHttpCode());
               PluginResult completedUpdate = new PluginResult(PluginResult.Status.OK, objResult);
               completedUpdate.setKeepCallback(true);
               if (callbackContext !=null  && self.webView !=null)

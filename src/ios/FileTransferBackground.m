@@ -223,7 +223,8 @@ NSString *const FormatTypeName[5] = {
                                                                             @"completed":@YES,
                                                                             @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
                                                                             @"state": FormatTypeName[upload.state],
-                                                                            @"serverResponse": upload.serverResponse
+                                                                            @"serverResponse": upload.serverResponse,
+                                                                            @"statusCode": @(upload.response.statusCode)
                                                                             }];
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
