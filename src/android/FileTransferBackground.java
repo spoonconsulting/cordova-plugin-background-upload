@@ -7,6 +7,8 @@ import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
 
+import net.gotev.uploadservice.BinaryUploadRequest;
+import net.gotev.uploadservice.HttpUploadRequest;
 import net.gotev.uploadservice.MultipartUploadRequest;
 import net.gotev.uploadservice.ServerResponse;
 import net.gotev.uploadservice.UploadInfo;
@@ -62,78 +64,90 @@ public class FileTransferBackground extends CordovaPlugin {
   private void upload(JSONObject jsonPayload, final CallbackContext callbackContext) throws Exception {
     final FileTransferSettings payload = new FileTransferSettings(jsonPayload.toString());
     this.createUploadInfoFile(payload.id, jsonPayload);
+    String method = jsonPayload.optString("method", "POST");
+    Boolean multipart = jsonPayload.optBoolean("multipart", false);
     final FileTransferBackground self = this;
+
     if (NetworkMonitor.isConnected) {
-      MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id,payload.serverUrl)
-        .addFileToUpload(payload.filePath, payload.fileKey)
-        .setMaxRetries(0)
-        .setDelegate(new UploadStatusDelegate() {
-          @Override
-          public void onProgress(Context context, UploadInfo uploadInfo) {
-            LogMessage("id:" + payload.id + " progress: " + uploadInfo.getProgressPercent());
 
-            try {
-              JSONObject objResult = new JSONObject();
-              objResult.put("id", payload.id);
-              objResult.put("progress", uploadInfo.getProgressPercent());
-              objResult.put("state", "UPLOADING");
-              PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
-              progressUpdate.setKeepCallback(true);
-              if (callbackContext !=null && self.webView !=null )
-                callbackContext.sendPluginResult(progressUpdate);
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-          }
+      HttpUploadRequest request;
 
-          @Override
-          public void onError(Context context, UploadInfo uploadInfo, Exception exception) {
-            LogMessage("App onError: " + exception);
+      if (multipart) {
+        request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id, payload.serverUrl).addFileToUpload(payload.filePath, payload.fileKey);
 
-            try {
-              updateStateForUpload(payload.id, UploadState.FAILED, null);
+      } else {
+        request = new BinaryUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id, payload.serverUrl).setFileToUpload(payload.filePath);
+      }
 
-              JSONObject errorObj = new JSONObject();
-              errorObj.put("id", payload.id);
-              errorObj.put("error", "execute failed");
-              errorObj.put("state", "FAILED");
-              PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
-              errorResult.setKeepCallback(true);
-              if (callbackContext !=null  && self.webView !=null )
-                callbackContext.sendPluginResult(errorResult);
+      request.setMethod(method)
+              .setMaxRetries(0)
+              .setDelegate(new UploadStatusDelegate() {
+                @Override
+                public void onProgress(Context context, UploadInfo uploadInfo) {
+                  LogMessage("id:" + payload.id + " progress: " + uploadInfo.getProgressPercent());
 
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-          }
+                  try {
+                    JSONObject objResult = new JSONObject();
+                    objResult.put("id", payload.id);
+                    objResult.put("progress", uploadInfo.getProgressPercent());
+                    objResult.put("state", "UPLOADING");
+                    PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
+                    progressUpdate.setKeepCallback(true);
+                    if (callbackContext != null && self.webView != null)
+                      callbackContext.sendPluginResult(progressUpdate);
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                  }
+                }
 
-          @Override
-          public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
+                @Override
+                public void onError(Context context, UploadInfo uploadInfo, Exception exception) {
+                  LogMessage("App onError: " + exception);
 
-            try {
-              LogMessage("server response : " + serverResponse.getBodyAsString());
-              updateStateForUpload(payload.id, UploadState.UPLOADED, serverResponse.getBodyAsString());
+                  try {
+                    updateStateForUpload(payload.id, UploadState.FAILED, null);
 
-              JSONObject objResult = new JSONObject();
-              objResult.put("id", payload.id);
-              objResult.put("completed", true);
-              objResult.put("serverResponse", serverResponse.getBodyAsString());
-              objResult.put("state", "UPLOADED");
-              objResult.put("statusCode", serverResponse.getHttpCode());
-              PluginResult completedUpdate = new PluginResult(PluginResult.Status.OK, objResult);
-              completedUpdate.setKeepCallback(true);
-              if (callbackContext !=null  && self.webView !=null)
-                callbackContext.sendPluginResult(completedUpdate);
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-          }
+                    JSONObject errorObj = new JSONObject();
+                    errorObj.put("id", payload.id);
+                    errorObj.put("error", "execute failed");
+                    errorObj.put("state", "FAILED");
+                    PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
+                    errorResult.setKeepCallback(true);
+                    if (callbackContext != null && self.webView != null)
+                      callbackContext.sendPluginResult(errorResult);
 
-          @Override
-          public void onCancelled(Context context, UploadInfo uploadInfo) {
-            LogMessage("App cancel");
-          }
-        });
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                  }
+                }
+
+                @Override
+                public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
+
+                  try {
+                    LogMessage("server response : " + serverResponse.getBodyAsString());
+                    updateStateForUpload(payload.id, UploadState.UPLOADED, serverResponse.getBodyAsString());
+
+                    JSONObject objResult = new JSONObject();
+                    objResult.put("id", payload.id);
+                    objResult.put("completed", true);
+                    objResult.put("serverResponse", serverResponse.getBodyAsString());
+                    objResult.put("state", "UPLOADED");
+                    objResult.put("statusCode", serverResponse.getHttpCode());
+                    PluginResult completedUpdate = new PluginResult(PluginResult.Status.OK, objResult);
+                    completedUpdate.setKeepCallback(true);
+                    if (callbackContext != null && self.webView != null)
+                      callbackContext.sendPluginResult(completedUpdate);
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                  }
+                }
+
+                @Override
+                public void onCancelled(Context context, UploadInfo uploadInfo) {
+                  LogMessage("App cancel");
+                }
+              });
 
       for (String key : payload.parameters.keySet()) {
         request.addParameter(key, payload.parameters.get(key));
@@ -239,9 +253,9 @@ public class FileTransferBackground extends CordovaPlugin {
       storage.createDirectory(uploadDirectoryName);
       LogMessage("created working directory ");
 
-      networkMonitor = new NetworkMonitor(webView.getContext(),new ConnectionStatusListener() {
+      networkMonitor = new NetworkMonitor(webView.getContext(), new ConnectionStatusListener() {
         @Override
-        public void connectionDidChange(Boolean isConnected, String networkType){
+        public void connectionDidChange(Boolean isConnected, String networkType) {
           LogMessage("Connection change, Connected:" + isConnected);
           uploadPendingList();
         }
@@ -300,8 +314,8 @@ public class FileTransferBackground extends CordovaPlugin {
   }
 
   public void onDestroy() {
-    Log.d("FileTransferBackground"," FileTransferBackground onDestroy");
-    if(networkMonitor != null)
+    Log.d("FileTransferBackground", " FileTransferBackground onDestroy");
+    if (networkMonitor != null)
       networkMonitor.stopMonitoring();
   }
 }

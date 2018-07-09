@@ -26,7 +26,9 @@ public class FileTransferSettings {
     try {
       JSONObject settings = new JSONObject(jsonSettings);
 
-      filePath = settings.getString("filePath");
+
+      filePath = settings.getString("filePath").replaceFirst("\\?\\d*$", "");
+
       serverUrl = settings.getString("serverUrl");
       id = settings.getString("id");
       fileKey = settings.getString("fileKey");
@@ -42,7 +44,7 @@ public class FileTransferSettings {
             String value = headersObject.getString(key);
             headers.put(key, value);
           }
-
+          new IOException("File not found: " + filePath);
         }
       }
 
