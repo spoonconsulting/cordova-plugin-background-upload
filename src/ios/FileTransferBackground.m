@@ -120,6 +120,10 @@ NSString *const FormatTypeName[5] = {
     NSMutableURLRequest * request = [NSMutableURLRequest requestWithURL:url];
     [request setHTTPMethod:method];
 
+    for (NSString *key in headers) {
+        [request setValue:[headers objectForKey:key] forHTTPHeaderField:key];
+    }
+
     if(multipart) {
         NSString *boundary = [NSString stringWithFormat:@"Boundary-%@", [[NSUUID UUID] UUIDString]];
 
@@ -129,9 +133,6 @@ NSString *const FormatTypeName[5] = {
 
         NSData *body = [self createBodyWithBoundary:boundary parameters:parameters paths:@[filePath] fieldName:payload[@"fileKey"]];
 
-        for (NSString *key in headers) {
-            [request setValue:[headers objectForKey:key] forHTTPHeaderField:key];
-        }
 
 
         tmpFilePath = [NSTemporaryDirectory() stringByAppendingPathComponent:boundary];
