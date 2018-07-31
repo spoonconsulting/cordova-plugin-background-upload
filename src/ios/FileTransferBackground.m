@@ -265,7 +265,6 @@ NSString *const FormatTypeName[5] = {
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:res];
     [pluginResult setKeepCallback:@YES];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
-    NSLog(@"yuhu progress: %@", res[@"progress"]);
 }
 
 - (void)uploadManagerDidFinishBackgroundEvents:(FileUploadManager *)manager
