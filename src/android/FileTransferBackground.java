@@ -3,6 +3,7 @@ package com.spoon.backgroundFileUpload;
 import android.content.Context;
 import android.util.Log;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
@@ -31,6 +32,7 @@ public class FileTransferBackground extends CordovaPlugin {
   private Storage storage;
   private CallbackContext uploadCallback;
   private NetworkMonitor networkMonitor;
+  private RateLimiter limiter = RateLimiter.create(1.0);
 
   @Override
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
@@ -71,8 +73,8 @@ public class FileTransferBackground extends CordovaPlugin {
           @Override
           public void onProgress(Context context, UploadInfo uploadInfo) {
             LogMessage("id:" + payload.id + " progress: " + uploadInfo.getProgressPercent());
-
             try {
+              limiter.acquire();
               JSONObject objResult = new JSONObject();
               objResult.put("id", payload.id);
               objResult.put("progress", uploadInfo.getProgressPercent());

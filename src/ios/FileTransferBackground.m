@@ -249,17 +249,23 @@ NSString *const FormatTypeName[5] = {
         }
         
         float roundedProgress =roundf(10 * (upload.progress*100)) / 10.0;
-        // NSLog(@"native upload: %@ progress: %f", [[FileUploadManager sharedInstance] getFileIdForUpload:upload], roundedProgress);
-        
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@
-                                         {@"progress" : @(roundedProgress),
-                                             @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
-                                             @"state": FormatTypeName[upload.state]
-                                         }];
-        [pluginResult setKeepCallback:@YES];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
+        NSDictionary* res =@{
+            @"progress" : @(roundedProgress),
+            @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
+            @"state": FormatTypeName[upload.state]
+        };
+        //cancel any previous call request to sendProgressCallback
+        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(sendProgressCallback:) object:nil];
+        [self performSelector:@selector(sendProgressCallback:) withObject:res afterDelay:1];
     }
     
+}
+    
+-(void)sendProgressCallback:(NSDictionary*)res{
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:res];
+    [pluginResult setKeepCallback:@YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
+    NSLog(@"yuhu progress: %@", res[@"progress"]);
 }
 
 - (void)uploadManagerDidFinishBackgroundEvents:(FileUploadManager *)manager
