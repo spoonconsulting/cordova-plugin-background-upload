@@ -38,7 +38,7 @@ NSString *const FormatTypeName[5] = {
 
 
 -(void)initManager:(CDVInvokedUrlCommand*)command{
-    
+    lastProgressTimeStamp = 0;
     pluginCommand = command;
     
     [FileUploadManager sharedInstance].delegate = self;
@@ -254,9 +254,11 @@ NSString *const FormatTypeName[5] = {
             @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
             @"state": FormatTypeName[upload.state]
         };
-        //cancel any previous call request to sendProgressCallback
-        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(sendProgressCallback:) object:nil];
-        [self performSelector:@selector(sendProgressCallback:) withObject:res afterDelay:1];
+        NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
+        if(currentTimestamp - lastProgressTimeStamp >= 1){
+            lastProgressTimeStamp = currentTimestamp;
+            [self sendProgressCallback:res];
+        }
     }
     
 }
@@ -265,7 +267,6 @@ NSString *const FormatTypeName[5] = {
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:res];
     [pluginResult setKeepCallback:@YES];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
-    NSLog(@"yuhu progress: %@", res[@"progress"]);
 }
 
 - (void)uploadManagerDidFinishBackgroundEvents:(FileUploadManager *)manager

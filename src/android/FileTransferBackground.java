@@ -32,7 +32,7 @@ public class FileTransferBackground extends CordovaPlugin {
   private Storage storage;
   private CallbackContext uploadCallback;
   private NetworkMonitor networkMonitor;
-  private RateLimiter limiter = RateLimiter.create(1.0);
+  private Long lastProgressTimestamp = 0L;
 
   @Override
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
@@ -72,17 +72,21 @@ public class FileTransferBackground extends CordovaPlugin {
         .setDelegate(new UploadStatusDelegate() {
           @Override
           public void onProgress(Context context, UploadInfo uploadInfo) {
-            LogMessage("id:" + payload.id + " progress: " + uploadInfo.getProgressPercent());
+
             try {
-              limiter.acquire();
-              JSONObject objResult = new JSONObject();
-              objResult.put("id", payload.id);
-              objResult.put("progress", uploadInfo.getProgressPercent());
-              objResult.put("state", "UPLOADING");
-              PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
-              progressUpdate.setKeepCallback(true);
-              if (callbackContext !=null && self.webView !=null )
-                callbackContext.sendPluginResult(progressUpdate);
+              Long currentTimestamp = System.currentTimeMillis()/1000;
+              if (currentTimestamp - lastProgressTimestamp >=1) {
+                LogMessage("id:" + payload.id + " progress: " + uploadInfo.getProgressPercent());
+                JSONObject objResult = new JSONObject();
+                objResult.put("id", payload.id);
+                objResult.put("progress", uploadInfo.getProgressPercent());
+                objResult.put("state", "UPLOADING");
+                PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
+                progressUpdate.setKeepCallback(true);
+                if (callbackContext != null && self.webView != null)
+                  callbackContext.sendPluginResult(progressUpdate);
+              }
+
             } catch (Exception e) {
               e.printStackTrace();
             }
