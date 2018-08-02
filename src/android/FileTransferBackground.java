@@ -3,7 +3,6 @@ package com.spoon.backgroundFileUpload;
 import android.content.Context;
 import android.util.Log;
 
-import com.google.common.util.concurrent.RateLimiter;
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
