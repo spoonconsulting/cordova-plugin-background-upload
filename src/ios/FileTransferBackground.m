@@ -38,7 +38,7 @@ NSString *const FormatTypeName[5] = {
 
 
 -(void)initManager:(CDVInvokedUrlCommand*)command{
-    
+    lastProgressTimeStamp = 0;
     pluginCommand = command;
     
     [FileUploadManager sharedInstance].delegate = self;
@@ -249,17 +249,24 @@ NSString *const FormatTypeName[5] = {
         }
         
         float roundedProgress =roundf(10 * (upload.progress*100)) / 10.0;
-        // NSLog(@"native upload: %@ progress: %f", [[FileUploadManager sharedInstance] getFileIdForUpload:upload], roundedProgress);
-        
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@
-                                         {@"progress" : @(roundedProgress),
-                                             @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
-                                             @"state": FormatTypeName[upload.state]
-                                         }];
-        [pluginResult setKeepCallback:@YES];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
+        NSDictionary* res =@{
+            @"progress" : @(roundedProgress),
+            @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
+            @"state": FormatTypeName[upload.state]
+        };
+        NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
+        if(currentTimestamp - lastProgressTimeStamp >= 1){
+            lastProgressTimeStamp = currentTimestamp;
+            [self sendProgressCallback:res];
+        }
     }
     
+}
+    
+-(void)sendProgressCallback:(NSDictionary*)res{
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:res];
+    [pluginResult setKeepCallback:@YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
 }
 
 - (void)uploadManagerDidFinishBackgroundEvents:(FileUploadManager *)manager
