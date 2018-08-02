@@ -77,6 +77,7 @@ public class FileTransferBackground extends CordovaPlugin {
               Long currentTimestamp = System.currentTimeMillis()/1000;
               if (currentTimestamp - lastProgressTimestamp >=1) {
                 LogMessage("id:" + payload.id + " progress: " + uploadInfo.getProgressPercent());
+                lastProgressTimestamp = currentTimestamp;
                 JSONObject objResult = new JSONObject();
                 objResult.put("id", payload.id);
                 objResult.put("progress", uploadInfo.getProgressPercent());
