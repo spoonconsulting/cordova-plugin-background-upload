@@ -555,7 +555,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
     // Create the upload directory as "Upload-fileId*<UUID>".
     NSString* directoryPrefix= [NSString stringWithFormat:@"%@%@*%@", kUploadDirectoryPrefix, fileId,[uploadUUID UUIDString]];
     uploadDirURL = [self.workDirectoryURL URLByAppendingPathComponent:directoryPrefix];
-    success = [[NSFileManager defaultManager] createDirectoryAtURL:uploadDirURL withIntermediateDirectories:NO attributes:nil error:NULL];
+    success = [[NSFileManager defaultManager] createDirectoryAtURL:uploadDirURL withIntermediateDirectories:YES attributes:nil error:NULL];
     assert(success);
     
     // move file to upload in our upload directory, calling it "UploadContents" with an
