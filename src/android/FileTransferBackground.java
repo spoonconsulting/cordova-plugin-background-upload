@@ -10,6 +10,7 @@ import com.sromku.simple.storage.helpers.OrderType;
 import net.gotev.uploadservice.MultipartUploadRequest;
 import net.gotev.uploadservice.ServerResponse;
 import net.gotev.uploadservice.UploadInfo;
+import net.gotev.uploadservice.UploadNotificationConfig;
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadStatusDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
@@ -68,6 +69,7 @@ public class FileTransferBackground extends CordovaPlugin {
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id,payload.serverUrl)
         .addFileToUpload(payload.filePath, payload.fileKey)
         .setMaxRetries(0)
+        .setNotificationConfig(new UploadNotificationConfig())
         .setDelegate(new UploadStatusDelegate() {
           @Override
           public void onProgress(Context context, UploadInfo uploadInfo) {
@@ -93,7 +95,7 @@ public class FileTransferBackground extends CordovaPlugin {
           }
 
           @Override
-          public void onError(Context context, UploadInfo uploadInfo, Exception exception) {
+          public void onError(Context context, UploadInfo uploadInfo, final ServerResponse serverResponse,Exception exception) {
             LogMessage("App onError: " + exception);
 
             try {
@@ -240,6 +242,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
       UploadService.HTTP_STACK = new OkHttpStack();
       UploadService.UPLOAD_POOL_SIZE = 1;
+      UploadService.NAMESPACE = "com.spoon.backgroundupload";
 
       storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
       storage.createDirectory(uploadDirectoryName);
