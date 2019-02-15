@@ -127,7 +127,10 @@ static NSString * kMutableInfoProgressKey = @"progress";
 {
     NSURLSessionConfiguration *     configuration;
     
-    NSParameterAssert(self.session == nil);                 // you can't start us twice
+    //NSParameterAssert(self.session == nil);                 // you can't start us twice
+    if (self.session != nil) {
+     return;
+    }
     
     [self logWithFormat:@"will start with work directory %@", self.workDirectoryURL];
     
