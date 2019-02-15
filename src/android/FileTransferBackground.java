@@ -95,7 +95,7 @@ public class FileTransferBackground extends CordovaPlugin {
           }
 
           @Override
-          public void onError(Context context, UploadInfo uploadInfo, final ServerResponse serverResponse,Exception exception) {
+          public void onError(Context context, UploadInfo uploadInfo, Exception exception) {
             LogMessage("App onError: " + exception);
 
             try {
