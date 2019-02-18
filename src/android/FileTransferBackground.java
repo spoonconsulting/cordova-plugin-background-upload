@@ -69,7 +69,6 @@ public class FileTransferBackground extends CordovaPlugin {
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id,payload.serverUrl)
         .addFileToUpload(payload.filePath, payload.fileKey)
         .setMaxRetries(0)
-        .setNotificationConfig(new UploadNotificationConfig())
         .setDelegate(new UploadStatusDelegate() {
           @Override
           public void onProgress(Context context, UploadInfo uploadInfo) {
