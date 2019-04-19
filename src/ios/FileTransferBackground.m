@@ -211,11 +211,6 @@ NSString *const FormatTypeName[5] = {
 
 - (void)uploadManager:(FileUploadManager *)manager didChangeStateForUpload:(FileUpload *)upload{
     
-    if (upload.state == kFileUploadStateFailed){
-        [self returnResult:pluginCommand withMsg:@"Upload failed" success:NO];
-        return;
-    }
-    
     if (upload.state == kFileUploadStateUploaded) {
         //upload for a file completed
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
@@ -232,11 +227,21 @@ NSString *const FormatTypeName[5] = {
         [upload remove];
         
     }
-    else if (upload.state == kFileUploadStateFailed || upload.state == kFileUploadStateStopped) {
+    else if (upload.state == kFileUploadStateFailed) {
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                       messageAsDictionary:@{
                                                                             @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
                                                                             @"error" : @"upload failed",
+                                                                            @"state": FormatTypeName[upload.state]
+                                                                            }];
+        [pluginResult setKeepCallback:@YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
+    }
+    else if (upload.state == kFileUploadStateStopped) {
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                      messageAsDictionary:@{
+                                                                            @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
+                                                                            @"error" : @"upload stopped by user",
                                                                             @"state": FormatTypeName[upload.state]
                                                                             }];
         [pluginResult setKeepCallback:@YES];                                                                           
