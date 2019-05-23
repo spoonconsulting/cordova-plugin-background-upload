@@ -29,6 +29,7 @@ public class FileTransferBackground extends CordovaPlugin {
   private final String uploadDirectoryName = "FileTransferBackground";
   private Storage storage;
   private CallbackContext uploadCallback;
+  private CallbackContext cancelCallback;
   private NetworkMonitor networkMonitor;
   private Long lastProgressTimestamp = 0L;
 
@@ -139,7 +140,19 @@ public class FileTransferBackground extends CordovaPlugin {
 
           @Override
           public void onCancelled(Context context, UploadInfo uploadInfo) {
-            LogMessage("App cancel");
+            try {
+              LogMessage("upload cancelled "+uploadInfo.getUploadId());
+              removeUploadInfoFile(uploadInfo.getUploadId());
+              JSONObject objResult = new JSONObject();
+              objResult.put("id", uploadInfo.getUploadId());
+              PluginResult result = new PluginResult(PluginResult.Status.OK, objResult);
+              result.setKeepCallback(true);
+              if (cancelCallback !=null  && self.webView !=null)
+                cancelCallback.sendPluginResult(result);
+              cancelCallback = null;
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
           }
         });
 
@@ -168,10 +181,7 @@ public class FileTransferBackground extends CordovaPlugin {
       if (fileId == null)
         return;
       UploadService.stopUpload(fileId);
-      removeUploadInfoFile(fileId);
-      PluginResult res = new PluginResult(PluginResult.Status.OK);
-      res.setKeepCallback(true);
-      callbackContext.sendPluginResult(res);
+      cancelCallback = callbackContext;
     } catch (Exception e) {
       e.printStackTrace();
       PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, e.toString());
