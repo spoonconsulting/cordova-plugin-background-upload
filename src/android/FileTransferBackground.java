@@ -6,11 +6,9 @@ import android.util.Log;
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
-
 import net.gotev.uploadservice.MultipartUploadRequest;
 import net.gotev.uploadservice.ServerResponse;
 import net.gotev.uploadservice.UploadInfo;
-import net.gotev.uploadservice.UploadNotificationConfig;
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadStatusDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
@@ -35,18 +33,17 @@ public class FileTransferBackground extends CordovaPlugin {
   private Long lastProgressTimestamp = 0L;
 
   @Override
-  public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
+  public boolean execute(String action, JSONArray args, final CallbackContext callbackContext){
 
     try {
+      uploadCallback = callbackContext;
       if (action.equalsIgnoreCase("initManager")) {
         this.initManager(args.length() > 0 ? args.get(0).toString() : null, callbackContext);
       } else if (action.equalsIgnoreCase("removeUpload")) {
         this.removeUpload(args.length() > 0 ? args.get(0).toString() : null, callbackContext);
       } else {
-        uploadCallback = callbackContext;
         upload(args.length() > 0 ? (JSONObject) args.get(0) : null, uploadCallback);
       }
-
     } catch (Exception ex) {
       try {
         JSONObject errorObj = new JSONObject();
@@ -63,6 +60,10 @@ public class FileTransferBackground extends CordovaPlugin {
 
   private void upload(JSONObject jsonPayload, final CallbackContext callbackContext) throws Exception {
     final FileTransferSettings payload = new FileTransferSettings(jsonPayload.toString());
+    if (UploadService.getTaskList().contains(payload.id)){
+      LogMessage("upload with id "+payload.id + " is already being uploaded. ignoring re-upload request");
+      return;
+    }
     this.createUploadInfoFile(payload.id, jsonPayload);
     final FileTransferBackground self = this;
     if (NetworkMonitor.isConnected) {
@@ -247,14 +248,6 @@ public class FileTransferBackground extends CordovaPlugin {
       storage.createDirectory(uploadDirectoryName);
       LogMessage("created working directory ");
 
-      networkMonitor = new NetworkMonitor(webView.getContext(),new ConnectionStatusListener() {
-        @Override
-        public void connectionDidChange(Boolean isConnected, String networkType){
-          LogMessage("Connection change, Connected:" + isConnected);
-          uploadPendingList();
-        }
-      });
-
       if (options != null) {
         //initialised global configuration parameters here
         //JSONObject settings = new JSONObject(options);
@@ -266,7 +259,6 @@ public class FileTransferBackground extends CordovaPlugin {
         String id = upload.getString("id");
 
         if (state.equalsIgnoreCase(UploadState.UPLOADED)) {
-
           JSONObject objResult = new JSONObject();
           objResult.put("id", id);
           objResult.put("completed", true);
@@ -287,6 +279,14 @@ public class FileTransferBackground extends CordovaPlugin {
         //delete upload info on disk
         removeUploadInfoFile(id);
       }
+
+      networkMonitor = new NetworkMonitor(webView.getContext(),new ConnectionStatusListener() {
+        @Override
+        public void connectionDidChange(Boolean isConnected, String networkType){
+          LogMessage("detected network change, Connected:" + isConnected);
+          uploadPendingList();
+        }
+      });
 
     } catch (Exception e) {
       e.printStackTrace();
