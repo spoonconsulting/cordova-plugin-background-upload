@@ -89,7 +89,7 @@ public class FileTransferBackground extends CordovaPlugin {
     public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
 
       try {
-        LogMessage("server response : " + serverResponse.getBodyAsString() +" for "+uploadInfo.getUploadId()) ;
+        LogMessage("server response : " + serverResponse.getBodyAsString() +" for "+uploadInfo.getUploadId());
         updateStateForUpload(uploadInfo.getUploadId(), UploadState.UPLOADED, serverResponse.getBodyAsString());
         if (uploadCallback !=null  && !hasBeenDestroyed){
           JSONObject objResult = new JSONObject();
@@ -112,11 +112,16 @@ public class FileTransferBackground extends CordovaPlugin {
     public void onCancelled(Context context, UploadInfo uploadInfo) {
       try {
         LogMessage("upload cancelled "+uploadInfo.getUploadId());
+        if (hasBeenDestroyed){
+          //most likely the upload service was killed by the system
+          updateStateForUpload(uploadInfo.getUploadId(), UploadState.FAILED, null);
+          return;
+        }
         removeUploadInfoFile(uploadInfo.getUploadId());
         PluginResult result = new PluginResult(PluginResult.Status.OK);
         result.setKeepCallback(true);
         CallbackContext cancelCallback = cancelUploadCallbackMap.get(uploadInfo.getUploadId());
-        if (cancelCallback !=null  && !hasBeenDestroyed)
+        if (cancelCallback !=null)
           cancelCallback.sendPluginResult(result);
       } catch (Exception e) {
         e.printStackTrace();
@@ -190,7 +195,7 @@ public class FileTransferBackground extends CordovaPlugin {
       if (fileId == null)
         throw new Exception("missing upload id");
       if (!UploadService.getTaskList().contains(fileId)){
-        LogMessage("request to cancel upload, "+fileId + " is not in progress, returning callback");
+        LogMessage("cancel upload: "+fileId + " which is not in progress, ignoring request");
         PluginResult result = new PluginResult(PluginResult.Status.OK);
         result.setKeepCallback(true);
         callbackContext.sendPluginResult(result);
@@ -211,7 +216,6 @@ public class FileTransferBackground extends CordovaPlugin {
     try {
       upload.put("createdDate", System.currentTimeMillis() / 1000);
       upload.put("state", UploadState.STARTED);
-
       storage.createFile(uploadDirectoryName, fileId + ".json", upload.toString());
     } catch (Exception e) {
       e.printStackTrace();
@@ -220,7 +224,12 @@ public class FileTransferBackground extends CordovaPlugin {
 
   private void updateStateForUpload(String fileId, String state, String serverResponse) {
     try {
-      String content = storage.readTextFile(uploadDirectoryName, fileId + ".json");
+      String fileName = fileId + ".json";
+      if (!storage.isFileExist(uploadDirectoryName, fileName)){
+        LogMessage("could not find "+ fileName + " for updating upload info");
+        return;
+      }
+      String content = storage.readTextFile(uploadDirectoryName, fileName);
       if (content != null) {
         JSONObject uploadJson = new JSONObject(content);
         uploadJson.put("state", state);
@@ -230,7 +239,7 @@ public class FileTransferBackground extends CordovaPlugin {
         //delete old file
         removeUploadInfoFile(fileId);
         //write updated file
-        storage.createFile(uploadDirectoryName, fileId + ".json", uploadJson.toString());
+        storage.createFile(uploadDirectoryName, fileName, uploadJson.toString());
       }
     } catch (Exception e) {
       e.printStackTrace();
@@ -270,11 +279,10 @@ public class FileTransferBackground extends CordovaPlugin {
       UploadService.HTTP_STACK = new OkHttpStack();
       UploadService.UPLOAD_POOL_SIZE = 1;
       UploadService.NAMESPACE = "com.spoon.backgroundupload";
-
       broadcastReceiver.register(cordova.getActivity().getApplicationContext());
       storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
       storage.createDirectory(uploadDirectoryName);
-      LogMessage("created working directory ");
+      LogMessage("created FileTransfer working directory ");
 
       if (options != null) {
         //initialised global configuration parameters here
