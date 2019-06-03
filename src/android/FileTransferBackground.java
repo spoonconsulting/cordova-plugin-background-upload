@@ -9,6 +9,7 @@ import com.sromku.simple.storage.helpers.OrderType;
 import net.gotev.uploadservice.MultipartUploadRequest;
 import net.gotev.uploadservice.ServerResponse;
 import net.gotev.uploadservice.UploadInfo;
+import net.gotev.uploadservice.UploadNotificationConfig;
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadServiceBroadcastReceiver;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
@@ -63,7 +64,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     @Override
-    public void onError(Context context, UploadInfo uploadInfo, Exception exception) {
+    public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
       LogMessage("App onError: " + exception);
 
       try {
@@ -166,8 +167,9 @@ public class FileTransferBackground extends CordovaPlugin {
     this.createUploadInfoFile(payload.id, jsonPayload);
     if (NetworkMonitor.isConnected) {
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id,payload.serverUrl)
-        .addFileToUpload(payload.filePath, payload.fileKey)
-        .setMaxRetries(0);
+      .addFileToUpload(payload.filePath, payload.fileKey)
+      .setNotificationConfig(new UploadNotificationConfig())
+      .setMaxRetries(0);
 
 
       for (String key : payload.parameters.keySet()) {
