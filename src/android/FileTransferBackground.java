@@ -166,9 +166,11 @@ public class FileTransferBackground extends CordovaPlugin {
     LogMessage("adding upload "+payload.id);
     this.createUploadInfoFile(payload.id, jsonPayload);
     if (NetworkMonitor.isConnected) {
+      UploadNotificationConfig config = new UploadNotificationConfig();
+      config.getCompleted().autoClear = true;
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id,payload.serverUrl)
       .addFileToUpload(payload.filePath, payload.fileKey)
-      .setNotificationConfig(new UploadNotificationConfig())
+      .setNotificationConfig(config)
       .setMaxRetries(0);
 
 
