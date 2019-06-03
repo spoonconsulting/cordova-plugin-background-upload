@@ -10,7 +10,7 @@ import net.gotev.uploadservice.MultipartUploadRequest;
 import net.gotev.uploadservice.ServerResponse;
 import net.gotev.uploadservice.UploadInfo;
 import net.gotev.uploadservice.UploadService;
-import net.gotev.uploadservice.UploadStatusDelegate;
+import net.gotev.uploadservice.UploadServiceBroadcastReceiver;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
 
 import org.apache.cordova.CallbackContext;
@@ -22,7 +22,9 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+
 
 public class FileTransferBackground extends CordovaPlugin {
 
@@ -31,17 +33,113 @@ public class FileTransferBackground extends CordovaPlugin {
   private CallbackContext uploadCallback;
   private NetworkMonitor networkMonitor;
   private Long lastProgressTimestamp = 0L;
+  private HashMap<String,CallbackContext> cancelUploadCallbackMap = new HashMap();
+  private boolean hasBeenDestroyed = false;
+
+  private UploadServiceBroadcastReceiver broadcastReceiver = new UploadServiceBroadcastReceiver() {
+    @Override
+    public void onProgress(Context context, UploadInfo uploadInfo) {
+
+      try {
+        Long currentTimestamp = System.currentTimeMillis()/1000;
+        if (currentTimestamp - lastProgressTimestamp >=1) {
+          LogMessage("id:" + uploadInfo.getUploadId() + " progress: " + uploadInfo.getProgressPercent());
+          lastProgressTimestamp = currentTimestamp;
+
+          if (uploadCallback != null && !hasBeenDestroyed) {
+            JSONObject objResult = new JSONObject();
+            objResult.put("id", uploadInfo.getUploadId());
+            objResult.put("progress", uploadInfo.getProgressPercent());
+            objResult.put("state", "UPLOADING");
+            PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
+            progressUpdate.setKeepCallback(true);
+            uploadCallback.sendPluginResult(progressUpdate);
+          }
+        }
+
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
+    @Override
+    public void onError(Context context, UploadInfo uploadInfo, Exception exception) {
+      LogMessage("App onError: " + exception);
+
+      try {
+        updateStateForUpload(uploadInfo.getUploadId(), UploadState.FAILED, null);
+
+        if (uploadCallback !=null && !hasBeenDestroyed){
+          JSONObject errorObj = new JSONObject();
+          errorObj.put("id", uploadInfo.getUploadId());
+          errorObj.put("error", "execute failed");
+          errorObj.put("state", "FAILED");
+          PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
+          errorResult.setKeepCallback(true);
+          uploadCallback.sendPluginResult(errorResult);
+        }
+
+
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
+    @Override
+    public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
+
+      try {
+        LogMessage("server response : " + serverResponse.getBodyAsString() +" for "+uploadInfo.getUploadId());
+        updateStateForUpload(uploadInfo.getUploadId(), UploadState.UPLOADED, serverResponse.getBodyAsString());
+        if (uploadCallback !=null  && !hasBeenDestroyed){
+          JSONObject objResult = new JSONObject();
+          objResult.put("id", uploadInfo.getUploadId());
+          objResult.put("completed", true);
+          objResult.put("serverResponse", serverResponse.getBodyAsString());
+          objResult.put("state", "UPLOADED");
+          objResult.put("statusCode", serverResponse.getHttpCode());
+          PluginResult completedUpdate = new PluginResult(PluginResult.Status.OK, objResult);
+          completedUpdate.setKeepCallback(true);
+          uploadCallback.sendPluginResult(completedUpdate);
+        }
+
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
+    @Override
+    public void onCancelled(Context context, UploadInfo uploadInfo) {
+      try {
+        LogMessage("upload cancelled "+uploadInfo.getUploadId());
+        if (hasBeenDestroyed){
+          //most likely the upload service was killed by the system
+          updateStateForUpload(uploadInfo.getUploadId(), UploadState.FAILED, null);
+          return;
+        }
+        removeUploadInfoFile(uploadInfo.getUploadId());
+        PluginResult result = new PluginResult(PluginResult.Status.OK);
+        result.setKeepCallback(true);
+        CallbackContext cancelCallback = cancelUploadCallbackMap.get(uploadInfo.getUploadId());
+        if (cancelCallback !=null)
+          cancelCallback.sendPluginResult(result);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  };
 
   @Override
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext){
 
     try {
-      uploadCallback = callbackContext;
       if (action.equalsIgnoreCase("initManager")) {
+        uploadCallback = callbackContext;
         this.initManager(args.length() > 0 ? args.get(0).toString() : null, callbackContext);
       } else if (action.equalsIgnoreCase("removeUpload")) {
         this.removeUpload(args.length() > 0 ? args.get(0).toString() : null, callbackContext);
       } else {
+        uploadCallback = callbackContext;
         upload(args.length() > 0 ? (JSONObject) args.get(0) : null, uploadCallback);
       }
     } catch (Exception ex) {
@@ -64,84 +162,13 @@ public class FileTransferBackground extends CordovaPlugin {
       LogMessage("upload with id "+payload.id + " is already being uploaded. ignoring re-upload request");
       return;
     }
+    LogMessage("adding upload "+payload.id);
     this.createUploadInfoFile(payload.id, jsonPayload);
-    final FileTransferBackground self = this;
     if (NetworkMonitor.isConnected) {
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id,payload.serverUrl)
         .addFileToUpload(payload.filePath, payload.fileKey)
-        .setMaxRetries(0)
-        .setDelegate(new UploadStatusDelegate() {
-          @Override
-          public void onProgress(Context context, UploadInfo uploadInfo) {
+        .setMaxRetries(0);
 
-            try {
-              Long currentTimestamp = System.currentTimeMillis()/1000;
-              if (currentTimestamp - lastProgressTimestamp >=1) {
-                LogMessage("id:" + payload.id + " progress: " + uploadInfo.getProgressPercent());
-                lastProgressTimestamp = currentTimestamp;
-                JSONObject objResult = new JSONObject();
-                objResult.put("id", payload.id);
-                objResult.put("progress", uploadInfo.getProgressPercent());
-                objResult.put("state", "UPLOADING");
-                PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
-                progressUpdate.setKeepCallback(true);
-                if (callbackContext != null && self.webView != null)
-                  callbackContext.sendPluginResult(progressUpdate);
-              }
-
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-          }
-
-          @Override
-          public void onError(Context context, UploadInfo uploadInfo, Exception exception) {
-            LogMessage("App onError: " + exception);
-
-            try {
-              updateStateForUpload(payload.id, UploadState.FAILED, null);
-
-              JSONObject errorObj = new JSONObject();
-              errorObj.put("id", payload.id);
-              errorObj.put("error", "execute failed");
-              errorObj.put("state", "FAILED");
-              PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
-              errorResult.setKeepCallback(true);
-              if (callbackContext !=null  && self.webView !=null )
-                callbackContext.sendPluginResult(errorResult);
-
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-          }
-
-          @Override
-          public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-
-            try {
-              LogMessage("server response : " + serverResponse.getBodyAsString());
-              updateStateForUpload(payload.id, UploadState.UPLOADED, serverResponse.getBodyAsString());
-
-              JSONObject objResult = new JSONObject();
-              objResult.put("id", payload.id);
-              objResult.put("completed", true);
-              objResult.put("serverResponse", serverResponse.getBodyAsString());
-              objResult.put("state", "UPLOADED");
-              objResult.put("statusCode", serverResponse.getHttpCode());
-              PluginResult completedUpdate = new PluginResult(PluginResult.Status.OK, objResult);
-              completedUpdate.setKeepCallback(true);
-              if (callbackContext !=null  && self.webView !=null)
-                callbackContext.sendPluginResult(completedUpdate);
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-          }
-
-          @Override
-          public void onCancelled(Context context, UploadInfo uploadInfo) {
-            LogMessage("App cancel");
-          }
-        });
 
       for (String key : payload.parameters.keySet()) {
         request.addParameter(key, payload.parameters.get(key));
@@ -166,12 +193,17 @@ public class FileTransferBackground extends CordovaPlugin {
   private void removeUpload(String fileId, CallbackContext callbackContext) {
     try {
       if (fileId == null)
+        throw new Exception("missing upload id");
+      if (!UploadService.getTaskList().contains(fileId)){
+        LogMessage("cancel upload: "+fileId + " which is not in progress, ignoring request");
+        PluginResult result = new PluginResult(PluginResult.Status.OK);
+        result.setKeepCallback(true);
+        callbackContext.sendPluginResult(result);
         return;
+      }
+      LogMessage("cancel upload "+fileId);
+      cancelUploadCallbackMap.put(fileId,callbackContext);
       UploadService.stopUpload(fileId);
-      removeUploadInfoFile(fileId);
-      PluginResult res = new PluginResult(PluginResult.Status.OK);
-      res.setKeepCallback(true);
-      callbackContext.sendPluginResult(res);
     } catch (Exception e) {
       e.printStackTrace();
       PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, e.toString());
@@ -184,7 +216,6 @@ public class FileTransferBackground extends CordovaPlugin {
     try {
       upload.put("createdDate", System.currentTimeMillis() / 1000);
       upload.put("state", UploadState.STARTED);
-
       storage.createFile(uploadDirectoryName, fileId + ".json", upload.toString());
     } catch (Exception e) {
       e.printStackTrace();
@@ -193,7 +224,12 @@ public class FileTransferBackground extends CordovaPlugin {
 
   private void updateStateForUpload(String fileId, String state, String serverResponse) {
     try {
-      String content = storage.readTextFile(uploadDirectoryName, fileId + ".json");
+      String fileName = fileId + ".json";
+      if (!storage.isFileExist(uploadDirectoryName, fileName)){
+        LogMessage("could not find "+ fileName + " for updating upload info");
+        return;
+      }
+      String content = storage.readTextFile(uploadDirectoryName, fileName);
       if (content != null) {
         JSONObject uploadJson = new JSONObject(content);
         uploadJson.put("state", state);
@@ -203,7 +239,7 @@ public class FileTransferBackground extends CordovaPlugin {
         //delete old file
         removeUploadInfoFile(fileId);
         //write updated file
-        storage.createFile(uploadDirectoryName, fileId + ".json", uploadJson.toString());
+        storage.createFile(uploadDirectoryName, fileName, uploadJson.toString());
       }
     } catch (Exception e) {
       e.printStackTrace();
@@ -243,10 +279,10 @@ public class FileTransferBackground extends CordovaPlugin {
       UploadService.HTTP_STACK = new OkHttpStack();
       UploadService.UPLOAD_POOL_SIZE = 1;
       UploadService.NAMESPACE = "com.spoon.backgroundupload";
-
+      broadcastReceiver.register(cordova.getActivity().getApplicationContext());
       storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
       storage.createDirectory(uploadDirectoryName);
-      LogMessage("created working directory ");
+      LogMessage("created FileTransfer working directory ");
 
       if (options != null) {
         //initialised global configuration parameters here
@@ -308,8 +344,12 @@ public class FileTransferBackground extends CordovaPlugin {
   }
 
   public void onDestroy() {
-    Log.d("FileTransferBackground"," FileTransferBackground onDestroy");
-    if(networkMonitor != null)
+    LogMessage("plugin onDestroy, unsubscribing all callbacks");
+    hasBeenDestroyed = true;
+    if (networkMonitor != null)
       networkMonitor.stopMonitoring();
+    //broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
   }
+
+
 }
