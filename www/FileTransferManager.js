@@ -107,6 +107,10 @@ FileTransferManager.prototype.startUpload = function (payload) {
         payload.fileKey = "file";
     }
 
+    if (!payload.showNotification == null) {
+        payload.showNotification = true;
+    }
+
     if (!this.options) {
         console.error("FileTransferManager not properly initialised. Call FileTransferManager.init(options) first");
         return;

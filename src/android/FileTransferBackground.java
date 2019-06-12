@@ -170,21 +170,21 @@ public class FileTransferBackground extends CordovaPlugin {
     LogMessage("adding upload "+payload.id);
     this.createUploadInfoFile(payload.id, jsonPayload);
     if (NetworkMonitor.isConnected) {
-      UploadNotificationConfig config = new UploadNotificationConfig();
-      config.getCompleted().autoClear = true;
-      config.getCancelled().autoClear = true;
-      config.setClearOnActionForAllStatuses(true);
-
-      Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
-      PendingIntent pendingIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-      config.setClickIntentForAllStatuses(pendingIntent);
 
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id,payload.serverUrl)
-        .addFileToUpload(payload.filePath, payload.fileKey)
-        .setMaxRetries(0)
-      .setNotificationConfig(config);
+              .addFileToUpload(payload.filePath, payload.fileKey)
+              .setMaxRetries(0);
 
-
+      if (payload.showNotification) {
+        UploadNotificationConfig config = new UploadNotificationConfig();
+        config.getCompleted().autoClear = true;
+        config.getCancelled().autoClear = true;
+        config.setClearOnActionForAllStatuses(true);
+        Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
+        PendingIntent pendingIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        config.setClickIntentForAllStatuses(pendingIntent);
+        request.setNotificationConfig(config);
+      }
       for (String key : payload.parameters.keySet()) {
         request.addParameter(key, payload.parameters.get(key));
       }
