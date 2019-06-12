@@ -23,7 +23,7 @@ cordova plugin rm cordova-plugin-background-upload
 
 **Sample usage**
 
-The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploaders will provide global events which can be used to check the progress of the uploads.
+The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads.
 ```javascript
  declare var FileTransferManager: any;
 
@@ -58,6 +58,7 @@ method. In case the plugin was not able to enqueue the upload, an exception will
      "filePath": "/storage/emulated/0/Download/Heli.divx",
      "fileKey": "file",
      "serverUrl": "http://requestb.in/14cizzj1",
+     "showNotification": true
      "headers": {
          "api_key": "asdasdwere123sad"
      },
@@ -76,6 +77,7 @@ method. In case the plugin was not able to enqueue the upload, an exception will
  * serverUrl: remote server url
  * headers: custom http headers
  * parameters: custom parameters for multipart data
+ * showNotification: show progress notification on android (true by default)
 
 **To remove/abort an upload:** 
 ```javascript
