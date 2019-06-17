@@ -179,10 +179,13 @@ public class FileTransferBackground extends CordovaPlugin {
         UploadNotificationConfig config = new UploadNotificationConfig();
         config.getCompleted().autoClear = true;
         config.getCancelled().autoClear = true;
+        config.getError().autoClear = true;
         config.setClearOnActionForAllStatuses(true);
         Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
         PendingIntent pendingIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         config.setClickIntentForAllStatuses(pendingIntent);
+        if (payload.notificationTitle != null)
+          config.getProgress().title = payload.notificationTitle;
         request.setNotificationConfig(config);
       }
       for (String key : payload.parameters.keySet()) {

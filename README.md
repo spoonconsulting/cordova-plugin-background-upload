@@ -58,7 +58,8 @@ method. In case the plugin was not able to enqueue the upload, an exception will
      "filePath": "/storage/emulated/0/Download/Heli.divx",
      "fileKey": "file",
      "serverUrl": "http://requestb.in/14cizzj1",
-     "showNotification": true
+     "showNotification": true,
+     "notificationTitle" : "Uploading images",
      "headers": {
          "api_key": "asdasdwere123sad"
      },
@@ -78,6 +79,7 @@ method. In case the plugin was not able to enqueue the upload, an exception will
  * headers: custom http headers
  * parameters: custom parameters for multipart data
  * showNotification: show progress notification on android (true by default)
+ * notificationTitle: Notification title when file is being uploaded (Android only)
 
 **To remove/abort an upload:** 
 ```javascript
