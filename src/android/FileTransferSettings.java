@@ -29,8 +29,10 @@ public class FileTransferSettings {
       serverUrl = settings.getString("serverUrl");
       id = settings.getString("id");
       fileKey = settings.getString("fileKey");
-      showNotification = settings.getBoolean("showNotification");
-      notificationTitle = settings.getString("notificationTitle");
+      if (settings.has("showNotification"))
+        showNotification = settings.getBoolean("showNotification");
+      if (settings.has("notificationTitle"))
+        notificationTitle = settings.getString("notificationTitle");
 
       if (settings.has("headers")) {
         JSONObject headersObject = settings.getJSONObject("headers");
