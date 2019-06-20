@@ -23,7 +23,7 @@ cordova plugin rm cordova-plugin-background-upload
 
 **Sample usage**
 
-The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploaders will provide global events which can be used to check the progress of the uploads.
+The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads.
 ```javascript
  declare var FileTransferManager: any;
 
@@ -58,6 +58,8 @@ method. In case the plugin was not able to enqueue the upload, an exception will
      "filePath": "/storage/emulated/0/Download/Heli.divx",
      "fileKey": "file",
      "serverUrl": "http://requestb.in/14cizzj1",
+     "showNotification": true,
+     "notificationTitle" : "Uploading images",
      "headers": {
          "api_key": "asdasdwere123sad"
      },
@@ -76,6 +78,8 @@ method. In case the plugin was not able to enqueue the upload, an exception will
  * serverUrl: remote server url
  * headers: custom http headers
  * parameters: custom parameters for multipart data
+ * showNotification: show progress notification on android (true by default)
+ * notificationTitle: Notification title when file is being uploaded (Android only)
 
 **To remove/abort an upload:** 
 ```javascript
@@ -94,6 +98,9 @@ The plugin runs on ios 9.0 and above. The code was based on the following blog:
 
 ## Android
 The minimum api level require is 21 and the background file upload is handled by the [android-upload-service](https://github.com/gotev/android-upload-service) library. If the application is killed while uploading, either by the user or the OS, all uploads will be stopped. When the app is relaunched, the ids of these uploads will be emitted to the error listener. If an upload is added when there is no network connection, it will be retried as soon as the network becomes reachable unless the app is already killed.
+
+On android Oreo, there are more strict limits on background services and it's recommended to use a foreground service with an ongoing notification to get more time for service execution: https://developer.android.com/about/versions/oreo/background
+Hence to prevent the service from be killed, an progress notification is needed on Android 8+.
 
 ## Web
 If you have a web version also, you can use our javascript library designed to abstract the uploads. More info here:

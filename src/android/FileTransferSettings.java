@@ -7,9 +7,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 
-/**
- * Created by Muzammil on 24/10/2017.
- */
 
 public class FileTransferSettings {
 
@@ -17,6 +14,8 @@ public class FileTransferSettings {
   String serverUrl = "";
   String id = "";
   String fileKey = "file";
+  boolean showNotification = true;
+  String notificationTitle;
 
   HashMap<String, String> headers = new HashMap<String, String>();
   HashMap<String, String> parameters = new HashMap<String, String>();
@@ -30,7 +29,10 @@ public class FileTransferSettings {
       serverUrl = settings.getString("serverUrl");
       id = settings.getString("id");
       fileKey = settings.getString("fileKey");
-
+      if (settings.has("showNotification"))
+        showNotification = settings.getBoolean("showNotification");
+      if (settings.has("notificationTitle"))
+        notificationTitle = settings.getString("notificationTitle");
 
       if (settings.has("headers")) {
         JSONObject headersObject = settings.getJSONObject("headers");

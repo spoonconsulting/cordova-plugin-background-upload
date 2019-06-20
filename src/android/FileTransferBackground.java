@@ -1,14 +1,19 @@
 package com.spoon.backgroundFileUpload;
 
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.util.Log;
 
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
+
 import net.gotev.uploadservice.MultipartUploadRequest;
 import net.gotev.uploadservice.ServerResponse;
 import net.gotev.uploadservice.UploadInfo;
+import net.gotev.uploadservice.UploadNotificationConfig;
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadServiceBroadcastReceiver;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
@@ -63,7 +68,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     @Override
-    public void onError(Context context, UploadInfo uploadInfo, Exception exception) {
+    public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
       LogMessage("App onError: " + exception);
 
       try {
@@ -165,11 +170,24 @@ public class FileTransferBackground extends CordovaPlugin {
     LogMessage("adding upload "+payload.id);
     this.createUploadInfoFile(payload.id, jsonPayload);
     if (NetworkMonitor.isConnected) {
+
       MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id,payload.serverUrl)
-        .addFileToUpload(payload.filePath, payload.fileKey)
-        .setMaxRetries(0);
+              .addFileToUpload(payload.filePath, payload.fileKey)
+              .setMaxRetries(0);
 
-
+      if (payload.showNotification) {
+        UploadNotificationConfig config = new UploadNotificationConfig();
+        config.getCompleted().autoClear = true;
+        config.getCancelled().autoClear = true;
+        config.getError().autoClear = true;
+        config.setClearOnActionForAllStatuses(true);
+        Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
+        PendingIntent pendingIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        config.setClickIntentForAllStatuses(pendingIntent);
+        if (payload.notificationTitle != null)
+          config.getProgress().title = payload.notificationTitle;
+        request.setNotificationConfig(config);
+      }
       for (String key : payload.parameters.keySet()) {
         request.addParameter(key, payload.parameters.get(key));
       }
@@ -278,11 +296,12 @@ public class FileTransferBackground extends CordovaPlugin {
 
       UploadService.HTTP_STACK = new OkHttpStack();
       UploadService.UPLOAD_POOL_SIZE = 1;
-      UploadService.NAMESPACE = "com.spoon.backgroundupload";
-      broadcastReceiver.register(cordova.getActivity().getApplicationContext());
+      UploadService.NAMESPACE = cordova.getContext().getPackageName();
       storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
       storage.createDirectory(uploadDirectoryName);
       LogMessage("created FileTransfer working directory ");
+
+      cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter( UploadService.NAMESPACE+".uploadservice.broadcast.status" ) );
 
       if (options != null) {
         //initialised global configuration parameters here
