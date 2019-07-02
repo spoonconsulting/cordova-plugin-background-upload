@@ -7,8 +7,8 @@
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
         <clobbers target="FileTransferManager" />
     </js-module>
-   <dependency id="cordova-plugin-androidx" version="1.0.2">
-   <dependency id="cordova-plugin-androidx-adapter" version="1.1.0">
+   <dependency id="cordova-plugin-androidx" version="1.0.2"/>
+   <dependency id="cordova-plugin-androidx-adapter" version="1.1.0"/>
     <platform name="android">
         <framework src="net.gotev:uploadservice:3.5.2" />
         <framework src="net.gotev:uploadservice-okhttp:3.5.2" />
