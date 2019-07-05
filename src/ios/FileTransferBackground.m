@@ -110,6 +110,13 @@ NSString *const FormatTypeName[5] = {
         headers = @{};
     }
     
+    FileUploadManager* uploader = [FileUploadManager sharedInstance];
+    FileUpload* upload = [uploader getUploadById:fileId];
+    if (upload){
+        NSLog(@"Request to upload %@ has been ignored since it is already being uploaded or is present in upload list" ,fileId);
+        return;
+    }
+    
     
     NSURL * url = [NSURL URLWithString:uploadUrl];
     
@@ -138,7 +145,7 @@ NSString *const FormatTypeName[5] = {
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         return;
     }
-    FileUploadManager* uploader = [FileUploadManager sharedInstance];
+    
     
     FileUpload* job=[uploader createUploadWithRequest:request fileId:fileId fileURL:[NSURL URLWithString:[NSString stringWithFormat:@"file:%@", tmpFilePath]]];
     
