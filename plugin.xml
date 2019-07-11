@@ -7,10 +7,11 @@
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
         <clobbers target="FileTransferManager" />
     </js-module>
-   
+   <dependency id="cordova-plugin-androidx" version="1.0.2"/>
+   <dependency id="cordova-plugin-androidx-adapter" version="1.1.0"/>
     <platform name="android">
-        <framework src="net.gotev:uploadservice:3.4.2" />
-        <framework src="net.gotev:uploadservice-okhttp:3.4.2" />
+        <framework src="net.gotev:uploadservice:3.5.2" />
+        <framework src="net.gotev:uploadservice-okhttp:3.5.2" />
         <framework src="com.sromku:simple-storage:1.2.0" />
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
