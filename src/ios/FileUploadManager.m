@@ -661,13 +661,15 @@ static NSString * kMutableInfoProgressKey = @"progress";
         NSNumber *          progressNum;
         FileUploadState     state;
         NSString * fileId;
-        
+        NSData *            responseJsonData;
         // Extract the state.
         
         stateObj   =   [mutableInfo objectForKey:kMutableInfoStateKey];
         responseData = [mutableInfo objectForKey:kMutableInfoResponseDataKey];
         errorData  =   [mutableInfo objectForKey:kMutableInfoErrorDataKey];
         progressNum =  [mutableInfo objectForKey:kMutableInfoProgressKey];
+        responseJsonData =  [mutableInfo objectForKey:kMutableInfoResponseJsonKey];
+        responseJsonData = [NSKeyedUnarchiver unarchiveObjectWithData:responseJsonData];
         if ([mutableInfo objectForKey:kImmutableInfoFileId]){
             fileId =  [mutableInfo objectForKey:kImmutableInfoFileId];
         }else{
@@ -710,7 +712,9 @@ static NSString * kMutableInfoProgressKey = @"progress";
             upload.error = error;
             upload.progress = [progressNum doubleValue];
             success = [upload isStateValidIncludingTask:NO];
-            upload.fileId =fileId;
+            upload.fileId = fileId;
+            upload.serverResponse = responseJsonData;
+
         }
     }
     return success;
