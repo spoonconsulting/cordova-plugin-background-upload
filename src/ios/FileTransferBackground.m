@@ -49,7 +49,7 @@ NSString *const FormatTypeName[5] = {
         CDVPluginResult* pluginResult;
         if(upload.state == kFileUploadStateFailed) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                         messageAsDictionary:@{@"error":@"upload failed",
+                                         messageAsDictionary:@{@"error":[@"upload failed: " stringByAppendingString:upload.error.description],
                                                                @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
                                                                @"state": FormatTypeName[upload.state]
                                                                }];
@@ -240,7 +240,7 @@ NSString *const FormatTypeName[5] = {
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                       messageAsDictionary:@{
                                                                             @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
-                                                                            @"error" : @"upload failed",
+                                                                            @"error" : [@"upload failed: " stringByAppendingString:upload.error.description],
                                                                             @"state": FormatTypeName[upload.state]
                                                                             }];
         [pluginResult setKeepCallback:@YES];
