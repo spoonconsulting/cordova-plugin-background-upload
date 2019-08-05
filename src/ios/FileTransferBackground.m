@@ -91,16 +91,17 @@ NSString *const FormatTypeName[5] = {
     NSString* fileId = payload[@"id"];
     
     if (uploadUrl == nil) {
-        return [self returnError:command withInfo:@{@"id":fileId, @"message": @"invalid url"}];
+        return [self returnResult:command withMsg:@"invalid url" success:false];
     }
     
     if (filePath == nil) {
-        return [self returnError:command withInfo:@{@"id":fileId, @"message": @"file path is required"}];
+        return [self returnResult:command withMsg:@"file path is required" success:false];
     }
     
     
     if (![[NSFileManager defaultManager] fileExistsAtPath:filePath] ) {
-        return [self returnError:command withInfo:@{@"id":fileId, @"message": @"file does not exists"}];
+        return [self returnResult:command withMsg:@"file does not exists" success:false];
+        
     }
     
     if (parameters == nil) {
@@ -301,9 +302,9 @@ NSString *const FormatTypeName[5] = {
     NSLog(@"%@", [[NSString alloc] initWithFormat:format arguments:arguments]);
 }
 
--(void)returnError:(CDVInvokedUrlCommand *) command withInfo:(NSDictionary*)data  {
+-(void)returnResult:(CDVInvokedUrlCommand *) command withMsg: (NSString*)msg success:(bool)success {
     
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsDictionary:data];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:success ? CDVCommandStatus_OK : CDVCommandStatus_ERROR messageAsString:msg];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
