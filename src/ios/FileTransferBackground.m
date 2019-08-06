@@ -142,7 +142,10 @@ NSString *const FormatTypeName[5] = {
     if (![body writeToFile:tmpFilePath atomically:YES] ) {
         
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                      messageAsDictionary:@{ @"error" : @"Error writing temp file" }];
+                                                      messageAsDictionary:@{
+                                                                            @"error" : @"Error writing temp file",
+                                                                            @"id" : fileId
+                                                                            }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         return;
     }
@@ -154,7 +157,10 @@ NSString *const FormatTypeName[5] = {
         [job start];
     }else{
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                      messageAsDictionary:@{ @"error" : @"Error adding upload" }];
+                                                      messageAsDictionary:@{
+                                                                            @"error" : @"Error adding upload",
+                                                                             @"id" : fileId
+                                                                            }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }
     
