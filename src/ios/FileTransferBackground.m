@@ -218,7 +218,7 @@ NSString *const FormatTypeName[5] = {
 - (void)uploadManager:(FileUploadManager *)manager willCreateSessionWithConfiguration:(NSURLSessionConfiguration *)configuration
 {
     
-    configuration.HTTPMaximumConnectionsPerHost =1;
+    configuration.HTTPMaximumConnectionsPerHost = 2;
     configuration.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
     //configuration.discretionary = YES;
 }

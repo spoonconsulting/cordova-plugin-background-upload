@@ -308,7 +308,7 @@ public class FileTransferBackground extends CordovaPlugin {
     try {
 
       UploadService.HTTP_STACK = new OkHttpStack();
-      UploadService.UPLOAD_POOL_SIZE = 1;
+      UploadService.UPLOAD_POOL_SIZE = 2;
       UploadService.NAMESPACE = cordova.getContext().getPackageName();
       storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
       storage.createDirectory(uploadDirectoryName);
