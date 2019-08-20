@@ -101,6 +101,9 @@ NSString const *callbackKey = @"com.bg.category.block.unique.key";
     // delegate method can call it.
     
     self.backgroundCompletionBlock = completionHandler;
+    //at this point we know that we are being invoked in background when the daemon has some upload information
+    //resume the session to receive progress of the uploads
+    [[FileUploadManager sharedInstance] start];
 }
 
 
