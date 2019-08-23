@@ -23,11 +23,11 @@ cordova plugin rm cordova-plugin-background-upload
 
 **Sample usage**
 
-The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads.
+The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads. By default the maximum allowed number of parallel uploads is set to 1. You can overide it by passing the `parallelUploadsLimit` option to the `init` configuration.
 ```javascript
  declare var FileTransferManager: any;
 
- var uploader = FileTransferManager.init();
+ var uploader = FileTransferManager.init({parallelUploadsLimit: 1});
 
  uploader.on('success', function(upload) {
      console.log("upload: " + upload.id + " has been completed successfully");
