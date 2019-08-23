@@ -25,6 +25,7 @@
 {
     CDVInvokedUrlCommand* pluginCommand;
     NSTimeInterval lastProgressTimeStamp;
+    NSNumber* parallelUploadsLimit;
 }
 
 

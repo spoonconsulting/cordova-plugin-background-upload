@@ -40,7 +40,8 @@ NSString *const FormatTypeName[5] = {
 -(void)initManager:(CDVInvokedUrlCommand*)command{
     lastProgressTimeStamp = 0;
     pluginCommand = command;
-    
+    NSDictionary* config = command.arguments[0];
+    parallelUploadsLimit  = config[@"parallelUploadsLimit"];
     [FileUploadManager sharedInstance].delegate = self;
     [[FileUploadManager sharedInstance] start];
     
@@ -218,7 +219,7 @@ NSString *const FormatTypeName[5] = {
 - (void)uploadManager:(FileUploadManager *)manager willCreateSessionWithConfiguration:(NSURLSessionConfiguration *)configuration
 {
     
-    configuration.HTTPMaximumConnectionsPerHost =1;
+    configuration.HTTPMaximumConnectionsPerHost = parallelUploadsLimit.integerValue;
     configuration.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
     //configuration.discretionary = YES;
 }

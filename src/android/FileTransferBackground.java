@@ -307,19 +307,20 @@ public class FileTransferBackground extends CordovaPlugin {
   private void initManager(String options, final CallbackContext callbackContext) {
     try {
 
+      int parallelUploadsLimit = 1;
+      if (options != null) {
+        JSONObject settings = new JSONObject(options);
+        parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
+      }
+
       UploadService.HTTP_STACK = new OkHttpStack();
-      UploadService.UPLOAD_POOL_SIZE = 1;
+      UploadService.UPLOAD_POOL_SIZE = parallelUploadsLimit;
       UploadService.NAMESPACE = cordova.getContext().getPackageName();
       storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
       storage.createDirectory(uploadDirectoryName);
       LogMessage("created FileTransfer working directory ");
 
       cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter( UploadService.NAMESPACE+".uploadservice.broadcast.status" ) );
-
-      if (options != null) {
-        //initialised global configuration parameters here
-        //JSONObject settings = new JSONObject(options);
-      }
 
       ArrayList<JSONObject> previousUploads = getUploadHistory();
       for (JSONObject upload : previousUploads) {

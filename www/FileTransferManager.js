@@ -36,6 +36,8 @@ var FileTransferManager = function (options) {
 
     // store the options to this object instance
     this.options = options;
+    if (!this.options.parallelUploadsLimit)
+        this.options.parallelUploadsLimit = 1;
 
     var that = this;
     this.options.success = function (result) {
