@@ -19,12 +19,16 @@
 
 #import <UIKit/UIKit.h>
 #import <Cordova/CDVPlugin.h>
-#import "FileUploadManager.h"
+//#import "FileUploadManager.h"
+#import "FileUploader.h"
 
-@interface FileTransferBackground : CDVPlugin<FileUploadManagerDelegate>
+//@class FileUploaderDelegate;
+
+@interface FileTransferBackground : CDVPlugin<FileUploaderDelegate>
 {
     CDVInvokedUrlCommand* pluginCommand;
     NSTimeInterval lastProgressTimeStamp;
+    NSNumber* parallelUploadsLimit;
 }
 
 
