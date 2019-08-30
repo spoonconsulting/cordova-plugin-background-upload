@@ -8,6 +8,7 @@
 #import "FileUploader.h"
 @interface FileUploader()
 @property (nonatomic, strong) NSMutableDictionary* responsesData;
+@property (nonatomic, strong) NSMutableArray* currentUploads;
 @end
 @implementation FileUploader
 + (instancetype)sharedInstance
@@ -23,7 +24,7 @@
     self = [super init];
     if (self != nil) {
         
-        currentUploads = [[NSMutableArray alloc] init];
+        self.currentUploads = [[NSMutableArray alloc] init];
         self.responsesData = [[NSMutableDictionary alloc] init];
         configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:@"com.spoon.BackgroundUpload.session"];
         configuration.HTTPMaximumConnectionsPerHost = 1;
@@ -34,6 +35,7 @@
             FileUpload* upload = [weakSelf getUploadById:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest]];
             if (!upload)
                 return;
+             [weakSelf.currentUploads addObject:upload];
             if (!error){
                 upload.responseStatusCode = ((NSHTTPURLResponse *)task.response).statusCode;
                 upload.state = kFileUploadStateUploaded;
@@ -68,14 +70,13 @@
     //manager.uploadTasks cannot be called from the setTaskDidCompleteBlock block since it cause a deadlock
     //https://stackoverflow.com/questions/31944465/afnetworking-deadlock-on-tasks-tasksforkeypath
     //use currentUploads as a workaround
-    NSLog(@"AFPlug getUploadById %@ %@", taskFileId, currentUploads);
+    NSLog(@"AFPlug getUploadById %@ %@", taskFileId, self.currentUploads);
     
-    NSArray *filteredArray = [currentUploads
+    NSArray *filteredArray = [self.currentUploads
                               filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:
                                                            ^BOOL(FileUpload* currentUpload, NSDictionary *bindings) {
                                                                return [taskFileId isEqualToString:currentUpload.fileId];
                                                            }]];
-//    NSLog(@"AFPlug got manager.uploadTasks %@", manager.uploadTasks);
     return filteredArray.firstObject;
 }
 -(void)addUpload:(FileUpload*)upload{
@@ -85,7 +86,7 @@
         //duplicate upload
         return;
     }
-    [currentUploads addObject:upload];
+    [self.currentUploads addObject:upload];
     __weak FileUploader *weakSelf = self;
     NSURLSessionUploadTask *uploadTask = [manager uploadTaskWithRequest:upload.request fromFile:upload.originalURL
                                                                progress:^(NSProgress * _Nonnull uploadProgress) {

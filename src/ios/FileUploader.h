@@ -22,7 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface FileUploader : NSObject{
     NSURLSessionConfiguration* configuration;
     AFURLSessionManager *manager;
-    NSMutableArray* currentUploads;
+    
     
 }
 @property (nonatomic, strong) id<FileUploaderDelegate> delegate;
