@@ -26,31 +26,20 @@
 #import <AFNetworking/AFNetworking.h>
 #import "FileUploader.h"
 
+@interface FileTransferBackground()
+@property (nonatomic, strong) CDVInvokedUrlCommand* pluginCommand;
+@end
 @implementation FileTransferBackground
-
-
-NSString *const FormatTypeName[5] = {
-    [kFileUploadStateStopped] = @"STOPPED",
-    [kFileUploadStateStarted] = @"UPLOADING",
-    [kFileUploadStateUploaded] = @"UPLOADED",
-    [kFileUploadStateFailed] = @"FAILED",
-    [kFileUploadStateStopping] = @"STOPPING",
-};
-
 
 -(void)initManager:(CDVInvokedUrlCommand*)command{
     [FileUploader sharedInstance].delegate = self;
-    lastProgressTimeStamp = 0;
-    pluginCommand = command;
+    self.pluginCommand = command;
     //    NSDictionary* config = @1;
     parallelUploadsLimit  = @1;
     
 }
 
-- (void)startUpload:(CDVInvokedUrlCommand*)command
-{
-    
-    
+- (void)startUpload:(CDVInvokedUrlCommand*)command{
     NSDictionary* payload = command.arguments[0];
     NSString* uploadUrl  = payload[@"serverUrl"];
     NSString* filePath  = payload[@"filePath"];
@@ -66,113 +55,37 @@ NSString *const FormatTypeName[5] = {
         return [self returnError:command withInfo:@{@"id":fileId, @"message": @"file path is required"}];
     }
     
-    
     if (![[NSFileManager defaultManager] fileExistsAtPath:filePath] ) {
         return [self returnError:command withInfo:@{@"id":fileId, @"message": @"file does not exists"}];
     }
-    
-    if (parameters == nil) {
-        parameters = @{};
-    }
-    
-    if (headers == nil) {
-        headers = @{};
-    }
-    
-    NSURL * url = [NSURL URLWithString:uploadUrl];
-    
-    NSMutableURLRequest * request = [NSMutableURLRequest requestWithURL:url];
-    [request setHTTPMethod:@"POST"];
-    
-    
-    NSString *boundary = [NSString stringWithFormat:@"Boundary-%@", [[NSUUID UUID] UUIDString]];
-    
-    NSString *contentType = [NSString stringWithFormat:@"multipart/form-data; boundary=%@", boundary];
-    [request setValue:contentType forHTTPHeaderField: @"Content-Type"];
-    
-    
-    NSData *body = [self createBodyWithBoundary:boundary parameters:parameters paths:@[filePath] fieldName:payload[@"fileKey"]];
-    
-    for (NSString *key in headers) {
-        [request setValue:[headers objectForKey:key] forHTTPHeaderField:key];
-    }
-    
-    
-    NSString *tmpFilePath = [NSTemporaryDirectory() stringByAppendingPathComponent:boundary];
-    if (![body writeToFile:tmpFilePath atomically:YES] ) {
-        
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                      messageAsDictionary:@{
-                                                                            @"error" : @"Error writing temp file",
-                                                                            @"id" : fileId
-                                                                            }];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-        return;
-    }
-    
-    [[FileUploader sharedInstance] addUpload:request uploadId:fileId fileURL:[NSURL fileURLWithPath:tmpFilePath]];
-    
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                  messageAsDictionary:@{
-                                                                        @"error" : @"Error adding upload",
-                                                                        @"id" : fileId
-                                                                        }];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    
-    
-    
+    __weak FileTransferBackground *weakSelf = self;
+    [[FileUploader sharedInstance] addUpload:[NSURL URLWithString:uploadUrl]
+                                    uploadId:fileId
+                                     fileURL:[NSURL fileURLWithPath:filePath]
+                                     headers:headers ? headers : @{}
+                                  parameters:parameters ? parameters : @{}
+                                     fileKey:payload[@"fileKey"]
+                                onCompletion:^(NSError* error) {
+                                    if (error){
+                                        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                                                      messageAsDictionary:@{
+                                                                                                            @"error" : error.localizedDescription,
+                                                                                                            @"id" : fileId
+                                                                                                            }];
+                                        [self.commandDelegate sendPluginResult:pluginResult callbackId:weakSelf.pluginCommand.callbackId];
+                                    }
+                                }];
 }
 
-- (void)removeUpload:(CDVInvokedUrlCommand*)command
-{
-    NSString* fileId = command.arguments[0];
-    FileUploadManager* uploader = [FileUploadManager sharedInstance];
-    
-    FileUpload* upload =[uploader getUploadById:fileId];
-    if (upload){
-        if (upload.state == kFileUploadStateStarted)
-            [upload stop];
-        [upload remove];
-    }
+- (void)removeUpload:(CDVInvokedUrlCommand*)command{
+    NSString* uploadId = command.arguments[0];
+    [[FileUploader sharedInstance] removeUpload:uploadId];
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [pluginResult setKeepCallback:@YES];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    
 }
 
-- (NSData *)createBodyWithBoundary:(NSString *)boundary
-                        parameters:(NSDictionary *)parameters
-                             paths:(NSArray *)paths
-                         fieldName:(NSString *)fieldName {
-    NSMutableData *httpBody = [NSMutableData data];
-    
-    [parameters enumerateKeysAndObjectsUsingBlock:^(NSString *parameterKey, NSString *parameterValue, BOOL *stop) {
-        [httpBody appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-        [httpBody appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n", parameterKey] dataUsingEncoding:NSUTF8StringEncoding]];
-        [httpBody appendData:[[NSString stringWithFormat:@"%@\r\n", parameterValue] dataUsingEncoding:NSUTF8StringEncoding]];
-    }];
-    
-    
-    for (NSString *path in paths) {
-        NSString *filename  = [path lastPathComponent];
-        NSData   *data      = [NSData dataWithContentsOfFile:path];
-        NSString *mimetype  = @"application/octet-stream";
-        
-        [httpBody appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-        [httpBody appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\n", fieldName, filename] dataUsingEncoding:NSUTF8StringEncoding]];
-        [httpBody appendData:[[NSString stringWithFormat:@"Content-Type: %@\r\n\r\n", mimetype] dataUsingEncoding:NSUTF8StringEncoding]];
-        [httpBody appendData:data];
-        [httpBody appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
-    }
-    
-    [httpBody appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-    
-    return httpBody;
-}
-
-
-- (void)uploadManager:(FileUploadManager *)manager willCreateSessionWithConfiguration:(NSURLSessionConfiguration *)configuration
-{
+- (void)uploadManager:(FileUploadManager *)manager willCreateSessionWithConfiguration:(NSURLSessionConfiguration *)configuration{
     
     configuration.HTTPMaximumConnectionsPerHost = parallelUploadsLimit.integerValue;
     configuration.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
@@ -200,7 +113,7 @@ NSString *const FormatTypeName[5] = {
                                                            }];
     }
     [pluginResult setKeepCallback:@YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
 
@@ -211,7 +124,7 @@ NSString *const FormatTypeName[5] = {
                                                                                                                 @"state": @"UPLOADING"
                                                                                                                 }];
     [pluginResult setKeepCallback:@YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
 - (void)uploadManagerDidFinishBackgroundEvents:(FileUploadManager *)manager
@@ -220,17 +133,11 @@ NSString *const FormatTypeName[5] = {
     AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
     
     if (appDelegate.backgroundCompletionBlock) {
-        void (^completionHandler)() = appDelegate.backgroundCompletionBlock;
+        void (^completionHandler)(void) = appDelegate.backgroundCompletionBlock;
         appDelegate.backgroundCompletionBlock = nil;
         completionHandler();
     }
     
-}
-
-- (void)uploadManager:(FileUploadManager *)manager logWithFormat:(NSString *)format arguments:(va_list)arguments
-{
-    // +++ Need a better logging story; perhaps QLog from VoIPDemo.
-    NSLog(@"%@", [[NSString alloc] initWithFormat:format arguments:arguments]);
 }
 
 -(void)returnError:(CDVInvokedUrlCommand *) command withInfo:(NSDictionary*)data  {

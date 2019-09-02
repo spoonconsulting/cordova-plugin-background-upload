@@ -21,13 +21,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface FileUploader : NSObject{
     NSURLSessionConfiguration* configuration;
-    AFURLSessionManager *manager;
+    
     
     
 }
 @property (nonatomic, strong) id<FileUploaderDelegate> delegate;
 + (instancetype)sharedInstance;
--(void)addUpload:(NSMutableURLRequest *)request uploadId:(NSString*)uploadId fileURL:(NSURL *)fileURL;
+-(void)addUpload:(NSURL *)request uploadId:(NSString*)uploadId fileURL:(NSURL *)fileURL
+         headers:(NSDictionary*)headers parameters:(NSDictionary*)parameters fileKey:(NSString*)fileKey onCompletion:(void (^)(NSError* error))handler;
 -(void)removeUpload:(NSString*)uploadId;
 -(void)acknowledgeEventReceived:(NSString*)eventId;
 @end
