@@ -9,7 +9,15 @@
 #import "UploadEvent.h"
 
 @implementation UploadEvent
++(UploadEvent*)eventWithId:(NSString*)eventId{
+    return nil;
+    
+}
 -(void)save{
+    
+}
+
+-(void)destroy{
     
 }
 

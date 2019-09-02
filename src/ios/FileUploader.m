@@ -25,9 +25,7 @@
     if (self == nil)
         return nil;
     self.responsesData = [[NSMutableDictionary alloc] init];
-    configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:@"com.spoon.BackgroundUpload.session"];
-    configuration.HTTPMaximumConnectionsPerHost = 1;
-    
+    configuration = [self.delegate uploadManagerWillExtendSessionConfiguration: [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:@"com.spoon.BackgroundUpload.session"]];
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {

@@ -17,13 +17,11 @@ NS_ASSUME_NONNULL_BEGIN
 // comes directly from the background session's -URLSessionDidFinishEventsForBackgroundURLSession: callback
 - (void)uploadManagerDidReceieveProgress:(float)progress forUpload:(NSString*)uploadId;
 - (void)uploadManagerDidCompleteUpload:(UploadEvent*)event;
+- (NSURLSessionConfiguration*)uploadManagerWillExtendSessionConfiguration:(NSURLSessionConfiguration*)config;
 @end
 
 @interface FileUploader : NSObject{
     NSURLSessionConfiguration* configuration;
-    
-    
-    
 }
 @property (nonatomic, strong) id<FileUploaderDelegate> delegate;
 + (instancetype)sharedInstance;
