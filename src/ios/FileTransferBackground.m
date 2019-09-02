@@ -44,41 +44,6 @@ NSString *const FormatTypeName[5] = {
     pluginCommand = command;
     //    NSDictionary* config = @1;
     parallelUploadsLimit  = @1;
-    //    [FileUploadManager sharedInstance].delegate = self;
-    //    [[FileUploadManager sharedInstance] start];
-    //
-    //    NSArray* uploads= [[FileUploadManager sharedInstance].uploads allObjects];
-    //    for (FileUpload *upload in uploads) {
-    //        CDVPluginResult* pluginResult;
-    //        if(upload.state == kFileUploadStateFailed) {
-    //            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-    //                                         messageAsDictionary:@{@"error":[@"upload failed: " stringByAppendingString:upload.error.description],
-    //                                                               @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
-    //                                                               @"state": FormatTypeName[upload.state]
-    //                                                               }];
-    //            [pluginResult setKeepCallback:@YES];
-    //            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    //            //delete upload info from disk
-    //            [upload remove];
-    //
-    //        }else if(upload.state == kFileUploadStateUploaded) {
-    //            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-    //                                         messageAsDictionary:@{@"completed":@YES,
-    //                                                               @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
-    //                                                               @"state": FormatTypeName[upload.state],
-    //                                                               @"serverResponse": upload.serverResponse,
-    //                                                               @"statusCode": @(upload.responseStatusCode)
-    //                                                               }];
-    //            [pluginResult setKeepCallback:@YES];
-    //            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    //            //delete upload info from disk
-    //            [upload remove];
-    //
-    //
-    //        }
-    //
-    //
-    //    }
     
 }
 
@@ -114,16 +79,6 @@ NSString *const FormatTypeName[5] = {
         headers = @{};
     }
     
-    //    Alamofire
-    
-    //    FileUploadManager* uploader = [FileUploadManager sharedInstance];
-    //    FileUpload* upload = [uploader getUploadById:fileId];
-    //    if (upload){
-    //        NSLog(@"Request to upload %@ has been ignored since it is already being uploaded or is present in upload list" ,fileId);
-    //        return;
-    //    }
-    
-    
     NSURL * url = [NSURL URLWithString:uploadUrl];
     
     NSMutableURLRequest * request = [NSMutableURLRequest requestWithURL:url];
@@ -155,21 +110,15 @@ NSString *const FormatTypeName[5] = {
         return;
     }
     
+    [[FileUploader sharedInstance] addUpload:request uploadId:fileId fileURL:[NSURL fileURLWithPath:tmpFilePath]];
     
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                  messageAsDictionary:@{
+                                                                        @"error" : @"Error adding upload",
+                                                                        @"id" : fileId
+                                                                        }];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     
-    
-    FileUpload* job= [[FileUploader sharedInstance] createUploadWithRequest:request fileId:fileId fileURL:[NSURL URLWithString:[NSString stringWithFormat:@"file:%@", tmpFilePath]]];
-    
-    //    if(job){
-    //        [job start];
-    //    }else{
-    //        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-    //                                                      messageAsDictionary:@{
-    //                                                                            @"error" : @"Error adding upload",
-    //                                                                             @"id" : fileId
-    //                                                                            }];
-    //        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    //    }
     
     
 }
@@ -230,71 +179,37 @@ NSString *const FormatTypeName[5] = {
     //configuration.discretionary = YES;
 }
 
-- (void)uploadManager:(FileUploadManager *)manager didChangeStateForUpload:(FileUpload *)upload{
-    
-    if (upload.state == kFileUploadStateUploaded) {
-        //upload for a file completed
-        NSLog(@"AFPlug file upload %@", upload);
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                      messageAsDictionary:@{
-                                                                            @"completed":@YES,
-                                                                            @"id" : upload.fileId,
-                                                                            @"state": FormatTypeName[upload.state],
-                                                                            @"serverResponse": upload.serverResponse,
-                                                                            @"statusCode": @(upload.responseStatusCode)
-                                                                            }];
-        [pluginResult setKeepCallback:@YES];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
-        //delete upload info from disk
-        [upload remove];
+- (void)uploadManagerDidCompleteUpload:(UploadEvent*)event{
+    CDVPluginResult* pluginResult;
+    if ([event.state isEqualToString:@"SUCCESS"]) {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                     messageAsDictionary:@{
+                                                           @"completed" : @YES,
+                                                           @"id" : event.uploadId,
+                                                           @"state" : @"UPLOADED",
+                                                           @"serverResponse" : event.serverResponse,
+                                                           @"statusCode" : @(event.responseStatusCode)
+                                                           }];
         
+    }else{
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                     messageAsDictionary:@{
+                                                           @"id" : event.uploadId,
+                                                           @"error" : event.error,
+                                                           @"state" : @"FAILED"
+                                                           }];
     }
-    else if (upload.state == kFileUploadStateFailed) {
-        NSLog(@"AFPlug file upload failed %@", upload);
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                      messageAsDictionary:@{
-                                                                            @"id" : upload.fileId,
-                                                                            @"error" : [@"upload failed: " stringByAppendingString:upload.error.description],
-                                                                            @"state": FormatTypeName[upload.state]
-                                                                            }];
-        [pluginResult setKeepCallback:@YES];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
-    }
-    else if (upload.state == kFileUploadStateStopped) {
-        NSLog(@"AFPlug file stopped %@", upload);
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                      messageAsDictionary:@{
-                                                                            @"id" : upload.fileId,
-                                                                            @"error" : @"upload stopped by user",
-                                                                            @"state": FormatTypeName[upload.state]
-                                                                            }];
-        [pluginResult setKeepCallback:@YES];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
-    }
-    else  if (upload.state == kFileUploadStateStarted) {
-        
-        if (upload.progress == 0) {
-            return;
-        }
-        
-        float roundedProgress = roundf(10 * (upload.progress*100)) / 10.0;
-        NSLog(@"AFPlug file upload %@ progress:%f", upload.fileId, roundedProgress);
-        NSDictionary* res =@{
-                             @"progress" : @(roundedProgress),
-                             @"id" :[[FileUploadManager sharedInstance] getFileIdForUpload:upload],
-                             @"state": FormatTypeName[upload.state]
-                             };
-        NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
-        if(currentTimestamp - lastProgressTimeStamp >= 1){
-            lastProgressTimeStamp = currentTimestamp;
-            [self sendProgressCallback:res];
-        }
-    }
-    
+    [pluginResult setKeepCallback:@YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
 }
 
--(void)sendProgressCallback:(NSDictionary*)res{
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:res];
+
+-(void)uploadManagerDidReceieveProgress:(float)progress forUpload:(NSString*)uploadId{
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{
+                                                                                                                @"progress" : @(progress),
+                                                                                                                @"id" : uploadId,
+                                                                                                                @"state": @"UPLOADING"
+                                                                                                                }];
     [pluginResult setKeepCallback:@YES];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
 }

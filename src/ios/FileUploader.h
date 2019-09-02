@@ -7,6 +7,7 @@
 
 #import <Foundation/Foundation.h>
 #import "FileUpload.h"
+#import "UploadEvent.h"
 #import <AFNetworking/AFNetworking.h>
 NS_ASSUME_NONNULL_BEGIN
 @protocol FileUploaderDelegate <NSObject>
@@ -14,9 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 @optional
 - (void)uploadManagerDidFinishBackgroundEvents:(id)manager;
 // comes directly from the background session's -URLSessionDidFinishEventsForBackgroundURLSession: callback
-- (void)uploadManager:(id)manager didChangeStateForUpload:(FileUpload *)upload;
-- (void)uploadManager:(id)manager logWithFormat:(NSString *)format arguments:(va_list)arguments;
-
+- (void)uploadManagerDidReceieveProgress:(float)progress forUpload:(NSString*)uploadId;
+- (void)uploadManagerDidCompleteUpload:(UploadEvent*)event;
 @end
 
 @interface FileUploader : NSObject{
@@ -27,8 +27,9 @@ NS_ASSUME_NONNULL_BEGIN
 }
 @property (nonatomic, strong) id<FileUploaderDelegate> delegate;
 + (instancetype)sharedInstance;
--(void)addUpload:(FileUpload*)upload;
-- (FileUpload *)createUploadWithRequest:(NSURLRequest *)request fileId:(NSString*)fileId fileURL:(NSURL *)fileURL;
+-(void)addUpload:(NSMutableURLRequest *)request uploadId:(NSString*)uploadId fileURL:(NSURL *)fileURL;
+-(void)removeUpload:(NSString*)uploadId;
+-(void)acknowledgeEventReceived:(NSString*)eventId;
 @end
 
 

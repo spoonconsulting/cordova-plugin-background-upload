@@ -8,7 +8,6 @@
 #import "FileUploader.h"
 @interface FileUploader()
 @property (nonatomic, strong) NSMutableDictionary* responsesData;
-@property (nonatomic, strong) NSMutableArray* currentUploads;
 @end
 @implementation FileUploader
 + (instancetype)sharedInstance
@@ -22,92 +21,70 @@
 }
 - (id)init{
     self = [super init];
-    if (self != nil) {
-        
-        self.currentUploads = [[NSMutableArray alloc] init];
-        self.responsesData = [[NSMutableDictionary alloc] init];
-        configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:@"com.spoon.BackgroundUpload.session"];
-        configuration.HTTPMaximumConnectionsPerHost = 1;
-        
-        manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
-        __weak FileUploader *weakSelf = self;
-        [manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
-            FileUpload* upload = [weakSelf getUploadById:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest]];
-            if (!upload)
-                return;
-             [weakSelf.currentUploads addObject:upload];
-            if (!error){
-                upload.responseStatusCode = ((NSHTTPURLResponse *)task.response).statusCode;
-                upload.state = kFileUploadStateUploaded;
-                upload.serverResponse = weakSelf.responsesData[@(task.taskIdentifier)];
-                [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
-            } else if ([[error domain] isEqual:NSURLErrorDomain] && ([error code] == NSURLErrorCancelled)) {
-                // The upload was stopped by us.
-                upload.state = kFileUploadStateStopped;
-            } else {
-                // The upload was stopped by the network.
-                upload.error = error;
-                upload.state = kFileUploadStateFailed;
-                
-            }
-            [weakSelf.delegate uploadManager:weakSelf didChangeStateForUpload:upload];
-        }];
-        
-        [manager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {
-            NSMutableData *responseData = weakSelf.responsesData[@(dataTask.taskIdentifier)];
-            if (!responseData) {
-                responseData = [NSMutableData dataWithData:data];
-                weakSelf.responsesData[@(dataTask.taskIdentifier)] = responseData;
-            } else {
-                [responseData appendData:data];
-            }
-        }];
-    }
+    if (self == nil)
+        return nil;
+    self.responsesData = [[NSMutableDictionary alloc] init];
+    configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:@"com.spoon.BackgroundUpload.session"];
+    configuration.HTTPMaximumConnectionsPerHost = 1;
+    
+    manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
+    __weak FileUploader *weakSelf = self;
+    [manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
+        UploadEvent* event = [[UploadEvent alloc] init];
+        event.uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
+        if (!error){
+            event.state = @"SUCCESS";
+            event.responseStatusCode = ((NSHTTPURLResponse *)task.response).statusCode;
+            event.serverResponse = weakSelf.responsesData[@(task.taskIdentifier)];
+            [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
+        } else {
+            event.state = @"FAILED";
+            // The upload was stopped by the network.
+            event.error = error.localizedDescription;
+        }
+        [event save];
+        [weakSelf.delegate uploadManagerDidCompleteUpload:event];
+    }];
+    
+    [manager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {
+        NSMutableData *responseData = weakSelf.responsesData[@(dataTask.taskIdentifier)];
+        if (!responseData) {
+            weakSelf.responsesData[@(dataTask.taskIdentifier)] = [NSMutableData dataWithData:data];
+        } else {
+            [responseData appendData:data];
+        }
+    }];
     return self;
 }
 
--(FileUpload*)getUploadById:(NSString*)taskFileId{
-    //manager.uploadTasks cannot be called from the setTaskDidCompleteBlock block since it cause a deadlock
-    //https://stackoverflow.com/questions/31944465/afnetworking-deadlock-on-tasks-tasksforkeypath
-    //use currentUploads as a workaround
-    NSLog(@"AFPlug getUploadById %@ %@", taskFileId, self.currentUploads);
-    
-    NSArray *filteredArray = [self.currentUploads
-                              filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:
-                                                           ^BOOL(FileUpload* currentUpload, NSDictionary *bindings) {
-                                                               return [taskFileId isEqualToString:currentUpload.fileId];
-                                                           }]];
-    return filteredArray.firstObject;
-}
--(void)addUpload:(FileUpload*)upload{
-    //write serialized upload on disk
-    //start upload
-    if ([self getUploadById: upload.fileId]){
-        //duplicate upload
-        return;
-    }
-    [self.currentUploads addObject:upload];
+-(void)addUpload:(NSMutableURLRequest *)request uploadId:(NSString*)uploadId fileURL:(NSURL *)fileURL{
     __weak FileUploader *weakSelf = self;
-    NSURLSessionUploadTask *uploadTask = [manager uploadTaskWithRequest:upload.request fromFile:upload.originalURL
+    [NSURLProtocol setProperty:uploadId forKey:kUploadUUIDStrPropertyKey inRequest:request];
+    __block double lastProgressTimeStamp = 0;
+    NSURLSessionUploadTask *uploadTask = [manager uploadTaskWithRequest:request fromFile:fileURL
                                                                progress:^(NSProgress * _Nonnull uploadProgress) {
-                                                                   upload.progress = uploadProgress.fractionCompleted;
-                                                                   [weakSelf.delegate uploadManager:weakSelf didChangeStateForUpload:upload];
+                                                                   float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
+                                                                   NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
+                                                                   if (currentTimestamp - lastProgressTimeStamp >= 1){
+                                                                       lastProgressTimeStamp = currentTimestamp;
+                                                                       [weakSelf.delegate uploadManagerDidReceieveProgress:roundedProgress forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
+                                                                   }
+                                                                   
                                                                } completionHandler:nil];
     [uploadTask resume];
     
 }
 
--(void)removeUpload:(FileUpload*)upload{
-    //stop upload
-    //remove serialized file
+-(void)removeUpload:(NSString*)uploadId{
+    NSURLSessionUploadTask *correspondingTask = [[manager.uploadTasks filteredArrayUsingPredicate:
+                                                  [NSPredicate predicateWithBlock:^BOOL(NSURLSessionUploadTask* task, NSDictionary *bindings) {
+        NSString* currentId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
+        return [uploadId isEqualToString:currentId];
+    }]] firstObject];
+    [correspondingTask cancel];
 }
 
-- (FileUpload *)createUploadWithRequest:(NSURLRequest *)request fileId:(NSString*)fileId fileURL:(NSURL *)fileURL{
-    NSMutableURLRequest* mutableRequest = [request mutableCopy];
-    [NSURLProtocol setProperty:fileId forKey:kUploadUUIDStrPropertyKey inRequest:mutableRequest];
-    FileUpload * upload = [[FileUpload alloc] initWithRequest:[mutableRequest copy] fileId:fileId originalURL:fileURL];
-    [self addUpload:upload];
-    return upload;
+-(void)acknowledgeEventReceived:(NSString*)eventId{
+    
 }
-
 @end
