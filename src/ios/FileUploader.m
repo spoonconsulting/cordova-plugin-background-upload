@@ -6,6 +6,7 @@
 //
 
 #import "FileUploader.h"
+#import "AppDelegate+upload.h"
 @interface FileUploader()
 @property (nonatomic, strong) NSMutableDictionary* responsesData;
 @property (nonatomic, strong) AFURLSessionManager *manager;
@@ -52,6 +53,15 @@ static FileUploader *singletonObject = nil;
             weakSelf.responsesData[@(dataTask.taskIdentifier)] = [NSMutableData dataWithData:data];
         } else {
             [responseData appendData:data];
+        }
+    }];
+    
+    [self.manager setDidFinishEventsForBackgroundURLSessionBlock:^(NSURLSession * _Nonnull session) {
+        AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+        if (appDelegate.backgroundCompletionBlock) {
+            void (^completionHandler)(void) = appDelegate.backgroundCompletionBlock;
+            appDelegate.backgroundCompletionBlock = nil;
+            completionHandler();
         }
     }];
     return self;

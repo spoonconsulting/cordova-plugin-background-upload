@@ -1,4 +1,3 @@
-#import "AppDelegate+upload.h"
 #import <Cordova/CDV.h>
 #import "FileTransferBackground.h"
 #import <AFNetworking/AFNetworking.h>
@@ -107,17 +106,6 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
-- (void)uploadManagerDidFinishBackgroundEvents:(FileUploadManager *)manager{
-    //all uploads in this session completed
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-    
-    if (appDelegate.backgroundCompletionBlock) {
-        void (^completionHandler)(void) = appDelegate.backgroundCompletionBlock;
-        appDelegate.backgroundCompletionBlock = nil;
-        completionHandler();
-    }
-    
-}
 
 -(void)returnError:(CDVInvokedUrlCommand *) command withInfo:(NSDictionary*)data{
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsDictionary:data];
