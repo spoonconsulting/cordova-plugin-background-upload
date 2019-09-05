@@ -59,7 +59,7 @@ var FileTransferManager = function (options) {
     };
 
 
-    exec(this.options.success, this.options.fail, 'FileTransferBackground', 'initManager', []);
+    exec(this.options.success, this.options.fail, 'FileTransferBackground', 'initManager', [options]);
 
 };
 
