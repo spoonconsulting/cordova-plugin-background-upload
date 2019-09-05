@@ -28,10 +28,12 @@ static FileUploader *singletonObject = nil;
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
+        NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
+        NSLog(@"[CD]task did complete %@ %@",uploadId , error.localizedDescription);
         if ([error code] == NSURLErrorCancelled)
             return;
         UploadEvent* event = [[UploadEvent alloc] init];
-        event.uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
+        event.uploadId = uploadId;
         if (!error){
             event.state = @"SUCCESS";
             event.responseStatusCode = ((NSHTTPURLResponse *)task.response).statusCode;
@@ -42,9 +44,9 @@ static FileUploader *singletonObject = nil;
             event.state = @"FAILED";
             event.error = error.localizedDescription;
         }
-        NSLog(@"[CD]task did complete %@", event.uploadId);
         [event save];
         [weakSelf.delegate uploadManagerDidCompleteUpload:event];
+        [[NSFileManager defaultManager] removeItemAtURL:[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:uploadId]] error:nil];
     }];
     
     [self.manager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {
@@ -79,8 +81,7 @@ static FileUploader *singletonObject = nil;
                          NSString *filename = [fileURL.absoluteString lastPathComponent];
                          NSData * data = [NSData dataWithContentsOfURL:fileURL];
                          [formData appendPartWithFileData:data name:fileKey fileName:filename mimeType:@"application/octet-stream"];
-                     }
-                                         error:&error];
+                     } error:&error];
     if (error)
         return handler(error);
     for (NSString *key in headers) {
@@ -93,7 +94,8 @@ static FileUploader *singletonObject = nil;
             return handler(error);
         __block double lastProgressTimeStamp = 0;
         NSURLSessionUploadTask *uploadTask =
-        [weakSelf.manager uploadTaskWithRequest:request fromFile:tempFilePath
+        [weakSelf.manager uploadTaskWithRequest:request
+                                       fromFile:tempFilePath
                                        progress:^(NSProgress * _Nonnull uploadProgress) {
                                            float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
                                            NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];

@@ -17,13 +17,13 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
     if (self == nil)
         return nil;
     self.error = @"";
+    self.serverResponse = @"";
     return self;
 }
 
 -(void)save{
     [managedObjectContext performBlockAndWait:^{
         self.data = [self dataDescription];
-        NSLog(@"[CD]saved %@",self.objectID);
         [managedObjectContext save:nil];
     }];
 }
@@ -65,8 +65,8 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
         event.error = dictRepresentation[@"error"];
         event.serverResponse = dictRepresentation[@"serverResponse"];
         event.uploadId = dictRepresentation[@"uploadId"];
-        NSLog(@"fetched event %@", event.data);
     }
+    NSLog(@"[CD]got all events %@", events);
     return events;
 }
 

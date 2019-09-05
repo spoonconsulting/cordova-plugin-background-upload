@@ -51,7 +51,7 @@
                                                                                                             @"error" : error.localizedDescription,
                                                                                                             @"id" : fileId
                                                                                                             }];
-                                        [self.commandDelegate sendPluginResult:pluginResult callbackId:weakSelf.pluginCommand.callbackId];
+                                        [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:weakSelf.pluginCommand.callbackId];
                                     }
                                 }];
 }
@@ -66,7 +66,6 @@
 
 - (NSURLSessionConfiguration*)uploadManagerWillExtendSessionConfiguration:(NSURLSessionConfiguration*)config{
     config.HTTPMaximumConnectionsPerHost = parallelUploadsLimit.integerValue;
-    config.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
     return config;
 }
 
@@ -93,6 +92,7 @@
                                                            }];
     }
     [pluginResult setKeepCallback:@YES];
+    NSLog(@"[CD]dispatching event for %@", event.uploadId);
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
