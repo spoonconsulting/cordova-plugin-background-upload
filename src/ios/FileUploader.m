@@ -13,6 +13,7 @@
 @end
 @implementation FileUploader
 static FileUploader *singletonObject = nil;
+static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-upload.UUID";
 + (instancetype)sharedInstance{
     if (!singletonObject)
         singletonObject = [[FileUploader alloc] init];

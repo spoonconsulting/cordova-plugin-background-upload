@@ -6,7 +6,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FileUpload.h"
 #import "UploadEvent.h"
 #import <AFNetworking/AFNetworking.h>
 NS_ASSUME_NONNULL_BEGIN
