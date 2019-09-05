@@ -123,4 +123,8 @@
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsDictionary:data];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
+
+-(void)acknowledgeEvent:(CDVInvokedUrlCommand*)command{
+    [[FileUploader sharedInstance] acknowledgeEventReceived:command.arguments[0]];
+}
 @end

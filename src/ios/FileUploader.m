@@ -44,9 +44,6 @@ static FileUploader *singletonObject = nil;
         NSLog(@"[CD]task did complete %@", event.uploadId);
         [event save];
         [weakSelf.delegate uploadManagerDidCompleteUpload:event];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            [weakSelf acknowledgeEventReceived:event.objectID.URIRepresentation.absoluteString];
-        });
     }];
     
     [self.manager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {
