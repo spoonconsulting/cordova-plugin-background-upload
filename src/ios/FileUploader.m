@@ -11,19 +11,17 @@
 @property (nonatomic, strong) AFURLSessionManager *manager;
 @end
 @implementation FileUploader
-+ (instancetype)sharedInstance
-{
-    static FileUploader *sharedInstance = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        sharedInstance = [[FileUploader alloc] init];
-    });
-    return sharedInstance;
+static FileUploader *singletonObject = nil;
++ (instancetype)sharedInstance{
+    if (!singletonObject)
+        singletonObject = [[FileUploader alloc] init];
+    return singletonObject;
 }
 - (id)init{
     self = [super init];
     if (self == nil)
         return nil;
+    [UploadEvent setupStorage];
     self.responsesData = [[NSMutableDictionary alloc] init];
     configuration = [self.delegate uploadManagerWillExtendSessionConfiguration: [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:@"com.spoon.BackgroundUpload.session"]];
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
@@ -36,14 +34,19 @@
         if (!error){
             event.state = @"SUCCESS";
             event.responseStatusCode = ((NSHTTPURLResponse *)task.response).statusCode;
-            event.serverResponse = weakSelf.responsesData[@(task.taskIdentifier)];
+            NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
+            event.serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";
             [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
         } else {
             event.state = @"FAILED";
             event.error = error.localizedDescription;
         }
+        NSLog(@"[CD]task did complete %@", event.uploadId);
         [event save];
         [weakSelf.delegate uploadManagerDidCompleteUpload:event];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            [weakSelf acknowledgeEventReceived:event.objectID.URIRepresentation.absoluteString];
+        });
     }];
     
     [self.manager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {

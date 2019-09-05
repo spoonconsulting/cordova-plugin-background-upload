@@ -12,14 +12,19 @@
 -(void)initManager:(CDVInvokedUrlCommand*)command{
     [FileUploader sharedInstance].delegate = self;
     self.pluginCommand = command;
-    NSDictionary* config = command.arguments[0];
-    parallelUploadsLimit = config[@"parallelUploadsLimit"] ? config[@"parallelUploadsLimit"] : @1;
+//    NSDictionary* config = command.arguments[0];
+//    parallelUploadsLimit = config[@"parallelUploadsLimit"] ? config[@"parallelUploadsLimit"] : @1;
+    //TODO: handle migration of old uploads
+    parallelUploadsLimit = @1;
+    for (UploadEvent* event in [UploadEvent allEvents]){
+        [self uploadManagerDidCompleteUpload: event];
+    }
 }
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
     NSDictionary* payload = command.arguments[0];
-    NSString* uploadUrl  = payload[@"serverUrl"];
-    NSString* filePath  = payload[@"filePath"];
+    NSString* uploadUrl = payload[@"serverUrl"];
+    NSString* filePath = payload[@"filePath"];
     NSDictionary* headers = payload[@"headers"];
     NSDictionary* parameters = payload[@"parameters"];
     NSString* fileId = payload[@"id"];
@@ -73,6 +78,7 @@
                                      messageAsDictionary:@{
                                                            @"completed" : @YES,
                                                            @"id" : event.uploadId,
+                                                           @"eventId" : event.objectID.URIRepresentation.absoluteString,
                                                            @"state" : @"UPLOADED",
                                                            @"serverResponse" : event.serverResponse,
                                                            @"statusCode" : @(event.responseStatusCode)
@@ -82,6 +88,7 @@
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                      messageAsDictionary:@{
                                                            @"id" : event.uploadId,
+                                                           @"eventId" : event.objectID.URIRepresentation.absoluteString,
                                                            @"error" : event.error,
                                                            @"state" : @"FAILED"
                                                            }];
