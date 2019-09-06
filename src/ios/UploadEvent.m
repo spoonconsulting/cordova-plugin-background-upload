@@ -1,11 +1,3 @@
-
-//
-//  UploadEvent.m
-//  SharinPix
-//
-//  Created by Mevin Dhunnooa on 02/09/2019.
-//
-
 #import "UploadEvent.h"
 @implementation UploadEvent
 @synthesize error, state, responseStatusCode, serverResponse, uploadId, data;
@@ -24,15 +16,18 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 -(void)save{
     [managedObjectContext performBlockAndWait:^{
         self.data = [self dataDescription];
-        [managedObjectContext save:nil];
+        NSError* error;
+        if (![managedObjectContext save:&error])
+            NSLog(@"error saving UploadEvent %@ : %@", self.uploadId, error);
     }];
 }
 
 -(void)destroy{
-    NSLog(@"[CD]deleting UploadEvent for %@ %@",self.uploadId, self.objectID);
     [managedObjectContext performBlock:^{
         [managedObjectContext deleteObject:self];
-        [managedObjectContext save:nil];
+        NSError* error;
+        if (![managedObjectContext save:&error])
+            NSLog(@"error deleting UploadEvent %@ : %@", self.uploadId, error);
     }];
 }
 
@@ -91,8 +86,7 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
     NSError *error = nil;
     persistentStoreCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel: [self tableRepresentation]];
     if (![persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:nil error:&error]){
-        if (error)
-            NSLog(@"error setting up core data: %@", error);
+        NSLog(@"error setting up core data: %@", error);
     }
     managedObjectContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSPrivateQueueConcurrencyType];
     managedObjectContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy;

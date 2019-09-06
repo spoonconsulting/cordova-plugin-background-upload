@@ -11,8 +11,8 @@
 -(void)initManager:(CDVInvokedUrlCommand*)command{
     [FileUploader sharedInstance].delegate = self;
     self.pluginCommand = command;
-//    NSDictionary* config = command.arguments[0];
-//    parallelUploadsLimit = config[@"parallelUploadsLimit"] ? config[@"parallelUploadsLimit"] : @1;
+    //    NSDictionary* config = command.arguments[0];
+    //    parallelUploadsLimit = config[@"parallelUploadsLimit"] ? config[@"parallelUploadsLimit"] : @1;
     //TODO: handle migration of old uploads
     parallelUploadsLimit = @1;
     for (UploadEvent* event in [UploadEvent allEvents]){
@@ -22,38 +22,26 @@
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
     NSDictionary* payload = command.arguments[0];
-    NSString* uploadUrl = payload[@"serverUrl"];
-    NSString* filePath = payload[@"filePath"];
-    NSDictionary* headers = payload[@"headers"];
-    NSDictionary* parameters = payload[@"parameters"];
-    NSString* fileId = payload[@"id"];
-    
-    if (!uploadUrl)
-        return [self returnError:command withInfo:@{@"id":fileId, @"message": @"invalid url"}];
-    
-    if (!filePath)
-        return [self returnError:command withInfo:@{@"id":fileId, @"message": @"file path is required"}];
-    
-    if (![[NSFileManager defaultManager] fileExistsAtPath:filePath] )
-        return [self returnError:command withInfo:@{@"id":fileId, @"message": @"file does not exists"}];
+    //    if (![[NSFileManager defaultManager] fileExistsAtPath:filePath] )
+    //        return [self returnError:command withInfo:@{@"id":fileId, @"message": @"file does not exists"}];
     
     __weak FileTransferBackground *weakSelf = self;
-    [[FileUploader sharedInstance] addUpload:[NSURL URLWithString:uploadUrl]
-                                    uploadId:fileId
-                                     fileURL:[NSURL fileURLWithPath:filePath]
-                                     headers:headers ? headers : @{}
-                                  parameters:parameters ? parameters : @{}
+    [[FileUploader sharedInstance] addUpload:[NSURL URLWithString:payload[@"serverUrl"]]
+                                    uploadId:payload[@"id"]
+                                     fileURL:[NSURL fileURLWithPath:payload[@"filePath"]]
+                                     headers:payload[@"headers"]
+                                  parameters:payload[@"parameters"]
                                      fileKey:payload[@"fileKey"]
-                                onCompletion:^(NSError* error) {
-                                    if (error){
-                                        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                                                      messageAsDictionary:@{
-                                                                                                            @"error" : error.localizedDescription,
-                                                                                                            @"id" : fileId
-                                                                                                            }];
-                                        [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:weakSelf.pluginCommand.callbackId];
-                                    }
-                                }];
+                           completionHandler:^(NSError* error) {
+                               if (error){
+                                   CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                                                 messageAsDictionary:@{
+                                                                                                       @"error" : error.localizedDescription,
+                                                                                                       @"id" : payload[@"id"]
+                                                                                                       }];
+                                   [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:weakSelf.pluginCommand.callbackId];
+                               }
+                           }];
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
