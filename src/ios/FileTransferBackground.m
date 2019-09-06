@@ -12,9 +12,18 @@
     self.pluginCommand = command;
     //    NSDictionary* config = command.arguments[0];
     //    parallelUploadsLimit = config[@"parallelUploadsLimit"] ? config[@"parallelUploadsLimit"] : @1;
-    //TODO: handle migration of old uploads
+    
     [FileUploader sharedInstance].delegate = self;
     [FileUploader sharedInstance].parallelUploadsLimit = 1;
+    //mark all old uploads as failed to be retried
+    for (NSString* uploadId in [self getV1Uploads]){
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                      messageAsDictionary:@{
+                                                                            @"state" : @"FAILED",
+                                                                            @"id" : uploadId
+                                                                            }];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
+    }
     for (UploadEvent* event in [UploadEvent allEvents]){
         [self uploadManagerDidCompleteUpload: event];
     }
@@ -96,5 +105,25 @@
 
 -(void)acknowledgeEvent:(CDVInvokedUrlCommand*)command{
     [[FileUploader sharedInstance] acknowledgeEventReceived:command.arguments[0]];
+}
+
+-(NSArray*)getV1Uploads{
+    //returns uploads made by older version of the plugin
+    NSMutableArray* oldUploadIds = [[NSMutableArray alloc] init];
+    NSURL* cachess =  [[NSFileManager defaultManager] URLForDirectory:NSCachesDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:NULL];
+    NSURL* workDirectoryURL = [cachess URLByAppendingPathComponent:@"FileUploadManager"];
+    NSArray* directoryContents = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:workDirectoryURL
+                                                               includingPropertiesForKeys:@[NSURLIsDirectoryKey]
+                                                                                  options:NSDirectoryEnumerationSkipsSubdirectoryDescendants
+                                                                                    error:nil];
+    for (NSURL * itemURL in directoryContents) {
+        NSString* directoryName = [itemURL lastPathComponent];
+        if ([directoryName hasPrefix:@"Upload-"]) {
+            NSString* name = [[directoryName componentsSeparatedByString:@"*"] firstObject];
+            NSString* uploadId = [name stringByReplacingOccurrencesOfString:@"Upload-" withString:@""];
+            [oldUploadIds addObject:uploadId];
+        }
+    }
+    return oldUploadIds;
 }
 @end
