@@ -53,8 +53,6 @@
         <source-file src="src/ios/AppDelegate+upload.m" />
         <header-file src="src/ios/FileTransferBackground.h" />
         <source-file src="src/ios/FileTransferBackground.m" />
-        <header-file src="src/ios/FileUploadManager.h" />
-        <source-file src="src/ios/FileUploadManager.m" />
         <header-file src="src/ios/UploadEvent.h" />
         <source-file src="src/ios/UploadEvent.m" />
         <header-file src="src/ios/FileUploader.h" />
