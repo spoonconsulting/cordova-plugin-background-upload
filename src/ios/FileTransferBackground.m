@@ -84,7 +84,7 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
--(void)uploadManagerDidReceieveProgress:(float)progress forUpload:(NSString*)uploadId{
+-(void)uploadManagerDidReceiveProgress:(float)progress forUpload:(NSString*)uploadId{
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{
                                                                                                                 @"progress" : @(progress),
                                                                                                                 @"id" : uploadId,

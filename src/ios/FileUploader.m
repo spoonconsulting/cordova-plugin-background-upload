@@ -121,7 +121,7 @@ completionHandler:(void (^)(NSError* error))handler{
                                                             NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
                                                             if (currentTimestamp - lastProgressTimeStamp >= 1){
                                                                 lastProgressTimeStamp = currentTimestamp;
-                                                                [weakSelf.delegate uploadManagerDidReceieveProgress:roundedProgress forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
+                                                                [weakSelf.delegate uploadManagerDidReceiveProgress:roundedProgress forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
                                                             }
                                                         }
                                                completionHandler:nil] resume];
