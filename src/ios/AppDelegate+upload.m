@@ -1,26 +1,12 @@
-//
-//  AppDelegate+notification.m
-//  pushtest
-//
-//  Created by Robert Easterday on 10/26/12.
-//
-//
-
-#import "AppDelegate+upload.h"
-
 #import <objc/runtime.h>
-
-
+#import "AppDelegate+upload.h"
 NSString const *callbackKey = @"com.bg.category.block.unique.key";
 
 @implementation AppDelegate (upload)
 
-
-- (id) getCommandInstance:(NSString*)className
-{
+- (id) getCommandInstance:(NSString*)className{
     return [self.viewController getCommandInstance:className];
 }
-
 
 //Since ivars are not allowed to be synthesized inside categories
 //use Associative References to keep the variables
@@ -66,51 +52,20 @@ NSString const *callbackKey = @"com.bg.category.block.unique.key";
     });
 }
 
-- (AppDelegate *)uploadPluginSwizzledInit
-{
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(startUploader:)
-                                                 name:UIApplicationDidFinishLaunchingNotification
-                                               object:nil];
-    //    [[NSNotificationCenter defaultCenter]addObserver:self
-    //                                            selector:@selector(pushPluginOnApplicationDidBecomeActive:)
-    //                                                name:UIApplicationDidBecomeActiveNotification
-    //                                              object:nil];
-    
+- (AppDelegate *)uploadPluginSwizzledInit{
     // This actually calls the original init method over in AppDelegate. Equivilent to calling super
     // on an overrided method, this is not recursive, although it appears that way. neat huh?
     return [self uploadPluginSwizzledInit];
 }
 
-// This code will be called immediately after application:didFinishLaunchingWithOptions:.
--(void) startUploader:(NSNotification *)notification{
-    
-//    NSLog(@"UIApplicationDidFinishLaunchingNotification");
-//    
-//  
-//    [[FileUploadManager sharedInstance] start];
-//    
-//    NSLog(@"%@",[FileUploadManager sharedInstance].uploads);
-}
-
-
-- (void)application:(UIApplication *)application handleEventsForBackgroundURLSession:(NSString *)identifier completionHandler:(void (^)())completionHandler
-{
-    
-    // All we do is snarf the completion block so that the -uploadManagerDidFinishBackgroundEvents:
+- (void)application:(UIApplication *)application handleEventsForBackgroundURLSession:(NSString *)identifier completionHandler:(void (^)())completionHandler{
+    // All we do is snarf the completion block so that the -setDidFinishEventsForBackgroundURLSessionBlock:
     // delegate method can call it.
-    
     self.backgroundCompletionBlock = completionHandler;
+    NSLog(@"[CD]application handleEventsForBackgroundURLSession: %@",identifier);
     //at this point we know that we are being invoked in background when the daemon has some upload information
     //resume the session to receive progress of the uploads
-    [[FileUploadManager sharedInstance] start];
-}
-
-
-
-- (void)dealloc
-{
-    
+    //    [[FileUploadManager sharedInstance] start];
 }
 
 @end
