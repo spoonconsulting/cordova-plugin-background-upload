@@ -4,7 +4,7 @@
 
 @interface FileTransferBackground : CDVPlugin<FileUploaderDelegate>
 {
-    NSNumber* parallelUploadsLimit;
+    
 }
 
 -(void)startUpload:(CDVInvokedUrlCommand*)command;

@@ -19,12 +19,14 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         return nil;
     [UploadEvent setupStorage];
     self.responsesData = [[NSMutableDictionary alloc] init];
-    configuration = [self.delegate uploadManagerWillExtendSessionConfiguration: [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]]];
+    self.parallelUploadsLimit = 1;
+    configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
+    configuration.HTTPMaximumConnectionsPerHost = self.parallelUploadsLimit;
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
         NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
-        NSLog(@"[CD]task did complete %@ %@",uploadId , error.localizedDescription);
+        
         UploadEvent* event = [[UploadEvent alloc] init];
         event.uploadId = uploadId;
         if (!error){
@@ -33,9 +35,11 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
             NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
             event.serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";
             [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
+            NSLog(@"[CD]task did complete with success %@",uploadId);
         } else {
             event.state = @"FAILED";
             event.error = error.localizedDescription;
+            NSLog(@"[CD]task did fail %@ %@",uploadId , error);
         }
         [event save];
         [weakSelf.delegate uploadManagerDidCompleteUpload:event];
@@ -52,6 +56,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     }];
     
     [self.manager setDidFinishEventsForBackgroundURLSessionBlock:^(NSURLSession * _Nonnull session) {
+        NSLog(@"[CD]setDidFinishEventsForBackgroundURLSessionBlock block: %@",session);
         AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
         if (appDelegate.backgroundCompletionBlock) {
             void (^completionHandler)(void) = appDelegate.backgroundCompletionBlock;
@@ -94,7 +99,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     [serializer requestWithMultipartFormRequest:request writingStreamContentsToFile:tempFilePath completionHandler:^(NSError *error) {
             return handler(error, request);
     }];
-    
 }
 -(void)addUpload:(NSURL *)url
         uploadId:(NSString*)uploadId

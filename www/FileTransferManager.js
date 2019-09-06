@@ -55,7 +55,7 @@ var FileTransferManager = function (options) {
     // triggered on error
     this.options.fail = function (errorObj) {
         that.emit('error', errorObj);
-        exec(null, null, 'FileTransferBackground', 'acknowledgeEvent', [result.eventId]);
+        exec(null, null, 'FileTransferBackground', 'acknowledgeEvent', [errorObj.eventId]);
     };
 
 

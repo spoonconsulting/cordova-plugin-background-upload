@@ -7,12 +7,12 @@ NS_ASSUME_NONNULL_BEGIN
 @optional
 - (void)uploadManagerDidReceiveProgress:(float)progress forUpload:(NSString*)uploadId;
 - (void)uploadManagerDidCompleteUpload:(UploadEvent*)event;
-- (NSURLSessionConfiguration*)uploadManagerWillExtendSessionConfiguration:(NSURLSessionConfiguration*)config;
 @end
 
 @interface FileUploader : NSObject{
     NSURLSessionConfiguration* configuration;
 }
+@property (nonatomic, assign) NSInteger parallelUploadsLimit;
 @property (nonatomic, strong) id<FileUploaderDelegate> delegate;
 + (instancetype)sharedInstance;
 -(void)addUpload:(NSURL *)request uploadId:(NSString*)uploadId fileURL:(NSURL *)fileURL

@@ -9,12 +9,12 @@
 @implementation FileTransferBackground
 
 -(void)initManager:(CDVInvokedUrlCommand*)command{
-    [FileUploader sharedInstance].delegate = self;
     self.pluginCommand = command;
     //    NSDictionary* config = command.arguments[0];
     //    parallelUploadsLimit = config[@"parallelUploadsLimit"] ? config[@"parallelUploadsLimit"] : @1;
     //TODO: handle migration of old uploads
-    parallelUploadsLimit = @1;
+    [FileUploader sharedInstance].delegate = self;
+    [FileUploader sharedInstance].parallelUploadsLimit = 1;
     for (UploadEvent* event in [UploadEvent allEvents]){
         [self uploadManagerDidCompleteUpload: event];
     }
@@ -52,11 +52,6 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (NSURLSessionConfiguration*)uploadManagerWillExtendSessionConfiguration:(NSURLSessionConfiguration*)config{
-    config.HTTPMaximumConnectionsPerHost = parallelUploadsLimit.integerValue;
-    return config;
-}
-
 - (void)uploadManagerDidCompleteUpload:(UploadEvent*)event{
     CDVPluginResult* pluginResult;
     if ([event.state isEqualToString:@"SUCCESS"]) {
@@ -80,7 +75,6 @@
                                                            }];
     }
     [pluginResult setKeepCallback:@YES];
-    NSLog(@"[CD]dispatching event for %@", event.uploadId);
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
