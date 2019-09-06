@@ -20,7 +20,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     [UploadEvent setupStorage];
     self.responsesData = [[NSMutableDictionary alloc] init];
     self.parallelUploadsLimit = 1;
-    configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
+    NSURLSessionConfiguration* configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
     configuration.HTTPMaximumConnectionsPerHost = self.parallelUploadsLimit;
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     __weak FileUploader *weakSelf = self;
@@ -35,12 +35,21 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
             NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
             event.serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";
             [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
-            NSLog(@"[CD]task did complete with success %@",uploadId);
+            NSLog(@"[CD]task did complete with success %@ response: %@",uploadId,event.serverResponse);
         } else {
             event.state = @"FAILED";
             event.error = error.localizedDescription;
             NSLog(@"[CD]task did fail %@ %@",uploadId , error);
         }
+        NSDictionary* representation = @{
+                                         @"state": event.state,
+                                         @"responseStatusCode": @(event.responseStatusCode),
+                                         @"serverResponse": event.serverResponse,
+                                         @"uploadId": uploadId,
+                                         @"error": event.error
+                                         };
+        NSData * jsonData = [NSJSONSerialization dataWithJSONObject:representation options:0 error:nil];
+        event.data = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
         [event save];
         [weakSelf.delegate uploadManagerDidCompleteUpload:event];
         [[NSFileManager defaultManager] removeItemAtURL:[weakSelf tempFilePathForUpload:uploadId] error:nil];
@@ -85,10 +94,10 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                                      URLString:url.absoluteString
                                     parameters:parameters
                      constructingBodyWithBlock:^(id<AFMultipartFormData> formData){
-                                             NSString *filename = [fileURL.absoluteString lastPathComponent];
-                                             NSData * data = [NSData dataWithContentsOfURL:fileURL];
-                                             [formData appendPartWithFileData:data name:fileKey fileName:filename mimeType:@"application/octet-stream"];
-                                         }
+                         NSString *filename = [fileURL.absoluteString lastPathComponent];
+                         NSData * data = [NSData dataWithContentsOfURL:fileURL];
+                         [formData appendPartWithFileData:data name:fileKey fileName:filename mimeType:@"application/octet-stream"];
+                     }
                                          error:&error];
     if (error)
         return handler(error, nil);
@@ -97,7 +106,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     }
     [NSURLProtocol setProperty:uploadId forKey:kUploadUUIDStrPropertyKey inRequest:request];
     [serializer requestWithMultipartFormRequest:request writingStreamContentsToFile:tempFilePath completionHandler:^(NSError *error) {
-            return handler(error, request);
+        return handler(error, request);
     }];
 }
 -(void)addUpload:(NSURL *)url
@@ -121,16 +130,16 @@ completionHandler:(void (^)(NSError* error))handler{
                              return handler(error);
                          __block double lastProgressTimeStamp = 0;
                          [[weakSelf.manager uploadTaskWithRequest:request
-                                                        fromFile:tempFilePath
-                                                        progress:^(NSProgress * _Nonnull uploadProgress) {
-                                                            float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
-                                                            NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
-                                                            if (currentTimestamp - lastProgressTimeStamp >= 1){
-                                                                lastProgressTimeStamp = currentTimestamp;
-                                                                [weakSelf.delegate uploadManagerDidReceiveProgress:roundedProgress forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
-                                                            }
-                                                        }
-                                               completionHandler:nil] resume];
+                                                         fromFile:tempFilePath
+                                                         progress:^(NSProgress * _Nonnull uploadProgress) {
+                                                             float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
+                                                             NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
+                                                             if (currentTimestamp - lastProgressTimeStamp >= 1){
+                                                                 lastProgressTimeStamp = currentTimestamp;
+                                                                 [weakSelf.delegate uploadManagerDidReceiveProgress:roundedProgress forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
+                                                             }
+                                                         }
+                                                completionHandler:nil] resume];
                      }];
 }
 

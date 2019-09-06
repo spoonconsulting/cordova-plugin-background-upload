@@ -15,7 +15,6 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 
 -(void)save{
     [managedObjectContext performBlockAndWait:^{
-        self.data = [self dataDescription];
         NSError* error;
         if (![managedObjectContext save:&error])
             NSLog(@"error saving UploadEvent %@ : %@", self.uploadId, error);
@@ -31,17 +30,6 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
     }];
 }
 
--(NSString*)dataDescription{
-    NSDictionary* representation = @{
-                                     @"state": self.state,
-                                     @"responseStatusCode": @(self.responseStatusCode),
-                                     @"serverResponse": self.serverResponse,
-                                     @"uploadId": uploadId,
-                                     @"error": self.error
-                                     };
-    NSData * jsonData = [NSJSONSerialization dataWithJSONObject:representation options:0 error:nil];
-    return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-}
 
 +(UploadEvent*)eventWithId:(NSString*)eventId{
     NSManagedObjectID* objectId = [persistentStoreCoordinator managedObjectIDForURIRepresentation: [NSURL URLWithString:eventId]];
@@ -61,7 +49,6 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
         event.serverResponse = dictRepresentation[@"serverResponse"];
         event.uploadId = dictRepresentation[@"uploadId"];
     }
-    NSLog(@"[CD]got all events %@", events);
     return events;
 }
 
@@ -81,7 +68,6 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 
 +(void)setupStorage{
     NSString* path = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES)[0];
-    NSLog(@"%@",path);
     NSURL *storeURL = [NSURL fileURLWithPath:[path stringByAppendingPathComponent:@"Background-upload-plugin.db"]];
     NSError *error = nil;
     persistentStoreCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel: [self tableRepresentation]];

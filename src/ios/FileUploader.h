@@ -9,9 +9,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)uploadManagerDidCompleteUpload:(UploadEvent*)event;
 @end
 
-@interface FileUploader : NSObject{
-    NSURLSessionConfiguration* configuration;
-}
+@interface FileUploader : NSObject
 @property (nonatomic, assign) NSInteger parallelUploadsLimit;
 @property (nonatomic, strong) id<FileUploaderDelegate> delegate;
 + (instancetype)sharedInstance;
