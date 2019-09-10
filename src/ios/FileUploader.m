@@ -75,7 +75,8 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     return self;
 }
 -(NSURL*)tempFilePathForUpload:(NSString*)uploadId{
-    return [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:uploadId]];
+    NSString* path = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES)[0];
+    return [NSURL fileURLWithPath:[path stringByAppendingPathComponent:uploadId]];
 }
 -(void)writeMultipartDataToTempFile: (NSURL*)tempFilePath
                                 url:(NSURL *)url
@@ -104,8 +105,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     }
     [NSURLProtocol setProperty:uploadId forKey:kUploadUUIDStrPropertyKey inRequest:request];
     [serializer requestWithMultipartFormRequest:request writingStreamContentsToFile:tempFilePath completionHandler:^(NSError *error) {
-        if (!error && ![[NSFileManager defaultManager] fileExistsAtPath:tempFilePath.path])
-            error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadNoSuchFileError userInfo:nil];
         handler(error, request);
     }];
 }
