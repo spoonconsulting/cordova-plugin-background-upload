@@ -10,7 +10,6 @@ NSString const *callbackKey = @"com.bg.category.block.unique.key";
 
 //Since ivars are not allowed to be synthesized inside categories
 //use Associative References to keep the variables
-
 - (void)setBackgroundCompletionBlock:(dispatch_block_t )bl
 {
     objc_setAssociatedObject(self, &callbackKey, bl, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
@@ -59,7 +58,7 @@ NSString const *callbackKey = @"com.bg.category.block.unique.key";
 }
 
 - (void)application:(UIApplication *)application handleEventsForBackgroundURLSession:(NSString *)identifier completionHandler:(void (^)())completionHandler{
-    // All we do is snarf the completion block so that the -setDidFinishEventsForBackgroundURLSessionBlock:
+    // All we do is store the completion block so that the -setDidFinishEventsForBackgroundURLSessionBlock:
     // delegate method can call it.
     self.backgroundCompletionBlock = completionHandler;
     NSLog(@"[CD]application handleEventsForBackgroundURLSession: %@",identifier);

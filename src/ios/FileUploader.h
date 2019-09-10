@@ -3,7 +3,6 @@
 #import <AFNetworking/AFNetworking.h>
 NS_ASSUME_NONNULL_BEGIN
 @protocol FileUploaderDelegate <NSObject>
-
 @optional
 - (void)uploadManagerDidReceiveProgress:(float)progress forUpload:(NSString*)uploadId;
 - (void)uploadManagerDidCompleteUpload:(UploadEvent*)event;
@@ -19,6 +18,5 @@ NS_ASSUME_NONNULL_BEGIN
 -(void)removeUpload:(NSString*)uploadId;
 -(void)acknowledgeEventReceived:(NSString*)eventId;
 @end
-
 
 NS_ASSUME_NONNULL_END

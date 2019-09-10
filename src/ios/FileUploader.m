@@ -26,7 +26,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
         NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
-        
         UploadEvent* event = [[UploadEvent alloc] init];
         event.uploadId = uploadId;
         if (!error){
@@ -86,7 +85,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                          parameters:(NSDictionary*)parameters
                             fileKey:(NSString*)fileKey
                   completionHandler:(void (^)(NSError* error, NSMutableURLRequest* request))handler{
-    
     AFHTTPRequestSerializer *serializer = [AFHTTPRequestSerializer serializer];
     NSError *error;
     NSMutableURLRequest *request =
@@ -136,7 +134,8 @@ completionHandler:(void (^)(NSError* error))handler{
                                                              NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
                                                              if (currentTimestamp - lastProgressTimeStamp >= 1){
                                                                  lastProgressTimeStamp = currentTimestamp;
-                                                                 [weakSelf.delegate uploadManagerDidReceiveProgress:roundedProgress forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
+                                                                 [weakSelf.delegate uploadManagerDidReceiveProgress:roundedProgress
+                                                                                                          forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
                                                              }
                                                          }
                                                 completionHandler:nil] resume];

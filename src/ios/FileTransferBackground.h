@@ -3,10 +3,6 @@
 #import "FileUploader.h"
 
 @interface FileTransferBackground : CDVPlugin<FileUploaderDelegate>
-{
-    
-}
-
 -(void)startUpload:(CDVInvokedUrlCommand*)command;
 -(void)removeUpload:(CDVInvokedUrlCommand*)command;
 -(void)initManager:(CDVInvokedUrlCommand*)command;
