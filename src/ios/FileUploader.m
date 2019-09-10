@@ -128,18 +128,26 @@ completionHandler:(void (^)(NSError* error))handler{
                          if (error)
                              return handler(error);
                          __block double lastProgressTimeStamp = 0;
-                         [[weakSelf.manager uploadTaskWithRequest:request
-                                                         fromFile:tempFilePath
-                                                         progress:^(NSProgress * _Nonnull uploadProgress) {
-                                                             float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
-                                                             NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
-                                                             if (currentTimestamp - lastProgressTimeStamp >= 1){
-                                                                 lastProgressTimeStamp = currentTimestamp;
-                                                                 [weakSelf.delegate uploadManagerDidReceiveProgress:roundedProgress
-                                                                                                          forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
+                         @try{
+                             //uploadTaskWithRequest: randomly crashes => 'NSInvalidArgumentException', reason: 'Cannot read file'
+                             //https://stackoverflow.com/questions/26818337/sporadic-cannot-read-file-error-file-does-not-exist
+                             //https://forums.developer.apple.com/thread/86184
+                             [[weakSelf.manager uploadTaskWithRequest:request
+                                                             fromFile:tempFilePath
+                                                             progress:^(NSProgress * _Nonnull uploadProgress) {
+                                                                 float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
+                                                                 NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
+                                                                 if (currentTimestamp - lastProgressTimeStamp >= 1){
+                                                                     lastProgressTimeStamp = currentTimestamp;
+                                                                     [weakSelf.delegate uploadManagerDidReceiveProgress:roundedProgress
+                                                                                                              forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
+                                                                 }
                                                              }
-                                                         }
-                                                completionHandler:nil] resume];
+                                                    completionHandler:nil] resume];
+                         } @catch (NSException* exception) {
+                             NSLog(@"Got exception: %@  Reason: %@", exception.name, exception.reason);
+                             handler([NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadNoSuchFileError userInfo:nil]);
+                         }
                      }];
 }
 
