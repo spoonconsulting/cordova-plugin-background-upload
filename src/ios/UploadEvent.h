@@ -8,6 +8,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) NSString *state;
 @property (nonatomic, assign) NSInteger responseStatusCode;
 @property (nonatomic, copy) NSString *error;
+@property (nonatomic, assign) NSInteger errorCode;
 @property (nonatomic, copy) id serverResponse;
 
 -(void)save;

@@ -71,7 +71,8 @@
                                                            @"eventId" : event.objectID.URIRepresentation.absoluteString,
                                                            @"state" : @"UPLOADED",
                                                            @"serverResponse" : event.serverResponse,
-                                                           @"statusCode" : @(event.responseStatusCode)
+                                                           @"statusCode" : @(event.responseStatusCode),
+                                                           @"platform" : @"ios"
                                                            }];
         
     }else{
@@ -80,7 +81,9 @@
                                                            @"id" : event.uploadId,
                                                            @"eventId" : event.objectID.URIRepresentation.absoluteString,
                                                            @"error" : event.error,
-                                                           @"state" : @"FAILED"
+                                                           @"errorCode" : @(event.errorCode),
+                                                           @"state" : @"FAILED",
+                                                           @"platform" : @"ios"
                                                            }];
     }
     [pluginResult setKeepCallback:@YES];

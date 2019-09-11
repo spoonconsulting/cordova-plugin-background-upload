@@ -45,7 +45,8 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                                          @"responseStatusCode": @(event.responseStatusCode),
                                          @"serverResponse": event.serverResponse,
                                          @"uploadId": uploadId,
-                                         @"error": event.error
+                                         @"error": event.error,
+                                         @"errorCode": @(event.errorCode)
                                          };
         NSData * jsonData = [NSJSONSerialization dataWithJSONObject:representation options:0 error:nil];
         event.data = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];

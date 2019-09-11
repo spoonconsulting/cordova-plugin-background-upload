@@ -46,6 +46,7 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
         event.state = dictRepresentation[@"state"];
         event.responseStatusCode = (NSInteger)dictRepresentation[@"responseStatusCode"];
         event.error = dictRepresentation[@"error"];
+        event.errorCode = (NSInteger)dictRepresentation[@"errorCode"];
         event.serverResponse = dictRepresentation[@"serverResponse"];
         event.uploadId = dictRepresentation[@"uploadId"];
     }
