@@ -33,7 +33,11 @@
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
     NSDictionary* payload = command.arguments[0];
     if (![[NSFileManager defaultManager] fileExistsAtPath:payload[@"filePath"]])
-        return [self returnError:command withInfo:@{@"id" : payload[@"id"], @"message" : @"file does not exists"}];
+        return [self returnError:command withInfo:@{@"id" : payload[@"id"],
+                                                    @"error" : @"file does not exists",
+                                                    @"errorCode" : @(NSFileReadNoSuchFileError),
+                                                    @"platform" : @"ios"
+                                                    }];
     
     __weak FileTransferBackground *weakSelf = self;
     [[FileUploader sharedInstance] addUpload:payload
@@ -47,11 +51,12 @@
                                                                                                        @"platform" : @"ios"
                                                                                                        }];
                                    [weakSelf.commandDelegate sendPluginResult:globalPluginResult callbackId:weakSelf.pluginCommand.callbackId];
+                               }else{
+                                   CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+                                   [pluginResult setKeepCallback:@YES];
+                                   [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
                                }
                            }];
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [pluginResult setKeepCallback:@YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{

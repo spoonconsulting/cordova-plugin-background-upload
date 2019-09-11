@@ -47,7 +47,8 @@ var FileTransferManager = function (options) {
         }
         else {
             that.emit('success', result);
-            exec(null, null, 'FileTransferBackground', 'acknowledgeEvent', [result.eventId]);
+            if (result.eventId)
+                exec(null, null, 'FileTransferBackground', 'acknowledgeEvent', [result.eventId]);
         }
 
     };
@@ -55,7 +56,8 @@ var FileTransferManager = function (options) {
     // triggered on error
     this.options.fail = function (errorObj) {
         that.emit('error', errorObj);
-        exec(null, null, 'FileTransferBackground', 'acknowledgeEvent', [errorObj.eventId]);
+        if (errorObj.eventId)
+            exec(null, null, 'FileTransferBackground', 'acknowledgeEvent', [errorObj.eventId]);
     };
 
 
