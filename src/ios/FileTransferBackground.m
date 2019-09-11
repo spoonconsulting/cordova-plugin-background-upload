@@ -11,8 +11,11 @@
 
 -(void)initManager:(CDVInvokedUrlCommand*)command{
     self.pluginCommand = command;
-    NSDictionary* config = command.arguments[0];
-    self.parallelUploadsLimit = config[@"parallelUploadsLimit"] ? (NSInteger)config[@"parallelUploadsLimit"] : 1;
+    self.parallelUploadsLimit = 1;
+    if (command.arguments.count > 0){
+        NSDictionary* config = command.arguments[0];
+        self.parallelUploadsLimit = config[@"parallelUploadsLimit"] ? (NSInteger)config[@"parallelUploadsLimit"] : 1;
+    }
     [FileUploader sharedInstance].delegate = self;
     //mark all old uploads as failed to be retried
     for (NSString* uploadId in [self getV1Uploads]){

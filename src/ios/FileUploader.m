@@ -106,8 +106,8 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         [request setValue:[headers objectForKey:key] forHTTPHeaderField:key];
     }
     [NSURLProtocol setProperty:uploadId forKey:kUploadUUIDStrPropertyKey inRequest:request];
-    [serializer requestWithMultipartFormRequest:request writingStreamContentsToFile:tempFilePath completionHandler:^(NSError *error) {
-        handler(error, request);
+    __block NSMutableURLRequest *newRequest = [serializer requestWithMultipartFormRequest:request writingStreamContentsToFile:tempFilePath completionHandler:^(NSError *error) {
+        handler(error, newRequest);
     }];
 }
 -(void)addUpload:(NSDictionary *)payload completionHandler:(void (^)(NSError* error))handler{
@@ -124,10 +124,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                          if (error)
                              return handler(error);
                          __block double lastProgressTimeStamp = 0;
-                         @try{
-                             //uploadTaskWithRequest: randomly crashes => 'NSInvalidArgumentException', reason: 'Cannot read file'
-                             //https://stackoverflow.com/questions/26818337/sporadic-cannot-read-file-error-file-does-not-exist
-                             //https://forums.developer.apple.com/thread/86184
                              [[weakSelf.manager uploadTaskWithRequest:request
                                                              fromFile:tempFilePath
                                                              progress:^(NSProgress * _Nonnull uploadProgress) {
@@ -140,10 +136,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                                                                  }
                                                              }
                                                     completionHandler:nil] resume];
-                         } @catch (NSException* exception) {
-                             NSLog(@"Got exception: %@  Reason: %@", exception.name, exception.reason);
-                             handler([NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadNoSuchFileError userInfo:nil]);
-                         }
                      }];
 }
 
