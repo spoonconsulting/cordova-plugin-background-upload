@@ -19,9 +19,8 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         return nil;
     [UploadEvent setupStorage];
     self.responsesData = [[NSMutableDictionary alloc] init];
-    self.parallelUploadsLimit = 1;
     NSURLSessionConfiguration* configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
-    configuration.HTTPMaximumConnectionsPerHost = self.parallelUploadsLimit;
+    configuration.HTTPMaximumConnectionsPerHost = [self.delegate uploadManagerMaxConcurrency];
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
@@ -39,7 +38,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
             event.state = @"FAILED";
             event.error = error.localizedDescription;
             event.errorCode = error.code;
-            NSLog(@"[CD]task did fail %@ %@",uploadId , error);
+            NSLog(@"[CD]task did fail %@ %@",uploadId , error.localizedDescription);
         }
         NSDictionary* representation = @{
                                          @"state": event.state,
@@ -76,6 +75,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     }];
     return self;
 }
+
 -(NSURL*)tempFilePathForUpload:(NSString*)uploadId{
     NSString* path = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES)[0];
     return [NSURL fileURLWithPath:[path stringByAppendingPathComponent:uploadId]];

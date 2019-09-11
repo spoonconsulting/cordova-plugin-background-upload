@@ -5,6 +5,7 @@
 
 @interface FileTransferBackground()
 @property (nonatomic, strong) CDVInvokedUrlCommand* pluginCommand;
+@property (nonatomic, assign) NSInteger parallelUploadsLimit;
 @end
 @implementation FileTransferBackground
 
@@ -14,7 +15,6 @@
     //    parallelUploadsLimit = config[@"parallelUploadsLimit"] ? config[@"parallelUploadsLimit"] : @1;
     
     [FileUploader sharedInstance].delegate = self;
-    [FileUploader sharedInstance].parallelUploadsLimit = 1;
     //mark all old uploads as failed to be retried
     for (NSString* uploadId in [self getV1Uploads]){
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
@@ -25,6 +25,7 @@
                                                                             }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
     }
+    NSLog(@"[CD][UploadEvent allEvents] %@",[UploadEvent allEvents]);
     for (UploadEvent* event in [UploadEvent allEvents]){
         [self uploadManagerDidCompleteUpload: event];
     }
@@ -106,6 +107,9 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
+-(NSInteger)uploadManagerMaxConcurrency{
+    return self.parallelUploadsLimit;
+}
 
 -(void)returnError:(CDVInvokedUrlCommand *) command withInfo:(NSDictionary*)data{
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsDictionary:data];
