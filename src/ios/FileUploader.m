@@ -38,6 +38,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         } else {
             event.state = @"FAILED";
             event.error = error.localizedDescription;
+            event.errorCode = error.code;
             NSLog(@"[CD]task did fail %@ %@",uploadId , error);
         }
         NSDictionary* representation = @{
