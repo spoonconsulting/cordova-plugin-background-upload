@@ -32,13 +32,17 @@
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
     NSDictionary* payload = command.arguments[0];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:payload[@"filePath"]])
-        return [self returnError:command withInfo:@{@"id" : payload[@"id"],
-                                                    @"error" : @"file does not exists",
-                                                    @"errorCode" : @(NSFileReadNoSuchFileError),
-                                                    @"platform" : @"ios"
-                                                    }];
-    
+    if (![[NSFileManager defaultManager] fileExistsAtPath:payload[@"filePath"]]){
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR
+                                                      messageAsDictionary:@{
+                                                                            @"id" : payload[@"id"],
+                                                                            @"error" : @"file does not exists",
+                                                                            @"errorCode" : @(NSFileReadNoSuchFileError),
+                                                                            @"platform" : @"ios"
+                                                                            }];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        return;
+    }
     __weak FileTransferBackground *weakSelf = self;
     [[FileUploader sharedInstance] addUpload:payload
                            completionHandler:^(NSError* error) {
@@ -59,8 +63,7 @@
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
-    NSString* uploadId = command.arguments[0];
-    [[FileUploader sharedInstance] removeUpload:uploadId];
+    [[FileUploader sharedInstance] removeUpload:command.arguments[0]];
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [pluginResult setKeepCallback:@YES];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -107,11 +110,6 @@
 
 -(NSInteger)uploadManagerMaxConcurrency{
     return self.parallelUploadsLimit;
-}
-
--(void)returnError:(CDVInvokedUrlCommand *) command withInfo:(NSDictionary*)data{
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsDictionary:data];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 -(void)acknowledgeEvent:(CDVInvokedUrlCommand*)command{
