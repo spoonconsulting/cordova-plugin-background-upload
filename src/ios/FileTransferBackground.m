@@ -51,12 +51,11 @@
                                                                                                        @"platform" : @"ios"
                                                                                                        }];
                                    [weakSelf.commandDelegate sendPluginResult:globalPluginResult callbackId:weakSelf.pluginCommand.callbackId];
-                               }else{
-                                   CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-                                   [pluginResult setKeepCallback:@YES];
-                                   [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
                                }
                            }];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [pluginResult setKeepCallback:@YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
