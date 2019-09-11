@@ -1,6 +1,6 @@
 #import "UploadEvent.h"
 @implementation UploadEvent
-@synthesize error, state, responseStatusCode, serverResponse, uploadId, data;
+@synthesize error, state, responseStatusCode, serverResponse, uploadId, data, errorCode;
 static NSManagedObjectContext * managedObjectContext;
 static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 - (id)init{

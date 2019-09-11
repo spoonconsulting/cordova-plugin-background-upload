@@ -109,22 +109,16 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         handler(error, request);
     }];
 }
--(void)addUpload:(NSURL *)url
-        uploadId:(NSString*)uploadId
-         fileURL:(NSURL *)fileURL
-         headers:(NSDictionary*)headers
-      parameters:(NSDictionary*)parameters
-         fileKey:(NSString*)fileKey
-completionHandler:(void (^)(NSError* error))handler{
+-(void)addUpload:(NSDictionary *)payload completionHandler:(void (^)(NSError* error))handler{
     __weak FileUploader *weakSelf = self;
-    NSURL *tempFilePath = [self tempFilePathForUpload:uploadId];
+    NSURL *tempFilePath = [self tempFilePathForUpload:payload[@"id"]];
     [self writeMultipartDataToTempFile:tempFilePath
-                                   url:url
-                              uploadId:uploadId
-                               fileURL:fileURL
-                               headers:headers
-                            parameters:parameters
-                               fileKey:fileKey
+                                   url:[NSURL URLWithString:payload[@"serverUrl"]]
+                              uploadId:payload[@"id"]
+                               fileURL:[NSURL fileURLWithPath:payload[@"filePath"]]
+                               headers: payload[@"headers"]
+                            parameters:payload[@"parameters"]
+                               fileKey:payload[@"fileKey"]
                      completionHandler:^(NSError *error, NSMutableURLRequest *request) {
                          if (error)
                              return handler(error);

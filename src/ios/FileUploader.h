@@ -12,9 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) NSInteger parallelUploadsLimit;
 @property (nonatomic, strong) id<FileUploaderDelegate> delegate;
 + (instancetype)sharedInstance;
--(void)addUpload:(NSURL *)request uploadId:(NSString*)uploadId fileURL:(NSURL *)fileURL
-         headers:(NSDictionary*)headers parameters:(NSDictionary*)parameters
-         fileKey:(NSString*)fileKey completionHandler:(void (^)(NSError* error))handler;
+-(void)addUpload:(NSDictionary *)payload completionHandler:(void (^)(NSError* error))handler;
 -(void)removeUpload:(NSString*)uploadId;
 -(void)acknowledgeEventReceived:(NSString*)eventId;
 @end

@@ -20,7 +20,8 @@
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                       messageAsDictionary:@{
                                                                             @"state" : @"FAILED",
-                                                                            @"id" : uploadId
+                                                                            @"id" : uploadId,
+                                                                            @"platform" : @"ios"
                                                                             }];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
     }
@@ -35,22 +36,22 @@
         return [self returnError:command withInfo:@{@"id" : payload[@"id"], @"message" : @"file does not exists"}];
     
     __weak FileTransferBackground *weakSelf = self;
-    [[FileUploader sharedInstance] addUpload:[NSURL URLWithString:payload[@"serverUrl"]]
-                                    uploadId:payload[@"id"]
-                                     fileURL:[NSURL fileURLWithPath:payload[@"filePath"]]
-                                     headers:payload[@"headers"]
-                                  parameters:payload[@"parameters"]
-                                     fileKey:payload[@"fileKey"]
+    [[FileUploader sharedInstance] addUpload:payload
                            completionHandler:^(NSError* error) {
                                if (error){
-                                   CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                   CDVPluginResult* globalPluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                                                  messageAsDictionary:@{
                                                                                                        @"error" : error.localizedDescription,
-                                                                                                       @"id" : payload[@"id"]
+                                                                                                       @"id" : payload[@"id"],
+                                                                                                       @"errorCode" : @(error.code),
+                                                                                                       @"platform" : @"ios"
                                                                                                        }];
-                                   [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:weakSelf.pluginCommand.callbackId];
+                                   [weakSelf.commandDelegate sendPluginResult:globalPluginResult callbackId:weakSelf.pluginCommand.callbackId];
                                }
                            }];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [pluginResult setKeepCallback:@YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
