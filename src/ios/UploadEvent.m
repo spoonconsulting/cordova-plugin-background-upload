@@ -72,9 +72,8 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
     NSURL *storeURL = [NSURL fileURLWithPath:[path stringByAppendingPathComponent:@"Background-upload-plugin.db"]];
     NSError *error = nil;
     persistentStoreCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel: [self tableRepresentation]];
-    if (![persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:nil error:&error]){
+    if (![persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:nil error:&error])
         NSLog(@"error setting up core data: %@", error);
-    }
     managedObjectContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSPrivateQueueConcurrencyType];
     managedObjectContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy;
     [managedObjectContext setPersistentStoreCoordinator:persistentStoreCoordinator];
