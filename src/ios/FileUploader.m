@@ -106,8 +106,8 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         [request setValue:[headers objectForKey:key] forHTTPHeaderField:key];
     }
     [NSURLProtocol setProperty:uploadId forKey:kUploadUUIDStrPropertyKey inRequest:request];
-    __block NSMutableURLRequest *newRequest = [serializer requestWithMultipartFormRequest:request writingStreamContentsToFile:tempFilePath completionHandler:^(NSError *error) {
-        handler(error, newRequest);
+    [serializer requestWithMultipartFormRequest:request writingStreamContentsToFile:tempFilePath completionHandler:^(NSError *error) {
+        handler(error, request);
     }];
 }
 -(void)addUpload:(NSDictionary *)payload completionHandler:(void (^)(NSError* error))handler{

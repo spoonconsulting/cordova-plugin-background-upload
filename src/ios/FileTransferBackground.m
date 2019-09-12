@@ -47,6 +47,7 @@
         return;
     }
     __weak FileTransferBackground *weakSelf = self;
+    NSLog(@"[CD] got request to upload %@", payload[@"id"]);
     [[FileUploader sharedInstance] addUpload:payload
                            completionHandler:^(NSError* error) {
                                if (error){
@@ -60,9 +61,6 @@
                                    [weakSelf.commandDelegate sendPluginResult:globalPluginResult callbackId:weakSelf.pluginCommand.callbackId];
                                }
                            }];
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [pluginResult setKeepCallback:@YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
