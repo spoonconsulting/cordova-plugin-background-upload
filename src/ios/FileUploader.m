@@ -20,7 +20,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     [UploadEvent setupStorage];
     self.responsesData = [[NSMutableDictionary alloc] init];
     NSURLSessionConfiguration* configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
-    configuration.HTTPMaximumConnectionsPerHost = [self.delegate uploadManagerMaxConcurrency];
+    configuration.HTTPMaximumConnectionsPerHost = 1;
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
@@ -107,6 +107,8 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     }
     [NSURLProtocol setProperty:uploadId forKey:kUploadUUIDStrPropertyKey inRequest:request];
     [serializer requestWithMultipartFormRequest:request writingStreamContentsToFile:tempFilePath completionHandler:^(NSError *error) {
+        if (!error && ![[NSFileManager defaultManager] fileExistsAtPath:tempFilePath.path])
+            error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadNoSuchFileError userInfo:nil];
         handler(error, request);
     }];
 }
@@ -124,6 +126,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                          if (error)
                              return handler(error);
                          __block double lastProgressTimeStamp = 0;
+                            NSLog(@"[CD] uploadTaskWithRequest %@",request);
                              [[weakSelf.manager uploadTaskWithRequest:request
                                                              fromFile:tempFilePath
                                                              progress:^(NSProgress * _Nonnull uploadProgress) {
