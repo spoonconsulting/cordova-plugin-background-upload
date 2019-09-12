@@ -149,7 +149,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         return [uploadId isEqualToString:currentId];
     }]] firstObject];
     [correspondingTask cancel];
-    [[NSFileManager defaultManager] removeItemAtURL:[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:uploadId]] error:nil];
+    [[NSFileManager defaultManager] removeItemAtURL:[self tempFilePathForUpload:uploadId] error:nil];
 }
 
 -(void)acknowledgeEventReceived:(NSString*)eventId{
