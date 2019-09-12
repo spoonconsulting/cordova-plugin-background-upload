@@ -17,7 +17,7 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
     [managedObjectContext performBlockAndWait:^{
         NSError* error;
         if (![managedObjectContext save:&error])
-            NSLog(@"error saving UploadEvent %@ : %@", self.uploadId, error);
+            NSLog(@"error saving UploadEvent %@ : %@", self, error);
     }];
 }
 
@@ -26,7 +26,7 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
         [managedObjectContext deleteObject:self];
         NSError* error;
         if (![managedObjectContext save:&error])
-            NSLog(@"error deleting UploadEvent %@ : %@", self.uploadId, error);
+            NSLog(@"error deleting UploadEvent %@ : %@", self, error);
     }];
 }
 

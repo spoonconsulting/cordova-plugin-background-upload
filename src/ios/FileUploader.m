@@ -78,7 +78,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
 
 -(NSURL*)tempFilePathForUpload:(NSString*)uploadId{
     NSString* path = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES)[0];
-    return [NSURL fileURLWithPath:[path stringByAppendingPathComponent:uploadId]];
+    return [NSURL fileURLWithPath:[path stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.request",uploadId]]];
 }
 -(void)writeMultipartDataToTempFile: (NSURL*)tempFilePath
                                 url:(NSURL *)url
