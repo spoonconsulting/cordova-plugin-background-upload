@@ -7,6 +7,7 @@ exports.defineAutoTests = function () {
 
     var sampleFile = 'tree.jpg'
     var path = ''
+    var serverUrl = window.cordova.platformId === 'android' ? 'http://10.0.2.2:3000/upload' : 'http://localhost:3000/upload'
 
     beforeEach(function (done) {
       TestUtils.copyFileToDataDirectory(sampleFile).then(function (newPath) {
@@ -57,7 +58,7 @@ exports.defineAutoTests = function () {
 
     it('returns an error if filePath is missing', function (done) {
       const nativeUploader = FileTransferManager.init()
-      nativeUploader.startUpload({ serverUrl: 'http://localhost:3000/upload' }, function () {}, function (result) {
+      nativeUploader.startUpload({ serverUrl: serverUrl }, function () {}, function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('filePath is required')
         done()
@@ -66,7 +67,7 @@ exports.defineAutoTests = function () {
 
     it('returns an error if upload id is missing', function (done) {
       const nativeUploader = FileTransferManager.init()
-      nativeUploader.startUpload({ serverUrl: 'http://localhost:3000/upload', filePath: path }, function () {}, function (result) {
+      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path }, function () {}, function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('upload id is required')
         done()
@@ -81,7 +82,7 @@ exports.defineAutoTests = function () {
         expect(upload.progress).toBeGreaterThan(0)
         done()
       })
-      nativeUploader.startUpload({ serverUrl: 'http://localhost:3000/upload', filePath: path }, function () {}, function (err) {
+      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path }, function () {}, function (err) {
         console.error(err)
       })
     })
@@ -93,7 +94,7 @@ exports.defineAutoTests = function () {
         expect(upload.serverResponse).toBeDefined()
         done()
       })
-      nativeUploader.startUpload({ serverUrl: 'http://localhost:3000/upload', filePath: path }, function () {}, function (err) {
+      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path }, function () {}, function (err) {
         console.error(err)
       })
     })
