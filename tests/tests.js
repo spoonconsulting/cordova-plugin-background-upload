@@ -54,5 +54,14 @@ exports.defineAutoTests = function () {
         done()
       })
     })
+
+    it('returns an error if filePath is missing', function (done) {
+      const nativeUploader = FileTransferManager.init()
+      nativeUploader.startUpload({ serverUrl: 'http://localhost:3000/upload'}, function () {}, function (result) {
+        expect(result).toBeDefined()
+        expect(result.error).toBe('filePath is required')
+        done()
+      })
+    })
   })
 }
