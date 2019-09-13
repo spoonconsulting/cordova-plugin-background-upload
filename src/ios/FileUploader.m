@@ -6,6 +6,7 @@
 @end
 
 @implementation FileUploader
+static NSInteger _parallelUploadsLimit = 1;
 static FileUploader *singletonObject = nil;
 static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-upload.UUID";
 + (instancetype)sharedInstance{
@@ -20,7 +21,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     [UploadEvent setupStorage];
     self.responsesData = [[NSMutableDictionary alloc] init];
     NSURLSessionConfiguration* configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
-    configuration.HTTPMaximumConnectionsPerHost = 1;
+    configuration.HTTPMaximumConnectionsPerHost = FileUploader.parallelUploadsLimit;
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
@@ -74,6 +75,13 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         }
     }];
     return self;
+}
++(NSInteger)parallelUploadsLimit {
+  return _parallelUploadsLimit;
+}
+
++(void)setParallelUploadsLimit:(NSInteger)value {
+    _parallelUploadsLimit = value;
 }
 
 -(NSURL*)tempFilePathForUpload:(NSString*)uploadId{

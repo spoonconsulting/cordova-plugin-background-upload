@@ -6,7 +6,6 @@ NS_ASSUME_NONNULL_BEGIN
 @optional
 - (void)uploadManagerDidReceiveProgress:(float)progress forUpload:(NSString*)uploadId;
 - (void)uploadManagerDidCompleteUpload:(UploadEvent*)event;
--(NSInteger)uploadManagerMaxConcurrency;
 @end
 
 @interface FileUploader : NSObject
@@ -15,6 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 -(void)addUpload:(NSDictionary *)payload completionHandler:(void (^)(NSError* error))handler;
 -(void)removeUpload:(NSString*)uploadId;
 -(void)acknowledgeEventReceived:(NSString*)eventId;
+@property (class, nonatomic, assign) NSInteger parallelUploadsLimit;
 @end
 
 NS_ASSUME_NONNULL_END
