@@ -28,22 +28,29 @@ exports.defineAutoTests = function () {
       expect(FileTransferManager.init).toBeDefined()
     })
 
+    it('should have startUpload function', function () {
+      var nativeUploader = FileTransferManager.init()
+      expect(nativeUploader.startUpload).toBeDefined()
+    })
+
     it('returns an error if no argument is given', function (done) {
       var nativeUploader = FileTransferManager.init()
-      nativeUploader.startUpload(null, function () {}, function (result) {
+      nativeUploader.on('error', function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('upload settings object is missing or invalid argument')
         done()
       })
+      nativeUploader.startUpload(null)
     })
 
     it('returns an error if serverUrl is missing', function (done) {
       var nativeUploader = FileTransferManager.init()
-      nativeUploader.startUpload({}, function () {}, function (result) {
+      nativeUploader.on('error', function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('server url is required')
         done()
       })
+      nativeUploader.startUpload({})
     })
 
     it('returns an error if serverUrl is invalid', function (done) {
