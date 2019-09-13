@@ -63,5 +63,39 @@ exports.defineAutoTests = function () {
         done()
       })
     })
+
+    it('returns an error if upload id is missing', function (done) {
+      const nativeUploader = FileTransferManager.init()
+      nativeUploader.startUpload({ serverUrl: 'http://localhost:3000/upload', filePath: path }, function () {}, function (result) {
+        expect(result).toBeDefined()
+        expect(result.error).toBe('upload id is required')
+        done()
+      })
+    })
+
+    it('sends upload progress events', function (done) {
+      const nativeUploader = FileTransferManager.init()
+      nativeUploader.on('progress', function (upload) {
+        expect(upload).toBeDefined()
+        expect(upload.id).toBeDefined()
+        expect(upload.progress).toBeGreaterThan(0)
+        done()
+      })
+      nativeUploader.startUpload({ serverUrl: 'http://localhost:3000/upload', filePath: path }, function () {}, function (err) {
+        console.error(err)
+      })
+    })
+
+    it('sends success callback when upload is completed', function (done) {
+      const nativeUploader = FileTransferManager.init()
+      nativeUploader.on('success', function (upload) {
+        expect(upload).toBeDefined()
+        expect(upload.serverResponse).toBeDefined()
+        done()
+      })
+      nativeUploader.startUpload({ serverUrl: 'http://localhost:3000/upload', filePath: path }, function () {}, function (err) {
+        console.error(err)
+      })
+    })
   })
 }
