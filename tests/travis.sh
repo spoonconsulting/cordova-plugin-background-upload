@@ -7,6 +7,8 @@ npm install
 
 # lint
 npm run lint
+# start mock server
+cd test_server && npm install && npm start
 mkdir ~/test_results
 # run tests appropriate for platform
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
