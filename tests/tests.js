@@ -29,7 +29,7 @@ exports.defineAutoTests = function () {
     })
 
     it('returns an error if no argument is given', function (done) {
-      const nativeUploader = FileTransferManager.init()
+      var nativeUploader = FileTransferManager.init()
       nativeUploader.startUpload(null, function () {}, function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('upload settings object is missing or invalid argument')
@@ -38,7 +38,7 @@ exports.defineAutoTests = function () {
     })
 
     it('returns an error if serverUrl is missing', function (done) {
-      const nativeUploader = FileTransferManager.init()
+      var nativeUploader = FileTransferManager.init()
       nativeUploader.startUpload({}, function () {}, function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('server url is required')
@@ -48,7 +48,7 @@ exports.defineAutoTests = function () {
 
     it('returns an error if serverUrl is invalid', function (done) {
       console.log(path)
-      const nativeUploader = FileTransferManager.init()
+      var nativeUploader = FileTransferManager.init()
       nativeUploader.startUpload({ serverUrl: '  ' }, function () {}, function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('invalid server url')
@@ -57,7 +57,7 @@ exports.defineAutoTests = function () {
     })
 
     it('returns an error if filePath is missing', function (done) {
-      const nativeUploader = FileTransferManager.init()
+      var nativeUploader = FileTransferManager.init()
       nativeUploader.startUpload({ serverUrl: serverUrl }, function () {}, function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('filePath is required')
@@ -66,7 +66,7 @@ exports.defineAutoTests = function () {
     })
 
     it('returns an error if upload id is missing', function (done) {
-      const nativeUploader = FileTransferManager.init()
+      var nativeUploader = FileTransferManager.init()
       nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path }, function () {}, function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('upload id is required')
@@ -75,7 +75,7 @@ exports.defineAutoTests = function () {
     })
 
     it('sends upload progress events', function (done) {
-      const nativeUploader = FileTransferManager.init()
+      var nativeUploader = FileTransferManager.init()
       nativeUploader.on('progress', function (upload) {
         expect(upload).toBeDefined()
         expect(upload.id).toBeDefined()
@@ -88,7 +88,7 @@ exports.defineAutoTests = function () {
     })
 
     it('sends success callback when upload is completed', function (done) {
-      const nativeUploader = FileTransferManager.init()
+      var nativeUploader = FileTransferManager.init()
       nativeUploader.on('success', function (upload) {
         expect(upload).toBeDefined()
         expect(upload.serverResponse).toBeDefined()
