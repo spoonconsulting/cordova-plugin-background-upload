@@ -23,7 +23,12 @@
     "cordova-android",
     "cordova-ios"
   ],
-  "scripts": {},
+  "scripts": {
+    "lint": "npx standard tests/tests.js",
+    "cordova-paramedic": "cordova-paramedic",
+    "test:android": "cordova-paramedic --platform android --plugin . --cleanUpAfterRun --outputDir ~/test_results",
+    "test:ios": "cordova-paramedic --platform ios --plugin . --cleanUpAfterRun --outputDir ~/test_results"
+  },
   "dependencies": {},
   "author": "Mevin Dhunnooa",
   "contributors": [
@@ -36,11 +41,17 @@
   ],
   "license": "Apache-2.0",
   "engines": {
-    "cordovaDependencies": {
-      "2.0.0": {
-        "cordova": ">100"
-      }
-    }
+    "cordova": ">=8.0.0"
   },
-  "devDependencies": {}
+  "standard": {
+    "env": [
+      "mocha",
+      "commonjs",
+      "jasmine"
+    ]
+  },
+  "devDependencies": {
+    "cordova-paramedic": "git+https://github.com/apache/cordova-paramedic.git",
+    "standard": "^14.0.2"
+  }
 }

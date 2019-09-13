@@ -1,0 +1,30 @@
+sudo: false
+matrix:
+  include:
+    - os: osx
+      language: objective-c
+      osx_image: xcode10.1
+      cache:
+        bundler: true
+        cocoapods: true
+    - os: linux
+      jdk: oraclejdk8
+      language: android
+      android:
+        components:
+          - tools
+          - platform-tools
+          - tools
+          - build-tools-28.0.3
+          - android-22
+          - android-28
+          - sys-img-armeabi-v7a-android-22
+        licenses:
+          - 'android-sdk-preview-license-.+'
+          - 'android-sdk-license-.+'
+          - 'google-gdk-license-.+'
+script:
+  - nvm install 10.9.0
+  - nvm use 10.9.0
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rvm use 2.5.1 --install; fi
+  - /bin/bash tests/travis.sh
