@@ -26,8 +26,8 @@
   "scripts": {
     "lint": "npx standard tests/tests.js",
     "cordova-paramedic": "cordova-paramedic",
-    "test:android": "cordova-paramedic --platform android --plugin . --cleanUpAfterRun --outputDir ~/test_results",
-    "test:ios": "cordova-paramedic --platform ios --plugin . --cleanUpAfterRun --outputDir ~/test_results"
+    "test:android": "cordova-paramedic --platform android --plugin . --cleanUpAfterRun",
+    "test:ios": "cordova-paramedic --platform ios --plugin . --cleanUpAfterRun"
   },
   "dependencies": {},
   "author": "Mevin Dhunnooa",
