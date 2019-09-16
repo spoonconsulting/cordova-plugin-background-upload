@@ -7,7 +7,8 @@ exports.defineAutoTests = function () {
 
     var sampleFile = 'tree.jpg'
     var path = ''
-    var serverUrl = window.cordova.platformId === 'android' ? 'http://10.0.2.2:3000/upload' : 'http://localhost:3000/upload'
+    var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
+    var serverUrl = 'http://' + serverHost + ':3000/upload'
 
     beforeEach(function (done) {
       TestUtils.copyFileToDataDirectory(sampleFile).then(function (newPath) {
@@ -54,31 +55,33 @@ exports.defineAutoTests = function () {
     })
 
     it('returns an error if serverUrl is invalid', function (done) {
-      console.log(path)
       var nativeUploader = FileTransferManager.init()
-      nativeUploader.startUpload({ serverUrl: '  ' }, function () {}, function (result) {
+      nativeUploader.on('error', function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('invalid server url')
         done()
       })
+      nativeUploader.startUpload({ serverUrl: '  ' })
     })
 
     it('returns an error if filePath is missing', function (done) {
       var nativeUploader = FileTransferManager.init()
-      nativeUploader.startUpload({ serverUrl: serverUrl }, function () {}, function (result) {
+      nativeUploader.on('error', function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('filePath is required')
         done()
       })
+      nativeUploader.startUpload({ serverUrl: serverUrl })
     })
 
     it('returns an error if upload id is missing', function (done) {
       var nativeUploader = FileTransferManager.init()
-      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path }, function () {}, function (result) {
+      nativeUploader.on('error', function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('upload id is required')
         done()
       })
+      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path })
     })
 
     it('sends upload progress events', function (done) {
@@ -89,9 +92,7 @@ exports.defineAutoTests = function () {
         expect(upload.progress).toBeGreaterThan(0)
         done()
       })
-      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path }, function () {}, function (err) {
-        console.error(err)
-      })
+      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path })
     })
 
     it('sends success callback when upload is completed', function (done) {
@@ -101,9 +102,7 @@ exports.defineAutoTests = function () {
         expect(upload.serverResponse).toBeDefined()
         done()
       })
-      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path }, function () {}, function (err) {
-        console.error(err)
-      })
+      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path })
     })
   })
 }
