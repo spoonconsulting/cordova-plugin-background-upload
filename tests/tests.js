@@ -77,6 +77,9 @@ exports.defineAutoTests = function () {
     it('returns an error if upload id is missing', function (done) {
       var nativeUploader = FileTransferManager.init()
       nativeUploader.on('error', function (result) {
+        console.log('got error while uploading', result.error)
+      })
+      nativeUploader.on('error', function (result) {
         expect(result).toBeDefined()
         expect(result.error).toBe('upload id is required')
         done()
@@ -86,6 +89,9 @@ exports.defineAutoTests = function () {
 
     it('sends upload progress events', function (done) {
       var nativeUploader = FileTransferManager.init()
+      nativeUploader.on('error', function (result) {
+        console.log('got error while uploading', result.error)
+      })
       nativeUploader.on('progress', function (upload) {
         expect(upload).toBeDefined()
         expect(upload.id).toBeDefined()
@@ -97,6 +103,9 @@ exports.defineAutoTests = function () {
 
     it('sends success callback when upload is completed', function (done) {
       var nativeUploader = FileTransferManager.init()
+      nativeUploader.on('error', function (result) {
+        console.log('got error while uploading', result.error)
+      })
       nativeUploader.on('success', function (upload) {
         expect(upload).toBeDefined()
         expect(upload.serverResponse).toBeDefined()
