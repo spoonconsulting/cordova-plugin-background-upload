@@ -92,6 +92,7 @@
     [self sendCallback:@{
         @"progress" : @(progress),
         @"id" : uploadId,
+        @"platform": @"ios",
         @"state": @"UPLOADING"
     }];
 }
