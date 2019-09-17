@@ -105,7 +105,7 @@ exports.defineAutoTests = function () {
           done()
         }
       })
-      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path, id: '432_498'})
+      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path, id: '432_498' })
     })
   })
 }
