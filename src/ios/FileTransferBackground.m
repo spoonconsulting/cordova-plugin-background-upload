@@ -22,10 +22,11 @@
             @"id" : uploadId,
             @"platform" : @"ios",
             @"error": @"upload failed",
-            @"errorCode" : @500
+            @"errorCode" : @500,
+            @"serverResponse" : @500
         }];
     }
-    NSLog(@"[CD][UploadEvent allEvents] %@",[UploadEvent allEvents]);
+
     for (UploadEvent* event in [UploadEvent allEvents]){
         [self uploadManagerDidCompleteUpload: event];
     }
@@ -66,26 +67,16 @@
 }
 
 - (void)uploadManagerDidCompleteUpload:(UploadEvent*)event{
-    NSMutableDictionary* data = [@{
+    [self sendCallback:@{
         @"id" : event.uploadId,
         @"platform": @"ios",
-        @"eventId" : event.objectID.URIRepresentation.absoluteString
-    } mutableCopy];
-    
-    if ([event.state isEqualToString:@"SUCCESS"]) {
-        [data addEntriesFromDictionary:@{
-            @"state" : event.state,
-            @"serverResponse" : event.serverResponse,
-            @"statusCode" : @(event.statusCode)
-        }];
-    }else{
-        [data addEntriesFromDictionary:@{
-            @"state" : event.state,
-            @"error" : event.error,
-            @"errorCode" : @(event.errorCode)
-        }];
-    }
-    [self sendCallback:data];
+        @"eventId" : event.objectID.URIRepresentation.absoluteString,
+        @"state" : event.state,
+        @"serverResponse" : event.serverResponse,
+        @"statusCode" : @(event.statusCode),
+        @"error" : event.error,
+        @"errorCode" : @(event.errorCode)
+    }];
 }
 
 -(void)uploadManagerDidReceiveProgress:(float)progress forUpload:(NSString*)uploadId{
