@@ -27,7 +27,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
   }
 
   if (payload.serverUrl.trim() === '') {
-    returnthis.options.callback({ id: payload.id, error: 'invalid server url' })
+    return this.options.callback({ id: payload.id, error: 'invalid server url' })
   }
 
   if (!payload.filePath) {
