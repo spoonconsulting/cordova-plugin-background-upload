@@ -74,13 +74,13 @@
     
     if ([event.state isEqualToString:@"SUCCESS"]) {
         [data addEntriesFromDictionary:@{
-            @"state" : @"UPLOADED",
+            @"state" : event.state,
             @"serverResponse" : event.serverResponse,
-            @"statusCode" : @(event.responseStatusCode)
+            @"statusCode" : @(event.statusCode)
         }];
     }else{
         [data addEntriesFromDictionary:@{
-            @"state" : @"FAILED",
+            @"state" : event.state,
             @"error" : event.error,
             @"errorCode" : @(event.errorCode)
         }];

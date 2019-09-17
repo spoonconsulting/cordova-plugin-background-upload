@@ -1,6 +1,6 @@
 #import "UploadEvent.h"
 @implementation UploadEvent
-@synthesize error, state, responseStatusCode, serverResponse, uploadId, data, errorCode;
+@synthesize error, state, statusCode, serverResponse, uploadId, data, errorCode;
 static NSManagedObjectContext * managedObjectContext;
 static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 - (id)init{
@@ -10,6 +10,8 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
         return nil;
     self.error = @"";
     self.serverResponse = @"";
+    self.errorCode = 0;
+    self.statusCode = 0;
     return self;
 }
 
@@ -44,11 +46,11 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
         NSData *data = [event.data dataUsingEncoding:NSUTF8StringEncoding];
         NSDictionary* dictRepresentation = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
         event.state = dictRepresentation[@"state"];
-        event.responseStatusCode = (NSInteger)dictRepresentation[@"responseStatusCode"];
+        event.statusCode = (NSInteger)dictRepresentation[@"statusCode"];
         event.error = dictRepresentation[@"error"];
         event.errorCode = (NSInteger)dictRepresentation[@"errorCode"];
         event.serverResponse = dictRepresentation[@"serverResponse"];
-        event.uploadId = dictRepresentation[@"uploadId"];
+        event.uploadId = dictRepresentation[@"id"];
     }
     return events;
 }
