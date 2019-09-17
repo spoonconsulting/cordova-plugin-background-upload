@@ -15,44 +15,26 @@ var FileTransferManager = function (options) {
 
 FileTransferManager.prototype.startUpload = function (payload) {
   if (payload == null) {
-    this.options.callback({
-      error: 'upload settings object is missing or invalid argument'
-    })
-    return
+    return this.options.callback({ error: 'upload settings object is missing or invalid argument' })
   }
 
   if (!payload.id) {
-    this.options.callback({
-      error: 'upload id is required'
-    })
-    return
+    return this.options.callback({ error: 'upload id is required' })
   }
 
   if (payload.serverUrl == null) {
-    this.options.callback({
-      id: payload.id,
-      error: 'server url is required'
-    })
-    return
+    return this.options.callback({ id: payload.id, error: 'server url is required' })
   }
 
   if (payload.serverUrl.trim() === '') {
-    this.options.callback({
-      id: payload.id,
-      error: 'invalid server url'
-    })
-    return
+    returnthis.options.callback({ id: payload.id, error: 'invalid server url' })
   }
 
   if (!payload.filePath) {
     if (payload.file) {
       payload.filePath = payload.file
     } else {
-      this.options.callback({
-        id: payload.id,
-        error: 'filePath is required'
-      })
-      return
+      return this.options.callback({ id: payload.id, error: 'filePath is required' })
     }
   }
 
@@ -144,23 +126,12 @@ FileTransferManager.prototype.emit = function () {
       console.log('event handler: ' + eventName + ' must be a function')
     }
   }
-
   return true
 }
 
 module.exports = {
-
   init: function (options) {
     return new FileTransferManager(options || {})
   },
-
-  /**
-     * FileTransferManager Object.
-     *
-     * Expose the FileTransferManager object for direct use
-     * and testing. Typically, you should use the
-     * .init helper method.
-     */
-
   FileTransferManager: FileTransferManager
 }
