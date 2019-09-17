@@ -25,28 +25,22 @@ cordova plugin rm cordova-plugin-background-upload
 
 The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads.
 ```javascript
- declare var FileTransferManager: any;
-
- var uploader = FileTransferManager.init();
-
- uploader.on('success', function(upload) {
-     console.log("upload: " + upload.id + " has been completed successfully");
-     console.log(upload.statusCode,upload.serverResponse);
-
- });
-
- uploader.on('progress', function(upload) {
-     console.log("uploading: " + upload.id + " progress: " + upload.progress + "%");
-
- });
-
- uploader.on('error', function(uploadException) {
-     if (uploadException.id) {
-         console.log("upload: " + uploadException.id + " has failed");
-     } else {
-         console.error("uploader caught an error: " + uploadException.error);
-     }
- });
+declare var FileTransferManager: any;
+var uploader = FileTransferManager.init();
+uploader.on('event', function (event) {
+    if (event.state == 'UPLOADED') {
+        console.log("upload: " + event.id + " has been completed successfully");
+        console.log(event.statusCode, event.serverResponse);
+    } else if (event.state == 'FAILED') {
+        if (event.id) {
+            console.log("upload: " + event.id + " has failed");
+        } else {
+            console.error("uploader caught an error: " + event.error);
+        }
+    } else if (event.state == 'UPLOADING') {
+        console.log("uploading: " + event.id + " progress: " + event.progress + "%");
+    }
+});
 
 ```
 Adding an upload is done via the ``` 
@@ -104,7 +98,12 @@ Hence to prevent the service from be killed, a progress notification is needed o
 ## Migration notes for v2.0
 - When version 2 of the plugin is launched on an app containing uploads still in progress from v1 plugin version, it will mark all of them as failed so that they can be retried.
 - If an upload is cancelled, an event with status `FAILED` and error code -999 will be broadcasted in the global callback. It is up to the application to properly handle cancelled upload callbacks.
-
+- v2 removes the events success, error, progress and instead uses a single event for all events delivery:
+    ```
+    uploader.on('event', function (event) {
+        //use event.state to handle different scenarios
+    });
+    ```
 
 
 ## License
