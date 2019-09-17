@@ -4,8 +4,7 @@
 NS_ASSUME_NONNULL_BEGIN
 @protocol FileUploaderDelegate <NSObject>
 @optional
-- (void)uploadManagerDidReceiveProgress:(float)progress forUpload:(NSString*)uploadId;
-- (void)uploadManagerDidCompleteUpload:(UploadEvent*)event;
+- (void)uploadManagerDidReceiveCallback:(NSDictionary*)info;
 @end
 
 @interface FileUploader : NSObject

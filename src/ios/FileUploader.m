@@ -14,6 +14,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         singletonObject = [[FileUploader alloc] init];
     return singletonObject;
 }
+
 - (id)init{
     self = [super init];
     if (self == nil)
@@ -26,34 +27,25 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
         NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
-        UploadEvent* event = [[UploadEvent alloc] init];
-        event.uploadId = uploadId;
         if (!error){
-            event.state = @"UPLOADED";
-            event.statusCode = ((NSHTTPURLResponse *)task.response).statusCode;
             NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
-            event.serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";
+            NSString* serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";
             [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
-            NSLog(@"[CD]task did complete with success %@ response: %@",uploadId,event.serverResponse);
+            [weakSelf createAndSendEvent:@{
+                @"id" : uploadId,
+                @"state" : @"UPLOADED",
+                @"statusCode" : @(((NSHTTPURLResponse *)task.response).statusCode),
+                @"serverResponse" : serverResponse
+            }];
+            NSLog(@"[CD]task did complete with success %@ response: %@",uploadId,serverResponse);
         } else {
-            event.state = @"FAILED";
-            event.error = error.localizedDescription;
-            event.errorCode = error.code;
+            [weakSelf createAndSendEvent:@{
+                @"id" : uploadId,
+                @"state" : @"FAILED",
+                @"error" : error.localizedDescription,
+                @"errorCode" : @(error.code)
+            }];
             NSLog(@"[CD]task did fail %@ %@",uploadId , error.localizedDescription);
-        }
-        NSDictionary* representation = @{
-            @"state": event.state,
-            @"statusCode": @(event.statusCode),
-            @"serverResponse": event.serverResponse,
-            @"id": uploadId,
-            @"error": event.error,
-            @"errorCode": @(event.errorCode)
-        };
-        NSData * jsonData = [NSJSONSerialization dataWithJSONObject:representation options:0 error:nil];
-        if (jsonData){
-            event.data = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-            [event save];
-            [weakSelf.delegate uploadManagerDidCompleteUpload:event];
         }
     }];
     
@@ -77,6 +69,16 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     }];
     return self;
 }
+
+-(void)createAndSendEvent:(NSDictionary*)data{
+    UploadEvent*event = [UploadEvent create:data];
+    [self sendCallback:[event dataRepresentation]];
+}
+
+-(void)sendCallback:(NSDictionary*)info{
+    [self.delegate uploadManagerDidReceiveCallback: info];
+}
+
 +(NSInteger)parallelUploadsLimit {
     return _parallelUploadsLimit;
 }
@@ -143,8 +145,12 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
             NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
             if (currentTimestamp - lastProgressTimeStamp >= 1){
                 lastProgressTimeStamp = currentTimestamp;
-                [weakSelf.delegate uploadManagerDidReceiveProgress:roundedProgress
-                                                         forUpload:[NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request]];
+                [weakSelf sendCallback:@{
+                    @"progress" : @(roundedProgress),
+                    @"id" : [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request],
+                    @"platform": @"ios",
+                    @"state": @"UPLOADING"
+                }];
             }
         }
                                completionHandler:nil] resume];
@@ -158,13 +164,13 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         NSString* currentId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
         return [uploadId isEqualToString:currentId];
     }]] firstObject];
-    NSLog(@"[FU] removeUpload %@ correspondingTask:%@",uploadId, correspondingTask);
-    for (NSURLSessionUploadTask* task in self.manager.uploadTasks){
-        NSString* currentId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
-        NSLog(@"[FU] found current task %@",currentId);
-    }
+//    NSLog(@"[FU] removeUpload %@ correspondingTask:%@",uploadId, correspondingTask);
+//    for (NSURLSessionUploadTask* task in self.manager.uploadTasks){
+//        NSString* currentId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
+//        NSLog(@"[FU] found current task %@",currentId);
+//    }
     [correspondingTask cancel];
-    NSLog(@"[FU] ==========================");
+//    NSLog(@"[FU] ==========================");
 }
 
 -(void)acknowledgeEventReceived:(NSString*)eventId{

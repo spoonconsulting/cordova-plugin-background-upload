@@ -28,7 +28,7 @@
     }
 
     for (UploadEvent* event in [UploadEvent allEvents]){
-        [self uploadManagerDidCompleteUpload: event];
+        [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
     }
 }
 
@@ -66,26 +66,9 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)uploadManagerDidCompleteUpload:(UploadEvent*)event{
-    [self sendCallback:@{
-        @"id" : event.uploadId,
-        @"platform": @"ios",
-        @"eventId" : event.objectID.URIRepresentation.absoluteString,
-        @"state" : event.state,
-        @"serverResponse" : event.serverResponse,
-        @"statusCode" : @(event.statusCode),
-        @"error" : event.error,
-        @"errorCode" : @(event.errorCode)
-    }];
-}
-
--(void)uploadManagerDidReceiveProgress:(float)progress forUpload:(NSString*)uploadId{
-    [self sendCallback:@{
-        @"progress" : @(progress),
-        @"id" : uploadId,
-        @"platform": @"ios",
-        @"state": @"UPLOADING"
-    }];
+-(void)uploadManagerDidReceiveCallback:(NSDictionary*)info{
+    NSLog(@"uploadManagerDidReceiveCallback %@",info);
+    [self sendCallback:info];
 }
 
 -(void)sendCallback:(NSDictionary*)data{
