@@ -44,6 +44,16 @@ exports.defineAutoTests = function () {
       nativeUploader.startUpload(null)
     })
 
+    it('returns an error if upload id is missing', function (done) {
+      var nativeUploader = FileTransferManager.init()
+      nativeUploader.on('event', function (result) {
+        expect(result).toBeDefined()
+        expect(result.error).toBe('upload id is required')
+        done()
+      })
+      nativeUploader.startUpload({ })
+    })
+
     it('returns an error if serverUrl is missing', function (done) {
       var nativeUploader = FileTransferManager.init()
       nativeUploader.on('event', function (result) {
@@ -51,7 +61,7 @@ exports.defineAutoTests = function () {
         expect(result.error).toBe('server url is required')
         done()
       })
-      nativeUploader.startUpload({})
+      nativeUploader.startUpload({ id: '12398', filePath: path })
     })
 
     it('returns an error if serverUrl is invalid', function (done) {
@@ -61,7 +71,7 @@ exports.defineAutoTests = function () {
         expect(result.error).toBe('invalid server url')
         done()
       })
-      nativeUploader.startUpload({ serverUrl: '  ' })
+      nativeUploader.startUpload({ id: '123_456', serverUrl: '  ' })
     })
 
     it('returns an error if filePath is missing', function (done) {
@@ -71,17 +81,7 @@ exports.defineAutoTests = function () {
         expect(result.error).toBe('filePath is required')
         done()
       })
-      nativeUploader.startUpload({ serverUrl: serverUrl })
-    })
-
-    it('returns an error if upload id is missing', function (done) {
-      var nativeUploader = FileTransferManager.init()
-      nativeUploader.on('event', function (result) {
-        expect(result).toBeDefined()
-        expect(result.error).toBe('upload id is required')
-        done()
-      })
-      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path, id: '123_456' })
+      nativeUploader.startUpload({ id: '123_456', serverUrl: serverUrl })
     })
 
     it('sends upload progress events', function (done) {
@@ -94,7 +94,7 @@ exports.defineAutoTests = function () {
           done()
         }
       })
-      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path })
+      nativeUploader.startUpload({ id: '422_498', serverUrl: serverUrl, filePath: path })
     })
 
     it('sends success callback when upload is completed', function (done) {
@@ -105,7 +105,7 @@ exports.defineAutoTests = function () {
           done()
         }
       })
-      nativeUploader.startUpload({ serverUrl: serverUrl, filePath: path, id: '432_498' })
+      nativeUploader.startUpload({ id: '432_498', serverUrl: serverUrl, filePath: path })
     })
   })
 }
