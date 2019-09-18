@@ -8,6 +8,8 @@ npm install
 # lint
 npm run lint
 # start mock server
+pwd
+ls
 cd test-server && npm install && npm start
 mkdir ~/test_results
 # run tests appropriate for platform
