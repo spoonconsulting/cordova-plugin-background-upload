@@ -1,7 +1,9 @@
 
-## Background Upload Plugin for Cordova
-
+# cordova-plugin-background-upload
 This plugin provides a file upload functionality that can continue to run while in background. It also includes progress updates which is suitable for long-term transfer operations for large files.
+
+[![npm version](https://badge.fury.io/js/cordova-plugin-background-upload.svg)](https://badge.fury.io/js/cordova-plugin-background-upload)
+[![Build Status](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload.svg?branch=master)](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload)
 
 **Supported Platforms**
 - iOS
@@ -23,11 +25,71 @@ cordova plugin rm cordova-plugin-background-upload
 
 **Sample usage**
 
-The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads. By default the maximum allowed number of parallel uploads is set to 1. You can overide it by passing the `parallelUploadsLimit` option to the `init` configuration.
+The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads. By default the maximum allowed number of parallel uploads is set to 1. You can overide it by changing the configuration on init.
 ```javascript
 declare var FileTransferManager: any;
-var uploader = FileTransferManager.init({parallelUploadsLimit: 1});
+var config = {};
+var uploader = FileTransferManager.init(config);
 ```
+
+**Methods** 
+
+### uploader.init(config)
+Initialises the uploader with provided configuration. To control the number of parallel uploads, pass `parallelUploadsLimit` in config
+
+`var uploader = FileTransferManager.init({parallelUploadsLimit: 2});`
+
+### uploader.startUpload(payload)
+Adds an upload. In case the plugin was not able to enqueue the upload, an error will be emitted in the global event listener.
+```javascript
+var payload = {
+    id: "sj5f9",
+    filePath: "/storage/emulated/0/Download/Heli.divx",
+    fileKey: "file",
+    serverUrl: "http://requestb.in/14cizzj1",
+    showNotification: true,
+    notificationTitle: "Uploading images",
+    headers: {
+        api_key: "asdasdwere123sad"
+    },
+    parameters: {
+        signature: "a_signature_hash",
+        timestamp: 112321321
+    }
+};
+uploader.startUpload(payload);
+```
+Param | Description
+-------- | -------
+id | a unique id of the file (UUID string)
+filePath | the absolute path for the file to upload 
+fileKey | the name of the key to use for the file
+serverUrl | remote server url
+headers | custom http headers
+parameters | custom parameters for multipart data
+showNotification | show progress notification on Android (true by default)
+notificationTitle | Notification title when file is being uploaded (Android only)
+
+
+
+### uploader.removeUpload(uploadId, successCallback, errorCallback)
+Cancel and removes an upload
+```javascript
+uploader.removeUpload(uploadId, function () {
+    //upload aborted
+}, function (err) {
+    //could abort the upload
+});
+```
+
+
+### uploader.acknowledgeEvent(eventId)
+Confirms event received and remove it from plugin cache
+```javascript
+uploader.acknowledgeEvent(eventId);
+```
+
+
 The uploader will provide global events which can be used to check the status of the uploads.
 ```javascript
 uploader.on('event', function (event) {
@@ -67,66 +129,8 @@ errror | error message in case of failure
 errorCode | error code for any exception encountered
 progress | progress for ongoing upload
 platform | the platform on which the event came from (ios or android)
-eventId | id of the event (to be used for acknowledgement)
+eventId | id of the event
 
-
-
-**Methods** 
-
-### uploader.init(config)
-Initialises the uploader with provided configuration. To control the number of parallel uploads, pass `parallelUploadsLimit` in config
-
-`var uploader = FileTransferManager.init({parallelUploadsLimit: 2});`
-
-### uploader.startUpload(payload)
-Adds an upload. In case the plugin was not able to enqueue the upload, an error will be emitted in the global event listener.
-```javascript
-var payload = {
-    id: "sj5f9",
-    filePath: "/storage/emulated/0/Download/Heli.divx",
-    fileKey: "file",
-    serverUrl: "http://requestb.in/14cizzj1",
-    showNotification: true,
-    notificationTitle: "Uploading images",
-    headers: {
-        api_key: "asdasdwere123sad"
-    },
-    parameters: {
-        signature: "a_signature_hash",
-        timestamp: 112321321
-    }
-};
-uploader.startUpload(payload);
-```
-Param | Description
--------- | -------
-id | a unique id of the file (UUID string)
-filePath | the absolute path for the file to upload 
-fileKey | the name of the key to use for the file
-serverUrl | remote server url
-headers | custom http headers
-parameters | custom parameters for multipart data
-showNotification | show progress notification on android (true by default)
-notificationTitle | Notification title when file is being uploaded (Android only)
-
-
-
-### uploader.removeUpload(uploadId, successCallback, errorCallback)
-Cancel and removes an upload
-```javascript
-uploader.removeUpload(uploadId, function () {
-    //upload aborted
-}, function (err) {
-    //could abort the upload
-});
-```
-
-
-### uploader.acknowledgeEvent(eventId)
-Confirms event received and remove it from plugin cache
-```javascript
-uploader.acknowledgeEvent(eventId);
-```
 
  ## iOS
 The plugin runs on ios 10.0 and above and internally uses [AFNetworking](https://github.com/AFNetworking/AFNetworking).
@@ -140,9 +144,9 @@ On android Oreo, there are more strict limits on background services and it's re
 Hence to prevent the service from be killed, a progress notification is needed on Android 8+.
 
 ## Migration notes for v2.0
-- When version 2 of the plugin is launched on an app containing uploads still in progress from v1 plugin version, it will mark all of them as failed so that they can be retried.
+- When v2 of the plugin is launched on an app containing uploads still in progress from v1 version, it will mark all of them as failed so that they can be retried.
 - If an upload is cancelled, an event with status `FAILED` and error code -999 will be broadcasted in the global callback on ios. It is up to the application to properly handle cancelled upload callbacks.
-- v2 removes the events success, error, progress and instead uses a single callback for all events delivery:
+- v2 removes the events `success`, `error`, `progress` and instead uses a single callback for all events delivery:
     ```
     uploader.on('event', function (event) {
         //use event.state to handle different scenarios
