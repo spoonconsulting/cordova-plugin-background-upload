@@ -3,7 +3,6 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface UploadEvent : NSManagedObject
-@property (nonatomic, copy) NSDictionary *data;
 
 -(void)save;
 -(void)destroy;

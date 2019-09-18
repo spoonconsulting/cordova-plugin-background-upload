@@ -3,7 +3,7 @@
 @property (nonatomic, strong) NSString* serialisedData;
 @end
 @implementation UploadEvent
-@synthesize data, serialisedData;
+@synthesize serialisedData;
 static NSManagedObjectContext * managedObjectContext;
 static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 - (id)init{
