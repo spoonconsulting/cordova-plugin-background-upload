@@ -22,7 +22,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
     return this.options.callback({ error: 'upload id is required' })
   }
 
-  if (payload.serverUrl == null) {
+  if (!payload.serverUrl) {
     return this.options.callback({ id: payload.id, error: 'server url is required' })
   }
 
