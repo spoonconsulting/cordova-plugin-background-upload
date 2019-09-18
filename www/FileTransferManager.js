@@ -14,7 +14,7 @@ var FileTransferManager = function (options) {
 }
 
 FileTransferManager.prototype.startUpload = function (payload) {
-  if (payload == null) {
+  if (!payload) {
     return this.options.callback({ error: 'upload settings object is missing or invalid argument' })
   }
 

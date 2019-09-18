@@ -32,17 +32,11 @@ app.post('/upload', fUpload, (req, res, next) => {
       console.log("An error occurred when uploading");
     } else {
       var response = {
-        "original_filename": fileName,
-        "access_mode": "public",
-        "height": 4032,
-        "grayscale": false,
-        "width": 3024,
-        "image_metadata": {
-          "GPSLatitude": "33 deg 6' 2.29\" N",
-          "GPSTimeStamp": "18:52:19",
-          "ShutterSpeedValue": "1/120",
-        },
-        "created_at": "2019-09-10T03:24:25Z"
+        original_filename: fileName,
+        access_mode: 'public',
+        height: 4032,
+        grayscale: false,
+        width: 3024
       };
       res.send(JSON.stringify(response));
     }
