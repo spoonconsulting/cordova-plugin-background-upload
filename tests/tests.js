@@ -94,7 +94,7 @@ exports.defineAutoTests = function () {
           done()
         }
       })
-      nativeUploader.startUpload({ id: '422_498', serverUrl: serverUrl, filePath: path })
+      nativeUploader.startUpload({ id: '422_498', serverUrl: serverUrl, filePath: path, headers: [], parameters: [], fileKey: 'file', showNotification: true })
     })
 
     it('sends success callback when upload is completed', function (done) {
