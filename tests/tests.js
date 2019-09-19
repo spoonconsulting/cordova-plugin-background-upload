@@ -131,5 +131,43 @@ exports.defineAutoTests = function () {
       nativeUploader.on('event', cb)
       nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path })
     })
+
+    it('sends supplied headers during upload', function (done) {
+      var nativeUploader = FileTransferManager.init()
+      var headers = { expireAt: 3838182381, source: 'test' }
+      var cb = function (upload) {
+        if (upload.state === 'UPLOADED') {
+          expect(upload.id).toBe('plop')
+          var response = JSON.parse(upload.serverResponse)
+          expect(response.receivedInfo.headers.expireAt).toBe(3838182381)
+          expect(response.receivedInfo.headers.source).toBe('test')
+          nativeUploader.acknowledgeEvent(upload.eventId)
+          nativeUploader.off('event', cb)
+          done()
+        }
+      }
+      nativeUploader.on('event', cb)
+      nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers })
+    })
+
+    it('sends supplied parameters during upload', function (done) {
+      var nativeUploader = FileTransferManager.init()
+      var params = {
+        timestamp: 1544856244,
+        type: 'authenticated'
+      }
+      var cb = function (upload) {
+        if (upload.state === 'UPLOADED') {
+          expect(upload.id).toBe('ftrg')
+          var response = JSON.parse(upload.serverResponse)
+          expect(response.receivedInfo.parameters).toEqual(params)
+          nativeUploader.acknowledgeEvent(upload.eventId)
+          nativeUploader.off('event', cb)
+          done()
+        }
+      }
+      nativeUploader.on('event', cb)
+      nativeUploader.startUpload({ id: 'ftrg', serverUrl: serverUrl, filePath: path, parameters: params })
+    })
   })
 }
