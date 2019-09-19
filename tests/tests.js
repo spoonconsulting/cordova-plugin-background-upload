@@ -91,25 +91,26 @@ exports.defineAutoTests = function () {
     it('sends upload progress events', function (done) {
       var nativeUploader = FileTransferManager.init()
       var cb = function (upload) {
-        scopedExpect(upload.state).toBe('UPLOADING')
-        scopedExpect(upload.id).toBe('422_498')
-        scopedExpect(upload.progress).toBeGreaterThan(0)
-        scopedExpect(upload.eventId).toBeUndefined()
-        scopedExpect(upload.error).toBeUndefined()
+        // scopedExpect(upload.state).toBe('UPLOADING')
         if (upload.state === 'UPLOADED') {
           nativeUploader.off('event', cb)
           done()
+        } else if (upload.state === 'UPLOADING') {
+          scopedExpect(upload.id).toBe('123_456_789')
+          scopedExpect(upload.progress).toBeGreaterThan(0)
+          scopedExpect(upload.eventId).toBeUndefined()
+          scopedExpect(upload.error).toBeUndefined()
         }
       }
       nativeUploader.on('event', cb)
-      nativeUploader.startUpload({ id: '422_498', serverUrl: serverUrl, filePath: path })
+      nativeUploader.startUpload({ id: '123_456_789', serverUrl: serverUrl, filePath: path })
     })
 
     it('sends success callback when upload is completed', function (done) {
       var nativeUploader = FileTransferManager.init()
       var cb = function (upload) {
         if (upload.state === 'UPLOADED') {
-          scopedExpect(upload.id).toBe('432_492')
+          scopedExpect(upload.id).toBe('abc')
           scopedExpect(upload.eventId).toBeDefined()
           scopedExpect(upload.error).toBeUndefined()
           var response = JSON.parse(upload.serverResponse)
@@ -127,7 +128,7 @@ exports.defineAutoTests = function () {
         }
       }
       nativeUploader.on('event', cb)
-      nativeUploader.startUpload({ id: '432_492', serverUrl: serverUrl, filePath: path })
+      nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path })
     })
   })
 }
