@@ -67,7 +67,6 @@
 }
 
 -(void)uploadManagerDidReceiveCallback:(NSDictionary*)info{
-    NSLog(@"uploadManagerDidReceiveCallback %@",info);
     [self sendCallback:info];
 }
 
@@ -79,6 +78,9 @@
 
 -(void)acknowledgeEvent:(CDVInvokedUrlCommand*)command{
     [[FileUploader sharedInstance] acknowledgeEventReceived:command.arguments[0]];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [pluginResult setKeepCallback:@YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 -(NSArray*)getV1Uploads{

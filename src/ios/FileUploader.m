@@ -164,13 +164,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
         NSString* currentId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
         return [uploadId isEqualToString:currentId];
     }]] firstObject];
-//    NSLog(@"[FU] removeUpload %@ correspondingTask:%@",uploadId, correspondingTask);
-//    for (NSURLSessionUploadTask* task in self.manager.uploadTasks){
-//        NSString* currentId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
-//        NSLog(@"[FU] found current task %@",currentId);
-//    }
     [correspondingTask cancel];
-//    NSLog(@"[FU] ==========================");
 }
 
 -(void)acknowledgeEventReceived:(NSString*)eventId{
