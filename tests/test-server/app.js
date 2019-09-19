@@ -23,10 +23,8 @@ app.get('/', (req, res) => {
 })
 
 app.post('/upload', fUpload, (req, res, next) => {
-  // Field data
-  // console.log(req.headers);
+  const params = req.body;
   const fileName = req.files.file[0].originalname
-  console.log(fileName)
   fUpload(req, res, (err) => {
     if (err) {
       console.log('An error occurred when uploading')
@@ -36,7 +34,9 @@ app.post('/upload', fUpload, (req, res, next) => {
         access_mode: 'public',
         height: 4032,
         grayscale: false,
-        width: 3024
+        width: 3024,
+        headers: req.headers,
+        parameters: params
       }
       res.send(JSON.stringify(response))
     }

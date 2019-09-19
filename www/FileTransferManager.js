@@ -46,6 +46,14 @@ FileTransferManager.prototype.startUpload = function (payload) {
     payload.showNotification = true
   }
 
+  if (!payload.headers) {
+    payload.headers = []
+  }
+
+  if (!payload.parameters) {
+    payload.parameters = []
+  }
+
   // remove the prefix for mobile urls
   payload.filePath = payload.filePath.replace('file://', '')
 

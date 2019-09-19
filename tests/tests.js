@@ -90,16 +90,18 @@ exports.defineAutoTests = function () {
 
     it('sends upload progress events', function (done) {
       var nativeUploader = FileTransferManager.init()
-      nativeUploader.on('event', function (upload) {
+      var cb = function (upload) {
         scopedExpect(upload.state).toBe('UPLOADING')
         scopedExpect(upload.id).toBe('422_498')
         scopedExpect(upload.progress).toBeGreaterThan(0)
         scopedExpect(upload.eventId).toBeUndefined()
         scopedExpect(upload.error).toBeUndefined()
         if (upload.state === 'UPLOADED') {
+          nativeUploader.off('event', cb)
           done()
         }
-      })
+      }
+      nativeUploader.on('event', cb)
       nativeUploader.startUpload({ id: '422_498', serverUrl: serverUrl, filePath: path })
     })
 
@@ -115,7 +117,9 @@ exports.defineAutoTests = function () {
             access_mode: 'public',
             height: 4032,
             grayscale: false,
-            width: 3024
+            width: 3024,
+            parameters: [],
+            headers: []
           }
           scopedExpect(upload.serverResponse).toBe(JSON.stringify(expectedResponse))
           done()
