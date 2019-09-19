@@ -9,7 +9,6 @@ exports.defineAutoTests = function () {
     var path = ''
     var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
     var serverUrl = 'http://' + serverHost + ':3000/upload'
-    var scopedExpect = window.expect
 
     beforeEach(function (done) {
       TestUtils.copyFileToDataDirectory(sampleFile).then(function (newPath) {
@@ -23,23 +22,23 @@ exports.defineAutoTests = function () {
     })
 
     it('exposes FileTransferManager globally', function () {
-      scopedExpect(FileTransferManager).toBeDefined()
+      expect(FileTransferManager).toBeDefined()
     })
 
     it('should have init function', function () {
-      scopedExpect(FileTransferManager.init).toBeDefined()
+      expect(FileTransferManager.init).toBeDefined()
     })
 
     it('should have startUpload function', function () {
       var nativeUploader = FileTransferManager.init()
-      scopedExpect(nativeUploader.startUpload).toBeDefined()
+      expect(nativeUploader.startUpload).toBeDefined()
     })
 
     it('returns an error if no argument is given', function (done) {
       var nativeUploader = FileTransferManager.init()
       nativeUploader.on('event', function (result) {
-        scopedExpect(result).toBeDefined()
-        scopedExpect(result.error).toBe('upload settings object is missing or invalid argument')
+        expect(result).toBeDefined()
+        expect(result.error).toBe('upload settings object is missing or invalid argument')
         done()
       })
       nativeUploader.startUpload(null)
@@ -48,8 +47,8 @@ exports.defineAutoTests = function () {
     it('returns an error if upload id is missing', function (done) {
       var nativeUploader = FileTransferManager.init()
       nativeUploader.on('event', function (result) {
-        scopedExpect(result).toBeDefined()
-        scopedExpect(result.error).toBe('upload id is required')
+        expect(result).toBeDefined()
+        expect(result.error).toBe('upload id is required')
         done()
       })
       nativeUploader.startUpload({ })
@@ -58,9 +57,9 @@ exports.defineAutoTests = function () {
     it('returns an error if serverUrl is missing', function (done) {
       var nativeUploader = FileTransferManager.init()
       nativeUploader.on('event', function (result) {
-        scopedExpect(result).toBeDefined()
-        scopedExpect(result.id).toBe('123_986')
-        scopedExpect(result.error).toBe('server url is required')
+        expect(result).toBeDefined()
+        expect(result.id).toBe('123_986')
+        expect(result.error).toBe('server url is required')
         done()
       })
       nativeUploader.startUpload({ id: '123_986', filePath: path })
@@ -69,9 +68,9 @@ exports.defineAutoTests = function () {
     it('returns an error if serverUrl is invalid', function (done) {
       var nativeUploader = FileTransferManager.init()
       nativeUploader.on('event', function (result) {
-        scopedExpect(result).toBeDefined()
-        scopedExpect(result.id).toBe('123_456')
-        scopedExpect(result.error).toBe('invalid server url')
+        expect(result).toBeDefined()
+        expect(result.id).toBe('123_456')
+        expect(result.error).toBe('invalid server url')
         done()
       })
       nativeUploader.startUpload({ id: '123_456', serverUrl: '  ' })
@@ -80,9 +79,9 @@ exports.defineAutoTests = function () {
     it('returns an error if filePath is missing', function (done) {
       var nativeUploader = FileTransferManager.init()
       nativeUploader.on('event', function (result) {
-        scopedExpect(result).toBeDefined()
-        scopedExpect(result.id).toBe('123_426')
-        scopedExpect(result.error).toBe('filePath is required')
+        expect(result).toBeDefined()
+        expect(result.id).toBe('123_426')
+        expect(result.error).toBe('filePath is required')
         done()
       })
       nativeUploader.startUpload({ id: '123_426', serverUrl: serverUrl })
@@ -91,16 +90,16 @@ exports.defineAutoTests = function () {
     it('sends upload progress events', function (done) {
       var nativeUploader = FileTransferManager.init()
       var cb = function (upload) {
-        // scopedExpect(upload.state).toBe('UPLOADING')
+        // expect(upload.state).toBe('UPLOADING')
         if (upload.state === 'UPLOADED') {
           nativeUploader.acknowledgeEvent(upload.eventId)
           nativeUploader.off('event', cb)
           done()
         } else if (upload.state === 'UPLOADING') {
-          scopedExpect(upload.id).toBe('123_456_789')
-          scopedExpect(upload.progress).toBeGreaterThan(0)
-          scopedExpect(upload.eventId).toBeUndefined()
-          scopedExpect(upload.error).toBeUndefined()
+          expect(upload.id).toBe('123_456_789')
+          expect(upload.progress).toBeGreaterThan(0)
+          expect(upload.eventId).toBeUndefined()
+          expect(upload.error).toBeUndefined()
         }
       }
       nativeUploader.on('event', cb)
@@ -111,12 +110,12 @@ exports.defineAutoTests = function () {
       var nativeUploader = FileTransferManager.init()
       var cb = function (upload) {
         if (upload.state === 'UPLOADED') {
-          scopedExpect(upload.id).toBe('abc')
-          scopedExpect(upload.eventId).toBeDefined()
-          scopedExpect(upload.error).toBeUndefined()
+          expect(upload.id).toBe('abc')
+          expect(upload.eventId).toBeDefined()
+          expect(upload.error).toBeUndefined()
           var response = JSON.parse(upload.serverResponse)
           delete response.receivedInfo.headers
-          scopedExpect(response.receivedInfo).toEqual({
+          expect(response.receivedInfo).toEqual({
             originalFilename: sampleFile,
             accessMode: 'public',
             height: 4032,
