@@ -166,22 +166,20 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
       })
 
-      fit('sends FAILED events if upload fails', function (done) {
+      fit('sends a FAILED event if upload fails', function (done) {
         var nativeUploader = FileTransferManager.init()
         var cb = function (upload) {
           if (upload.state === 'FAILED') {
             expect(upload.id).toBe('err_id')
             expect(upload.error).toBeDefined()
             expect(upload.errorCode).toBeDefined()
-            // var response = JSON.parse(upload.serverResponse)
-            // expect(response.message).toBe('Error from test server')
             nativeUploader.acknowledgeEvent(upload.eventId)
             nativeUploader.off('event', cb)
             done()
           }
         }
         nativeUploader.on('event', cb)
-        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'http://127.1.1.1/upload-error', filePath: path })
+        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'http://127.1.1.1/', filePath: path })
       })
     })
 
@@ -212,7 +210,7 @@ exports.defineAutoTests = function () {
         nativeUploader.removeUpload('blob', done, null)
       })
 
-      it('sends a cancelled callback when upload is removed', function (done) {
+      it('sends a FAILED callback when upload is removed', function (done) {
         var nativeUploader = FileTransferManager.init()
         var cb = function (upload) {
           if (upload.state === 'FAILED') {
