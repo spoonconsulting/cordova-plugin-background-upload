@@ -108,6 +108,7 @@ exports.defineAutoTests = function () {
             expect(upload.id).toBe('abc')
             expect(upload.eventId).toBeDefined()
             expect(upload.error).toBeUndefined()
+            expect(upload.statusCode).toBe(200)
             var response = JSON.parse(upload.serverResponse)
             delete response.receivedInfo.headers
             expect(response.receivedInfo).toEqual({
@@ -163,6 +164,24 @@ exports.defineAutoTests = function () {
         }
         nativeUploader.on('event', cb)
         nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
+      })
+
+      fit('sends FAILED events if upload fails', function (done) {
+        var nativeUploader = FileTransferManager.init()
+        var cb = function (upload) {
+          if (upload.state === 'FAILED') {
+            expect(upload.id).toBe('err_id')
+            expect(upload.error).toBeDefined()
+            expect(upload.errorCode).toBeDefined()
+            // var response = JSON.parse(upload.serverResponse)
+            // expect(response.message).toBe('Error from test server')
+            nativeUploader.acknowledgeEvent(upload.eventId)
+            nativeUploader.off('event', cb)
+            done()
+          }
+        }
+        nativeUploader.on('event', cb)
+        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'http://127.1.1.1/upload-error', filePath: path })
       })
     })
 
