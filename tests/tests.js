@@ -91,14 +91,15 @@ exports.defineAutoTests = function () {
     it('sends upload progress events', function (done) {
       var nativeUploader = FileTransferManager.init()
       nativeUploader.on('event', function (upload) {
-        console.log('on uploader event', upload)
+        if (upload.state === 'FAILED') {
+          done()
+        }
         scopedExpect(upload.state).toBe('UPLOADING')
         scopedExpect(upload.id).toBe('422_498')
         scopedExpect(upload.progress).toBeGreaterThan(0)
         scopedExpect(upload.eventId).toBeUndefined()
         scopedExpect(upload.error).toBeUndefined()
         nativeUploader.removeUpload('422_498')
-        done()
       })
       nativeUploader.startUpload({ id: '422_498', serverUrl: serverUrl, filePath: path })
     })
@@ -107,9 +108,7 @@ exports.defineAutoTests = function () {
       var nativeUploader = FileTransferManager.init()
       nativeUploader.on('event', function (upload) {
         if (upload.state === 'UPLOADED') {
-          nativeUploader.removeUpload('432_492')
           scopedExpect(upload.id).toBe('432_492')
-          scopedExpect(upload.serverResponse).toBeDefined()
           scopedExpect(upload.eventId).toBeDefined()
           scopedExpect(upload.error).toBeUndefined()
           var expectedResponse = {
@@ -120,6 +119,7 @@ exports.defineAutoTests = function () {
             width: 3024
           }
           scopedExpect(upload.serverResponse).toBe(JSON.stringify(expectedResponse))
+          nativeUploader.removeUpload('432_492')
           done()
         }
       })
