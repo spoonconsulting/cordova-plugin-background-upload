@@ -47,11 +47,11 @@ FileTransferManager.prototype.startUpload = function (payload) {
   }
 
   if (!payload.headers) {
-    payload.headers = []
+    payload.headers = {}
   }
 
   if (!payload.parameters) {
-    payload.parameters = []
+    payload.parameters = {}
   }
 
   // remove the prefix for mobile urls

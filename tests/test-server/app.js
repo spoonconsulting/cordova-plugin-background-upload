@@ -32,7 +32,7 @@ app.post('/upload', fUpload, (req, res, next) => {
       var toSend = {
         receivedInfo: {
           originalFilename: fileName,
-          access_mode: 'public',
+          accessMode: 'public',
           height: 4032,
           grayscale: false,
           width: 3024,

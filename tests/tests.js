@@ -114,9 +114,9 @@ exports.defineAutoTests = function () {
           scopedExpect(upload.error).toBeUndefined()
           var response = JSON.parse(upload.serverResponse)
           delete response.receivedInfo.headers
-          scopedExpect(response.receivedInfo).toBe({
+          scopedExpect(response.receivedInfo).toEqual({
             originalFilename: sampleFile,
-            access_mode: 'public',
+            accessMode: 'public',
             height: 4032,
             grayscale: false,
             width: 3024,
