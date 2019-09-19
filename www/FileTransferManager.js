@@ -60,15 +60,15 @@ FileTransferManager.prototype.startUpload = function (payload) {
   exec(this.options.callback, null, 'FileTransferBackground', 'startUpload', [payload])
 }
 
-FileTransferManager.prototype.removeUpload = function (id, success, fail) {
+FileTransferManager.prototype.removeUpload = function (id, successCb, errorCb) {
   if (!id) {
-    return fail({ error: 'upload id is required' })
+    return errorCb({ error: 'upload id is required' })
   }
-  exec(success, fail, 'FileTransferBackground', 'removeUpload', [id])
+  exec(successCb, errorCb, 'FileTransferBackground', 'removeUpload', [id])
 }
 
 FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorCb) {
-  if (!id && errorCb) {
+  if (!id) {
     return errorCb({ error: 'event id is required' })
   }
   exec(successCb, errorCb, 'FileTransferBackground', 'acknowledgeEvent', [id])
