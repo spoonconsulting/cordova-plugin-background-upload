@@ -100,30 +100,30 @@ exports.defineAutoTests = function () {
         nativeUploader.removeUpload('422_498')
         done()
       })
-      nativeUploader.startUpload({ id: '422_498', serverUrl: serverUrl, filePath: path, headers: [], parameters: [], fileKey: 'file', showNotification: true })
+      nativeUploader.startUpload({ id: '422_498', serverUrl: serverUrl, filePath: path })
     })
 
-    // it('sends success callback when upload is completed', function (done) {
-    //   var nativeUploader = FileTransferManager.init()
-    //   nativeUploader.on('event', function (upload) {
-    //     if (upload.state === 'UPLOADED') {
-    //       scopedExpect(upload.id).toBe('432_492')
-    //       scopedExpect(upload.serverResponse).toBeDefined()
-    //       scopedExpect(upload.eventId).toBeDefined()
-    // scopedExpect(upload.error).toBeUndefined()
-    //       var expectedResponse = {
-    //         original_filename: sampleFile,
-    //         access_mode: 'public',
-    //         height: 4032,
-    //         grayscale: false,
-    //         width: 3024
-    //       }
-    //       scopedExpect(upload.serverResponse).toBe(JSON.stringify(expectedResponse))
-    //       nativeUploader.removeUpload('432_492')
-    //       done()
-    //     }
-    //   })
-    //   nativeUploader.startUpload({ id: '432_492', serverUrl: serverUrl, filePath: path })
-    // })
+    it('sends success callback when upload is completed', function (done) {
+      var nativeUploader = FileTransferManager.init()
+      nativeUploader.on('event', function (upload) {
+        if (upload.state === 'UPLOADED') {
+          nativeUploader.removeUpload('432_492')
+          scopedExpect(upload.id).toBe('432_492')
+          scopedExpect(upload.serverResponse).toBeDefined()
+          scopedExpect(upload.eventId).toBeDefined()
+          scopedExpect(upload.error).toBeUndefined()
+          var expectedResponse = {
+            original_filename: sampleFile,
+            access_mode: 'public',
+            height: 4032,
+            grayscale: false,
+            width: 3024
+          }
+          scopedExpect(upload.serverResponse).toBe(JSON.stringify(expectedResponse))
+          done()
+        }
+      })
+      nativeUploader.startUpload({ id: '432_492', serverUrl: serverUrl, filePath: path })
+    })
   })
 }
