@@ -107,20 +107,29 @@ exports.defineAutoTests = function () {
 
     it('sends success callback when upload is completed', function (done) {
       var nativeUploader = FileTransferManager.init()
-      nativeUploader.on('event', function (upload) {
+      var cb = function (upload) {
         if (upload.state === 'UPLOADED') {
           scopedExpect(upload.id).toBe('432_492')
           scopedExpect(upload.eventId).toBeDefined()
           scopedExpect(upload.error).toBeUndefined()
           var response = JSON.parse(upload.serverResponse)
-          scopedExpect(response.parameters).toBe([])
-          scopedExpect(response.headers).toBe([])
-          scopedExpect(response.original_filename).toBe(sampleFile)
-          scopedExpect(response.access_mode).toBe('public')
-          scopedExpect(response.grayscale).toBe(false)
+          delete response.receivedInfo.headers
+          scopedExpect(response.receivedInfo).toBe({
+            originalFilename: sampleFile,
+            access_mode: 'public',
+            height: 4032,
+            grayscale: false,
+            width: 3024,
+            parameters: {}
+          })
+          // scopedExpect(response.original_filename).toBe(sampleFile)
+          // scopedExpect(response.access_mode).toBe('public')
+          // scopedExpect(response.grayscale).toBe(false)
+          nativeUploader.off('event', cb)
           done()
         }
-      })
+      }
+      nativeUploader.on('event', cb)
       nativeUploader.startUpload({ id: '432_492', serverUrl: serverUrl, filePath: path })
     })
   })

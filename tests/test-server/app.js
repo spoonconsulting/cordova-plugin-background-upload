@@ -23,22 +23,24 @@ app.get('/', (req, res) => {
 })
 
 app.post('/upload', fUpload, (req, res, next) => {
-  const params = req.body;
+  const params = req.body
   const fileName = req.files.file[0].originalname
   fUpload(req, res, (err) => {
     if (err) {
       console.log('An error occurred when uploading')
     } else {
-      var response = {
-        original_filename: fileName,
-        access_mode: 'public',
-        height: 4032,
-        grayscale: false,
-        width: 3024,
-        headers: req.headers,
-        parameters: params
+      var toSend = {
+        receivedInfo: {
+          originalFilename: fileName,
+          access_mode: 'public',
+          height: 4032,
+          grayscale: false,
+          width: 3024,
+          headers: req.headers,
+          parameters: params
+        }
       }
-      res.send(JSON.stringify(response))
+      res.send(JSON.stringify(toSend))
     }
   })
 })
