@@ -86,7 +86,6 @@ exports.defineAutoTests = function () {
       it('sends upload progress events', function (done) {
         var nativeUploader = FileTransferManager.init()
         var cb = function (upload) {
-        // expect(upload.state).toBe('UPLOADING')
           if (upload.state === 'UPLOADED') {
             nativeUploader.acknowledgeEvent(upload.eventId)
             nativeUploader.off('event', cb)
@@ -236,7 +235,7 @@ exports.defineAutoTests = function () {
           done()
         })
       })
-      
+
       it('does not return error if eventId is given', function (done) {
         var nativeUploader = FileTransferManager.init()
         nativeUploader.acknowledgeEvent('some_event_id', done, null)
