@@ -93,6 +93,7 @@ exports.defineAutoTests = function () {
       var cb = function (upload) {
         // scopedExpect(upload.state).toBe('UPLOADING')
         if (upload.state === 'UPLOADED') {
+          nativeUploader.acknowledgeEvent(upload.eventId)
           nativeUploader.off('event', cb)
           done()
         } else if (upload.state === 'UPLOADING') {
@@ -123,6 +124,7 @@ exports.defineAutoTests = function () {
             width: 3024,
             parameters: {}
           })
+          nativeUploader.acknowledgeEvent(upload.eventId)
           nativeUploader.off('event', cb)
           done()
         }
