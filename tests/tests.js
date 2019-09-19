@@ -169,6 +169,7 @@ exports.defineAutoTests = function () {
       fit('sends a FAILED event if upload fails', function (done) {
         var nativeUploader = FileTransferManager.init()
         var cb = function (upload) {
+          expect(upload).toBe({})
           if (upload.state === 'FAILED') {
             expect(upload.id).toBe('err_id')
             expect(upload.error).toBeDefined()
