@@ -1,9 +1,9 @@
 #import "UploadEvent.h"
 @interface UploadEvent()
-@property (nonatomic, strong) NSString* serialisedData;
+@property (nonatomic, strong) NSString* data;
 @end
 @implementation UploadEvent
-@synthesize serialisedData;
+@synthesize data;
 static NSManagedObjectContext * managedObjectContext;
 static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 - (id)init{
@@ -32,7 +32,7 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 }
 
 -(NSDictionary*)dataRepresentation{
-    NSData *data = [self.serialisedData dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *data = [self.data dataUsingEncoding:NSUTF8StringEncoding];
     NSMutableDictionary* dictRepresentation = [[NSJSONSerialization JSONObjectWithData:data options:0 error:nil] mutableCopy];
     [dictRepresentation addEntriesFromDictionary: @{
         @"platform": @"ios",
@@ -49,14 +49,13 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 +(NSArray*)allEvents{
     NSFetchRequest* request = [NSFetchRequest fetchRequestWithEntityName:@"UploadEvent"];
     request.returnsObjectsAsFaults = NO;
-    NSArray* events = [managedObjectContext executeFetchRequest:request error:NULL];
-    return events;
+    return [managedObjectContext executeFetchRequest:request error:NULL];
 }
 
 +(UploadEvent*)create:(NSDictionary*)info{
     UploadEvent* event = [[UploadEvent alloc] init];
     NSData * jsonData = [NSJSONSerialization dataWithJSONObject:info options:0 error:nil];
-    event.serialisedData = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    event.data = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
     [event save];
     return event;
 }
@@ -67,7 +66,7 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
     [entity setName:@"UploadEvent"];
     [entity setManagedObjectClassName:@"UploadEvent"];
     NSAttributeDescription *fileDataAttribute = [[NSAttributeDescription alloc] init];
-    [fileDataAttribute setName:@"serialisedData"];
+    [fileDataAttribute setName:@"data"];
     [fileDataAttribute setAttributeType:NSStringAttributeType];
     [fileDataAttribute setOptional:NO];
     [entity setProperties:@[fileDataAttribute]];
