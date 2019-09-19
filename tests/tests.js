@@ -175,8 +175,7 @@ exports.defineAutoTests = function () {
 
       it('returns an error if no uploadId is given', function (done) {
         var nativeUploader = FileTransferManager.init()
-        nativeUploader.removeUpload(null, function () {
-        }, function (result) {
+        nativeUploader.removeUpload(null, null, function (result) {
           expect(result.error).toBe('upload id is required')
           done()
         })
@@ -184,8 +183,7 @@ exports.defineAutoTests = function () {
 
       it('returns an error if undefined uploadId is given', function (done) {
         var nativeUploader = FileTransferManager.init()
-        nativeUploader.removeUpload(undefined, function () {
-        }, function (result) {
+        nativeUploader.removeUpload(undefined, null, function (result) {
           expect(result.error).toBe('upload id is required')
           done()
         })
@@ -214,6 +212,34 @@ exports.defineAutoTests = function () {
         }
         nativeUploader.on('event', cb)
         nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path })
+      })
+    })
+
+    describe('Acknowledge event', function () {
+      it('should have acknowledgeEvent function', function () {
+        var nativeUploader = FileTransferManager.init()
+        expect(nativeUploader.acknowledgeEvent).toBeDefined()
+      })
+
+      it('returns an error if no eventId is given', function (done) {
+        var nativeUploader = FileTransferManager.init()
+        nativeUploader.acknowledgeEvent(null, null, function (result) {
+          expect(result.error).toBe('event id is required')
+          done()
+        })
+      })
+
+      it('returns an error if undefined eventId is given', function (done) {
+        var nativeUploader = FileTransferManager.init()
+        nativeUploader.acknowledgeEvent(undefined, null, function (result) {
+          expect(result.error).toBe('event id is required')
+          done()
+        })
+      })
+      
+      it('does not return error if eventId is given', function (done) {
+        var nativeUploader = FileTransferManager.init()
+        nativeUploader.acknowledgeEvent('some_event_id', done, null)
       })
     })
   })
