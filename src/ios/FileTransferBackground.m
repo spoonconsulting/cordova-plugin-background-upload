@@ -17,17 +17,18 @@
     [FileUploader sharedInstance].delegate = self;
     //mark all old uploads as failed to be retried
     for (NSString* uploadId in [self getV1Uploads]){
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                      messageAsDictionary:@{
-                                                                            @"state" : @"FAILED",
-                                                                            @"id" : uploadId,
-                                                                            @"platform" : @"ios"
-                                                                            }];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
+        [self sendCallback:@{
+            @"state" : @"FAILED",
+            @"id" : uploadId,
+            @"platform" : @"ios",
+            @"error": @"upload failed",
+            @"errorCode" : @500,
+            @"serverResponse" : @500
+        }];
     }
-    NSLog(@"[CD][UploadEvent allEvents] %@",[UploadEvent allEvents]);
+
     for (UploadEvent* event in [UploadEvent allEvents]){
-        [self uploadManagerDidCompleteUpload: event];
+        [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
     }
 }
 
@@ -35,31 +36,27 @@
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
     NSDictionary* payload = command.arguments[0];
     if (![[NSFileManager defaultManager] fileExistsAtPath:payload[@"filePath"]]){
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR
-                                                      messageAsDictionary:@{
-                                                                            @"id" : payload[@"id"],
-                                                                            @"error" : @"file does not exists",
-                                                                            @"errorCode" : @(NSFileReadNoSuchFileError),
-                                                                            @"platform" : @"ios"
-                                                                            }];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        [self sendCallback:@{
+            @"id" : payload[@"id"],
+            @"error" : @"file does not exists",
+            @"errorCode" : @(NSFileReadNoSuchFileError),
+            @"platform" : @"ios"
+        }];
         return;
     }
     __weak FileTransferBackground *weakSelf = self;
-    NSLog(@"[CD] got request to upload %@", payload[@"id"]);
+    
     [[FileUploader sharedInstance] addUpload:payload
                            completionHandler:^(NSError* error) {
-                               if (error){
-                                   CDVPluginResult* globalPluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                                                 messageAsDictionary:@{
-                                                                                                       @"error" : error.localizedDescription,
-                                                                                                       @"id" : payload[@"id"],
-                                                                                                       @"errorCode" : @(error.code),
-                                                                                                       @"platform" : @"ios"
-                                                                                                       }];
-                                   [weakSelf.commandDelegate sendPluginResult:globalPluginResult callbackId:weakSelf.pluginCommand.callbackId];
-                               }
-                           }];
+        if (error){
+            [weakSelf sendCallback:@{
+                @"error" : error.localizedDescription,
+                @"id" : payload[@"id"],
+                @"errorCode" : @(error.code),
+                @"platform" : @"ios"
+            }];
+        }
+    }];
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
@@ -69,48 +66,21 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)uploadManagerDidCompleteUpload:(UploadEvent*)event{
-    CDVPluginResult* pluginResult;
-    if ([event.state isEqualToString:@"SUCCESS"]) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                     messageAsDictionary:@{
-                                                           @"completed" : @YES,
-                                                           @"id" : event.uploadId,
-                                                           @"eventId" : event.objectID.URIRepresentation.absoluteString,
-                                                           @"state" : @"UPLOADED",
-                                                           @"serverResponse" : event.serverResponse,
-                                                           @"statusCode" : @(event.responseStatusCode),
-                                                           @"platform" : @"ios"
-                                                           }];
-        
-    }else{
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                     messageAsDictionary:@{
-                                                           @"id" : event.uploadId,
-                                                           @"eventId" : event.objectID.URIRepresentation.absoluteString,
-                                                           @"error" : event.error,
-                                                           @"errorCode" : @(event.errorCode),
-                                                           @"state" : @"FAILED",
-                                                           @"platform" : @"ios"
-                                                           }];
-    }
+-(void)uploadManagerDidReceiveCallback:(NSDictionary*)info{
+    [self sendCallback:info];
+}
+
+-(void)sendCallback:(NSDictionary*)data{
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:data];
     [pluginResult setKeepCallback:@YES];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
-
--(void)uploadManagerDidReceiveProgress:(float)progress forUpload:(NSString*)uploadId{
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{
-                                                                                                                @"progress" : @(progress),
-                                                                                                                @"id" : uploadId,
-                                                                                                                @"state": @"UPLOADING"
-                                                                                                                }];
-    [pluginResult setKeepCallback:@YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
-}
-
 
 -(void)acknowledgeEvent:(CDVInvokedUrlCommand*)command{
     [[FileUploader sharedInstance] acknowledgeEventReceived:command.arguments[0]];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [pluginResult setKeepCallback:@YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 -(NSArray*)getV1Uploads{

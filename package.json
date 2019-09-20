@@ -1,8 +1,7 @@
 {
   "name": "cordova-plugin-background-upload",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Cordova plugin for uploading file in the background",
-  "types": "./types/index.d.ts",
   "cordova": {
     "id": "cordova-plugin-background-upload",
     "platforms": [
@@ -23,7 +22,12 @@
     "cordova-android",
     "cordova-ios"
   ],
-  "scripts": {},
+  "scripts": {
+    "lint": "npx standard tests/tests.js && npx standard www/FileTransferManager.js",
+    "cordova-paramedic": "cordova-paramedic",
+    "test:android": "cordova-paramedic --platform android --plugin . --verbose",
+    "test:ios": "cordova-paramedic --platform ios --plugin .  --verbose"
+  },
   "dependencies": {},
   "author": "Mevin Dhunnooa",
   "contributors": [
@@ -36,11 +40,17 @@
   ],
   "license": "Apache-2.0",
   "engines": {
-    "cordovaDependencies": {
-      "2.0.0": {
-        "cordova": ">100"
-      }
-    }
+    "cordova": ">=8.0.0"
   },
-  "devDependencies": {}
+  "standard": {
+    "env": [
+      "mocha",
+      "commonjs",
+      "jasmine"
+    ]
+  },
+  "devDependencies": {
+    "cordova-paramedic": "git+https://github.com/apache/cordova-paramedic.git",
+    "standard": "^14.0.2"
+  }
 }

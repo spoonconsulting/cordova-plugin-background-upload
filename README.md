@@ -1,7 +1,9 @@
 
-## Background Upload Plugin for Cordova
+# cordova-plugin-background-upload
+This plugin provides a file upload functionality that can continue to run while in background. It also includes progress updates which is suitable for long-term transfer operations for large files.
 
-This plugin provides a file upload functionality that can continue to run while in background. It also includes progress updates which is suitable for long-term transfer operations for large files. Currently only 1 concurrent upload is possible at any time.
+[![npm version](https://badge.fury.io/js/cordova-plugin-background-upload.svg)](https://badge.fury.io/js/cordova-plugin-background-upload)
+[![Build Status](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload.svg?branch=master)](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload)
 
 **Supported Platforms**
 - iOS
@@ -23,77 +25,117 @@ cordova plugin rm cordova-plugin-background-upload
 
 **Sample usage**
 
-The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads.
+The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads. By default the maximum allowed number of parallel uploads is set to 1. You can overide it by changing the configuration on init.
 ```javascript
- declare var FileTransferManager: any;
-
- var uploader = FileTransferManager.init();
-
- uploader.on('success', function(upload) {
-     console.log("upload: " + upload.id + " has been completed successfully");
-     console.log(upload.statusCode,upload.serverResponse);
-
- });
-
- uploader.on('progress', function(upload) {
-     console.log("uploading: " + upload.id + " progress: " + upload.progress + "%");
-
- });
-
- uploader.on('error', function(uploadException) {
-     if (uploadException.id) {
-         console.log("upload: " + uploadException.id + " has failed");
-     } else {
-         console.error("uploader caught an error: " + uploadException.error);
-     }
- });
-
+declare var FileTransferManager: any;
+var config = {};
+var uploader = FileTransferManager.init(config);
 ```
-Adding an upload is done via the ``` 
-startUpload``` 
-method. In case the plugin was not able to enqueue the upload, an exception will be thrown in the error event listener.
-```javascript
- var payload = {
-     "id": "sj5f9"
-     "filePath": "/storage/emulated/0/Download/Heli.divx",
-     "fileKey": "file",
-     "serverUrl": "http://requestb.in/14cizzj1",
-     "showNotification": true,
-     "notificationTitle" : "Uploading images",
-     "headers": {
-         "api_key": "asdasdwere123sad"
-     },
-     "parameters": {
-         "signature": "mysign",
-         "timestamp": 112321321
-     }
- };
 
- uploader.startUpload(payload);
+**Methods** 
+
+### uploader.init(config)
+Initialises the uploader with provided configuration. To control the number of parallel uploads, pass `parallelUploadsLimit` in config
+
+`var uploader = FileTransferManager.init({parallelUploadsLimit: 2});`
+
+### uploader.startUpload(payload)
+Adds an upload. In case the plugin was not able to enqueue the upload, an error will be emitted in the global event listener.
+```javascript
+var payload = {
+    id: "sj5f9",
+    filePath: "/storage/emulated/0/Download/Heli.divx",
+    fileKey: "file",
+    serverUrl: "http://requestb.in/14cizzj1",
+    showNotification: true,
+    notificationTitle: "Uploading images",
+    headers: {
+        api_key: "asdasdwere123sad"
+    },
+    parameters: {
+        signature: "a_signature_hash",
+        timestamp: 112321321
+    }
+};
+uploader.startUpload(payload);
 ```
-**Configuration** 
- * id: the id of the file you want to upload (String). this will be used to track uploads
- * filePath: the absolute path for the file to upload 
- * fileKey: the name of the key to use for the file
- * serverUrl: remote server url
- * headers: custom http headers
- * parameters: custom parameters for multipart data
- * showNotification: show progress notification on android (true by default)
- * notificationTitle: Notification title when file is being uploaded (Android only)
+Param | Description
+-------- | -------
+id | a unique id of the file (UUID string)
+filePath | the absolute path for the file to upload 
+fileKey | the name of the key to use for the file
+serverUrl | remote server url
+headers | custom http headers
+parameters | custom parameters for multipart data
+showNotification | show progress notification on Android (true by default)
+notificationTitle | Notification title when file is being uploaded (Android only)
 
-**To remove/abort an upload:** 
+
+
+### uploader.removeUpload(uploadId, successCallback, errorCallback)
+Cancel and removes an upload
 ```javascript
-uploader.removeUpload(uploadId, function(){
+uploader.removeUpload(uploadId, function () {
     //upload aborted
-}, function(err){
+}, function (err) {
     //could abort the upload
 });
 ```
 
+
+### uploader.acknowledgeEvent(eventId)
+Confirms event received and remove it from plugin cache
+```javascript
+uploader.acknowledgeEvent(eventId);
+```
+
+
+The uploader will provide global events which can be used to check the status of the uploads.
+```javascript
+uploader.on('event', function (event) {
+    if (event.state == 'UPLOADED') {
+        console.log("upload: " + event.id + " has been completed successfully");
+        console.log(event.statusCode, event.serverResponse);
+    } else if (event.state == 'FAILED') {
+        if (event.id) {
+            console.log("upload: " + event.id + " has failed");
+        } else {
+            console.error("uploader caught an error: " + event.error);
+        }
+    } else if (event.state == 'UPLOADING') {
+        console.log("uploading: " + event.id + " progress: " + event.progress + "%");
+    }
+});
+
+```
+
+To prevent any event loss while transitioning between native code and javascript side, the plugin stores success/failure events on disk. Once you have received the event, you will need to acknowledge it else it will be broadcasted again when the plugin is initialised. Progress events do not have eventId and are not persisted.
+```
+uploader.on('event', function(event) {
+    if (event.eventId) {
+        uploader.acknowledgeEvent(event.eventId);
+    }
+});
+```
+An event has the following attributes:
+
+Property | Comment
+-------- | -------
+id | id of the upload
+state | state of the upload (either UPLOADED, FAILED, UPLOADING)
+statusCode | response code returned by server after upload is completed
+serverResponse | server response received after upload is completed
+errror | error message in case of failure
+errorCode | error code for any exception encountered
+progress | progress for ongoing upload
+platform | the platform on which the event came from (ios or android)
+eventId | id of the event
+
+
  ## iOS
 The plugin runs on ios 10.0 and above and internally uses [AFNetworking](https://github.com/AFNetworking/AFNetworking).
 
- AFNetworking uses [NSURLSession](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/URLLoadingSystem/Articles/UsingNSURLSession.html#//apple_ref/doc/uid/TP40013509-SW44) under the hood to perform the upload in a background session. When an uploaded is initiated, it will continue until it has been completed successfully or if the user kills the application. If the application is terminated by the OS, the uploads will still continue. When the user relaunches the application, after calling the init method, the success and error events will be emitted with the ids of these uploads. If the user chose to kill the application by swiping it up from the multitasking pane, the uploads will not be continued. Upload tasks in background sessions are automatically retried by the URL loading system after network errors as decided by the OS.
+ AFNetworking uses [NSURLSession](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/URLLoadingSystem/Articles/UsingNSURLSession.html#//apple_ref/doc/uid/TP40013509-SW44) under the hood to perform the upload in a background session. When an uploaded is initiated, it will continue until it has been completed successfully or if the user kills the application. If the application is terminated by the OS, the uploads will still continue. When the user relaunches the application, after calling the init method, events will be emitted with the ids of these uploads. If the user chose to kill the application by swiping it up from the multitasking pane, the uploads will not be continued. Upload tasks in background sessions are automatically retried by the URL loading system after network errors as decided by the OS.
 
 ## Android
 The minimum api level require is 21 and the background file upload is handled by the [android-upload-service](https://github.com/gotev/android-upload-service) library. If the application is killed while uploading, either by the user or the OS, all uploads will be stopped. When the app is relaunched, the ids of these uploads will be emitted to the error listener. If an upload is added when there is no network connection, it will be retried as soon as the network becomes reachable unless the app is already killed.
@@ -102,13 +144,19 @@ On android Oreo, there are more strict limits on background services and it's re
 Hence to prevent the service from be killed, a progress notification is needed on Android 8+.
 
 ## Migration notes for v2.0
-- When version 2 of the plugin is launched on an app containing uploads still in progress from v1 plugin version, it will mark all of them as failed so that they can be retried.
-- If an upload is cancelled, an event with status `FAILED` and error code -999 will be broadcasted in the global callback. It is up to the application to properly handle cancelled upload callbacks.
-
+- When v2 of the plugin is launched on an app containing uploads still in progress from v1 version, it will mark all of them as failed so that they can be retried.
+- If an upload is cancelled, an event with status `FAILED` and error code -999 will be broadcasted in the global callback on ios. It is up to the application to properly handle cancelled upload callbacks.
+- v2 removes the events `success`, `error`, `progress` and instead uses a single callback for all events delivery:
+    ```
+    uploader.on('event', function (event) {
+        //use event.state to handle different scenarios
+    });
+    ```
+- Events need to be acknowledged to be removed. Failure to do so will always broadcasts the list of saved events on init.
 
 
 ## License
 Cordova-plugin-background-upload is licensed under the Apache v2 License.
 
 ## Credits
-Cordova-plugin-background-upload is brought to you by [Spoon Consulting](http://www.spoonconsulting.com/).
+Cordova-plugin-background-upload is brought to you by [Spoon Consulting Ltd](http://www.spoonconsulting.com/).

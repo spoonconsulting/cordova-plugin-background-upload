@@ -1,6 +1,9 @@
 #import "UploadEvent.h"
+@interface UploadEvent()
+@property (nonatomic, strong) NSString* data;
+@end
 @implementation UploadEvent
-@synthesize error, state, responseStatusCode, serverResponse, uploadId, data, errorCode;
+@synthesize data;
 static NSManagedObjectContext * managedObjectContext;
 static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 - (id)init{
@@ -8,8 +11,6 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
     self = [super initWithEntity:entity insertIntoManagedObjectContext:managedObjectContext];
     if (self == nil)
         return nil;
-    self.error = @"";
-    self.serverResponse = @"";
     return self;
 }
 
@@ -30,30 +31,36 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
     }];
 }
 
+-(NSDictionary*)dataRepresentation{
+    NSData *data = [self.data dataUsingEncoding:NSUTF8StringEncoding];
+    NSMutableDictionary* dictRepresentation = [[NSJSONSerialization JSONObjectWithData:data options:0 error:nil] mutableCopy];
+    [dictRepresentation addEntriesFromDictionary: @{
+        @"platform": @"ios",
+        @"eventId" : self.objectID.URIRepresentation.absoluteString
+    }];
+    return dictRepresentation;
+}
 
 +(UploadEvent*)eventWithId:(NSString*)eventId{
     NSManagedObjectID* objectId = [persistentStoreCoordinator managedObjectIDForURIRepresentation: [NSURL URLWithString:eventId]];
-    return [managedObjectContext objectWithID:objectId];
+    return objectId ? [managedObjectContext objectWithID:objectId] : nil;
 }
 
 +(NSArray*)allEvents{
     NSFetchRequest* request = [NSFetchRequest fetchRequestWithEntityName:@"UploadEvent"];
     request.returnsObjectsAsFaults = NO;
-    NSArray* events = [managedObjectContext executeFetchRequest:request error:NULL];
-    for (UploadEvent* event in events){
-        NSData *data = [event.data dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary* dictRepresentation = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-        event.state = dictRepresentation[@"state"];
-        event.responseStatusCode = (NSInteger)dictRepresentation[@"responseStatusCode"];
-        event.error = dictRepresentation[@"error"];
-        event.errorCode = (NSInteger)dictRepresentation[@"errorCode"];
-        event.serverResponse = dictRepresentation[@"serverResponse"];
-        event.uploadId = dictRepresentation[@"uploadId"];
-    }
-    return events;
+    return [managedObjectContext executeFetchRequest:request error:NULL];
 }
 
-+ (NSManagedObjectModel *)tableRepresentation{
++(UploadEvent*)create:(NSDictionary*)info{
+    UploadEvent* event = [[UploadEvent alloc] init];
+    NSData * jsonData = [NSJSONSerialization dataWithJSONObject:info options:0 error:nil];
+    event.data = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    [event save];
+    return event;
+}
+
++(NSManagedObjectModel*)tableRepresentation{
     NSManagedObjectModel *model = [[NSManagedObjectModel alloc] init];
     NSEntityDescription *entity = [[NSEntityDescription alloc] init];
     [entity setName:@"UploadEvent"];
