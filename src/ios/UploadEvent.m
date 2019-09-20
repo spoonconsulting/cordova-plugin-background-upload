@@ -43,7 +43,7 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
 
 +(UploadEvent*)eventWithId:(NSString*)eventId{
     NSManagedObjectID* objectId = [persistentStoreCoordinator managedObjectIDForURIRepresentation: [NSURL URLWithString:eventId]];
-    return [managedObjectContext objectWithID:objectId];
+    return objectId ? [managedObjectContext objectWithID:objectId] : nil;
 }
 
 +(NSArray*)allEvents{
