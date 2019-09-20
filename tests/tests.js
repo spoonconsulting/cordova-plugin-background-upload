@@ -169,16 +169,17 @@ exports.defineAutoTests = function () {
       fit('sends a FAILED event if upload fails', function (done) {
         var nativeUploader = FileTransferManager.init()
         var cb = function (upload) {
-          expect(upload).toBe({})
-          done()
-          // if (upload.state === 'FAILED') {
-          //   expect(upload.id).toBe('err_id')
-          //   expect(upload.error).toBeDefined()
-          //   expect(upload.errorCode).toBeDefined()
-          //   nativeUploader.acknowledgeEvent(upload.eventId)
-          //   nativeUploader.off('event', cb)
-          //   done()
-          // }
+          
+          
+          if (upload.state === 'FAILED' || upload.state === 'UPLOADED') {
+            expect(upload).toBe({})
+            expect(upload.id).toBe('err_id')
+            expect(upload.error).toBeDefined()
+            expect(upload.errorCode).toBeDefined()
+            nativeUploader.acknowledgeEvent(upload.eventId)
+            nativeUploader.off('event', cb)
+            done()
+          }
         }
         nativeUploader.on('event', cb)
         nativeUploader.startUpload({ id: 'err_id', serverUrl: 'https://httpbin.org/status/404', filePath: path })
