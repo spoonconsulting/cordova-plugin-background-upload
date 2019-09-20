@@ -186,7 +186,7 @@ exports.defineAutoTests = function () {
           if (upload.state === 'FAILED') {
             expect(upload.id).toBe('err_id')
             expect(upload.error).toBeDefined()
-            expect(upload.errorCode).toBeDefined()  
+            expect(upload.errorCode).toBeDefined()
             nativeUploader.acknowledgeEvent(upload.eventId)
             nativeUploader.off('event', cb)
             done()
