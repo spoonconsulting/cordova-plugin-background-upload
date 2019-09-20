@@ -181,7 +181,7 @@ exports.defineAutoTests = function () {
           // }
         }
         nativeUploader.on('event', cb)
-        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'http://127.1.1.1/', filePath: path })
+        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'https://httpbin.org/status/404', filePath: path })
       })
     })
 
@@ -253,11 +253,6 @@ exports.defineAutoTests = function () {
           expect(result.error).toBe('event id is required')
           done()
         })
-      })
-
-      it('does not return error if eventId is given', function (done) {
-        var nativeUploader = FileTransferManager.init()
-        nativeUploader.acknowledgeEvent('some_event_id', done, null)
       })
     })
   })
