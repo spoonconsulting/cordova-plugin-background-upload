@@ -184,10 +184,9 @@ exports.defineAutoTests = function () {
         var nativeUploader = FileTransferManager.init()
         var cb = function (upload) {
           if (upload.state === 'FAILED') {
-            // expect(upload).toBe({})
             expect(upload.id).toBe('err_id')
             expect(upload.error).toBeDefined()
-            expect(upload.errorCode).toBeDefined()
+            expect(upload.errorCode).toBeDefined()  
             nativeUploader.acknowledgeEvent(upload.eventId)
             nativeUploader.off('event', cb)
             done()
@@ -266,6 +265,11 @@ exports.defineAutoTests = function () {
           expect(result.error).toBe('event id is required')
           done()
         })
+      })
+
+      it('does not return error if eventId is given', function (done) {
+        var nativeUploader = FileTransferManager.init()
+        nativeUploader.acknowledgeEvent('x-coredata://123/UploadEvent/p1', done, null)
       })
     })
   })
