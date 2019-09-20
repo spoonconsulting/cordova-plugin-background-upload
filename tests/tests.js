@@ -108,7 +108,6 @@ exports.defineAutoTests = function () {
             expect(upload.id).toBe('abc')
             expect(upload.eventId).toBeDefined()
             expect(upload.error).toBeUndefined()
-            expect(upload.statusCode).toBe(200)
             var response = JSON.parse(upload.serverResponse)
             delete response.receivedInfo.headers
             expect(response.receivedInfo).toEqual({
@@ -126,6 +125,21 @@ exports.defineAutoTests = function () {
         }
         nativeUploader.on('event', cb)
         nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path })
+      })
+
+      it('returns server status code in event', function (done) {
+        var nativeUploader = FileTransferManager.init()
+        var cb = function (upload) {
+          if (upload.state === 'UPLOADED') {
+            expect(upload.id).toBe('pkl')
+            expect(upload.statusCode).toBe(210)
+            nativeUploader.acknowledgeEvent(upload.eventId)
+            nativeUploader.off('event', cb)
+            done()
+          }
+        }
+        nativeUploader.on('event', cb)
+        nativeUploader.startUpload({ id: 'pkl', serverUrl: 'https://httpbin.org/status/210', filePath: path })
       })
 
       it('sends supplied headers during upload', function (done) {
@@ -166,7 +180,7 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
       })
 
-      fit('sends a FAILED event if upload fails', function (done) {
+      it('sends a FAILED event if upload fails', function (done) {
         var nativeUploader = FileTransferManager.init()
         var cb = function (upload) {
           if (upload.state === 'FAILED' || upload.state === 'UPLOADED') {
@@ -180,7 +194,7 @@ exports.defineAutoTests = function () {
           }
         }
         nativeUploader.on('event', cb)
-        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'https://httpbin.org/status/404', filePath: path })
+        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'https://127.2.3.1', filePath: path })
       })
     })
 
