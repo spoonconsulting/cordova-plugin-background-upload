@@ -1,5 +1,4 @@
 #import "FileUploader.h"
-#import "AppDelegate+upload.h"
 @interface FileUploader()
 @property (nonatomic, strong) NSMutableDictionary* responsesData;
 @property (nonatomic, strong) AFURLSessionManager *manager;
@@ -23,6 +22,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     self.responsesData = [[NSMutableDictionary alloc] init];
     NSURLSessionConfiguration* configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
     configuration.HTTPMaximumConnectionsPerHost = FileUploader.parallelUploadsLimit;
+    configuration.sessionSendsLaunchEvents = NO;
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
@@ -55,16 +55,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
             weakSelf.responsesData[@(dataTask.taskIdentifier)] = [NSMutableData dataWithData:data];
         } else {
             [responseData appendData:data];
-        }
-    }];
-    
-    [self.manager setDidFinishEventsForBackgroundURLSessionBlock:^(NSURLSession * _Nonnull session) {
-        NSLog(@"[CD]setDidFinishEventsForBackgroundURLSessionBlock block: %@",session);
-        AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-        if (appDelegate.backgroundCompletionBlock) {
-            void (^completionHandler)(void) = appDelegate.backgroundCompletionBlock;
-            appDelegate.backgroundCompletionBlock = nil;
-            completionHandler();
         }
     }];
     return self;
