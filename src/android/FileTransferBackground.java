@@ -29,359 +29,279 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class FileTransferBackground extends CordovaPlugin {
 
-  private final String uploadDirectoryName = "FileTransferBackground";
-  private Storage storage;
-  private CallbackContext uploadCallback;
-  private NetworkMonitor networkMonitor;
-  private Long lastProgressTimestamp = 0L;
-  private HashMap<String,CallbackContext> cancelUploadCallbackMap = new HashMap();
-  private boolean hasBeenDestroyed = false;
+    private final String uploadDirectoryName = "FileTransferBackground";
+    private Storage storage;
+    private CallbackContext uploadCallback;
+    private NetworkMonitor networkMonitor;
+    private Long lastProgressTimestamp = 0L;
+    private boolean hasBeenDestroyed = false;
 
-  private UploadServiceBroadcastReceiver broadcastReceiver = new UploadServiceBroadcastReceiver() {
-    @Override
-    public void onProgress(Context context, UploadInfo uploadInfo) {
-
-      try {
-        Long currentTimestamp = System.currentTimeMillis()/1000;
-        if (currentTimestamp - lastProgressTimestamp >=1) {
-          LogMessage("id:" + uploadInfo.getUploadId() + " progress: " + uploadInfo.getProgressPercent());
-          lastProgressTimestamp = currentTimestamp;
-
-          if (uploadCallback != null && !hasBeenDestroyed) {
-            JSONObject objResult = new JSONObject();
-            objResult.put("id", uploadInfo.getUploadId());
-            objResult.put("progress", uploadInfo.getProgressPercent());
-            objResult.put("state", "UPLOADING");
-            PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
-            progressUpdate.setKeepCallback(true);
-            uploadCallback.sendPluginResult(progressUpdate);
-          }
-        }
-
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-
-    @Override
-    public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
-      LogMessage("App onError: " + exception);
-
-      try {
-        updateStateForUpload(uploadInfo.getUploadId(), UploadState.FAILED, null);
-
-        if (uploadCallback !=null && !hasBeenDestroyed){
-          JSONObject errorObj = new JSONObject();
-          errorObj.put("id", uploadInfo.getUploadId());
-          errorObj.put("error", "upload failed: " + exception != null ? exception.getMessage() : "");
-          errorObj.put("state", "FAILED");
-          PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
-          errorResult.setKeepCallback(true);
-          uploadCallback.sendPluginResult(errorResult);
-        }
-
-
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-
-    @Override
-    public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-
-      try {
-        LogMessage("server response : " + serverResponse.getBodyAsString() +" for "+uploadInfo.getUploadId());
-        updateStateForUpload(uploadInfo.getUploadId(), UploadState.UPLOADED, serverResponse.getBodyAsString());
-        if (uploadCallback !=null  && !hasBeenDestroyed){
-          JSONObject objResult = new JSONObject();
-          objResult.put("id", uploadInfo.getUploadId());
-          objResult.put("completed", true);
-          objResult.put("serverResponse", serverResponse.getBodyAsString());
-          objResult.put("state", "UPLOADED");
-          objResult.put("statusCode", serverResponse.getHttpCode());
-          PluginResult completedUpdate = new PluginResult(PluginResult.Status.OK, objResult);
-          completedUpdate.setKeepCallback(true);
-          uploadCallback.sendPluginResult(completedUpdate);
-        }
-
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-
-    @Override
-    public void onCancelled(Context context, UploadInfo uploadInfo) {
-      try {
-        LogMessage("upload cancelled "+uploadInfo.getUploadId());
-        if (hasBeenDestroyed){
-          //most likely the upload service was killed by the system
-          updateStateForUpload(uploadInfo.getUploadId(), UploadState.FAILED, null);
-          return;
-        }
-        removeUploadInfoFile(uploadInfo.getUploadId());
-        PluginResult result = new PluginResult(PluginResult.Status.OK);
-        result.setKeepCallback(true);
-        CallbackContext cancelCallback = cancelUploadCallbackMap.get(uploadInfo.getUploadId());
-        if (cancelCallback !=null)
-          cancelCallback.sendPluginResult(result);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-  };
-
-  @Override
-  public boolean execute(String action, JSONArray args, final CallbackContext callbackContext){
-
-    try {
-      if (action.equalsIgnoreCase("initManager")) {
-        uploadCallback = callbackContext;
-        this.initManager(args.length() > 0 ? args.get(0).toString() : null, callbackContext);
-      } else if (action.equalsIgnoreCase("removeUpload")) {
-        this.removeUpload(args.length() > 0 ? args.get(0).toString() : null, callbackContext);
-      } else {
-        uploadCallback = callbackContext;
-        upload(args.length() > 0 ? (JSONObject) args.get(0) : null, uploadCallback);
-      }
-    } catch (Exception ex) {
-      try {
-        JSONObject errorObj = new JSONObject();
-        errorObj.put("error", ex.getMessage());
-        PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
-        errorResult.setKeepCallback(true);
-        callbackContext.sendPluginResult(errorResult);
-      } catch (JSONException e) {
-        e.printStackTrace();
-      }
-    }
-    return true;
-  }
-
-  private void upload(JSONObject jsonPayload, final CallbackContext callbackContext) throws Exception {
-    final FileTransferSettings payload = new FileTransferSettings(jsonPayload.toString());
-    if (UploadService.getTaskList().contains(payload.id)){
-      LogMessage("upload with id "+payload.id + " is already being uploaded. ignoring re-upload request");
-      return;
-    }
-    try {
-      ArrayList<JSONObject> existingUploads = getUploadHistory();
-      for (JSONObject upload : existingUploads) {
-        String id = upload.getString("id");
-        if (id.equalsIgnoreCase(payload.id)) {
-          LogMessage("upload with id "+payload.id + " is already exists in upload queue. ignoring re-upload request");
-          return;
-        }
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-
-    LogMessage("adding upload "+payload.id);
-    this.createUploadInfoFile(payload.id, jsonPayload);
-    if (NetworkMonitor.isConnected) {
-
-      MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id,payload.serverUrl)
-              .addFileToUpload(payload.filePath, payload.fileKey)
-              .setMaxRetries(0);
-
-      if (payload.showNotification) {
-        UploadNotificationConfig config = new UploadNotificationConfig();
-        config.getCompleted().autoClear = true;
-        config.getCancelled().autoClear = true;
-        config.getError().autoClear = true;
-        config.setClearOnActionForAllStatuses(true);
-        Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
-        PendingIntent pendingIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        config.setClickIntentForAllStatuses(pendingIntent);
-        if (payload.notificationTitle != null)
-          config.getProgress().title = payload.notificationTitle;
-        request.setNotificationConfig(config);
-      }
-      for (String key : payload.parameters.keySet()) {
-        request.addParameter(key, payload.parameters.get(key));
-      }
-
-      for (String key : payload.headers.keySet()) {
-        request.addHeader(key, payload.headers.get(key));
-      }
-
-      request.startUpload();
-
-    } else {
-      LogMessage("Upload failed. Image added to pending list");
-      updateStateForUpload(payload.id, UploadState.FAILED, null);
-    }
-  }
-
-  private void LogMessage(String message) {
-    Log.d("FileTransferBG", message);
-  }
-
-  private void removeUpload(String fileId, CallbackContext callbackContext) {
-    try {
-      if (fileId == null)
-        throw new Exception("missing upload id");
-      if (!UploadService.getTaskList().contains(fileId)){
-        LogMessage("cancel upload: "+fileId + " which is not in progress, ignoring request");
-        PluginResult result = new PluginResult(PluginResult.Status.OK);
-        result.setKeepCallback(true);
-        callbackContext.sendPluginResult(result);
-        return;
-      }
-      LogMessage("cancel upload "+fileId);
-      cancelUploadCallbackMap.put(fileId,callbackContext);
-      UploadService.stopUpload(fileId);
-    } catch (Exception e) {
-      e.printStackTrace();
-      PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, e.toString());
-      errorResult.setKeepCallback(true);
-      callbackContext.sendPluginResult(errorResult);
-    }
-  }
-
-  private void createUploadInfoFile(String fileId, JSONObject upload) {
-    try {
-      upload.put("createdDate", System.currentTimeMillis() / 1000);
-      upload.put("state", UploadState.STARTED);
-      storage.createFile(uploadDirectoryName, fileId + ".json", upload.toString());
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  private void updateStateForUpload(String fileId, String state, String serverResponse) {
-    try {
-      String fileName = fileId + ".json";
-      if (!storage.isFileExist(uploadDirectoryName, fileName)){
-        LogMessage("could not find "+ fileName + " for updating upload info");
-        return;
-      }
-      String content = storage.readTextFile(uploadDirectoryName, fileName);
-      if (content != null) {
-        JSONObject uploadJson = new JSONObject(content);
-        uploadJson.put("state", state);
-        if (state == UploadState.UPLOADED) {
-          uploadJson.put("serverResponse", serverResponse != null ? serverResponse : "");
-        }
-        //delete old file
-        removeUploadInfoFile(fileId);
-        //write updated file
-        storage.createFile(uploadDirectoryName, fileName, uploadJson.toString());
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-
-  }
-
-  private void removeUploadInfoFile(String fileId) {
-    storage.deleteFile(uploadDirectoryName, fileId + ".json");
-  }
-
-  private ArrayList<JSONObject> getUploadHistory() {
-    ArrayList<JSONObject> previousUploads = new ArrayList<JSONObject>();
-    try {
-      List<File> files = storage.getFiles(uploadDirectoryName, OrderType.DATE);
-      for (File file : files) {
-        if (file.getName().endsWith(".json")) {
-          String content = storage.readTextFile(uploadDirectoryName, file.getName());
-          if (content != null) {
-            JSONObject uploadJson = new JSONObject(content);
-            previousUploads.add(uploadJson);
-          }
-
-        }
-      }
-
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-
-    return previousUploads;
-  }
-
-  private void initManager(String options, final CallbackContext callbackContext) {
-    try {
-
-      UploadService.HTTP_STACK = new OkHttpStack();
-      UploadService.UPLOAD_POOL_SIZE = 1;
-      UploadService.NAMESPACE = cordova.getContext().getPackageName();
-      storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
-      storage.createDirectory(uploadDirectoryName);
-      LogMessage("created FileTransfer working directory ");
-
-      cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter( UploadService.NAMESPACE+".uploadservice.broadcast.status" ) );
-
-      if (options != null) {
-        //initialised global configuration parameters here
-        //JSONObject settings = new JSONObject(options);
-      }
-
-      ArrayList<JSONObject> previousUploads = getUploadHistory();
-      for (JSONObject upload : previousUploads) {
-        String state = upload.getString("state");
-        String id = upload.getString("id");
-
-        if (state.equalsIgnoreCase(UploadState.UPLOADED)) {
-          JSONObject objResult = new JSONObject();
-          objResult.put("id", id);
-          objResult.put("completed", true);
-          objResult.put("serverResponse", upload.getString("serverResponse"));
-          PluginResult progressUpdate = new PluginResult(PluginResult.Status.OK, objResult);
-          progressUpdate.setKeepCallback(true);
-          callbackContext.sendPluginResult(progressUpdate);
-
-        } else if (state.equalsIgnoreCase(UploadState.FAILED) || state.equalsIgnoreCase(UploadState.STARTED)) {
-          //if the state is STARTED, it means app was killed before the upload was completed
-          JSONObject errorObj = new JSONObject();
-          errorObj.put("id", id);
-          errorObj.put("error", "upload failed");
-          PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, errorObj);
-          errorResult.setKeepCallback(true);
-          callbackContext.sendPluginResult(errorResult);
-        }
-        //delete upload info on disk
-        removeUploadInfoFile(id);
-      }
-
-      networkMonitor = new NetworkMonitor(webView.getContext(),new ConnectionStatusListener() {
+    private UploadServiceBroadcastReceiver broadcastReceiver = new UploadServiceBroadcastReceiver() {
         @Override
-        public void connectionDidChange(Boolean isConnected, String networkType){
-          LogMessage("detected network change, Connected:" + isConnected);
-          uploadPendingList();
+        public void onProgress(Context context, UploadInfo uploadInfo) {
+            Long currentTimestamp = System.currentTimeMillis() / 1000;
+            if (currentTimestamp - lastProgressTimestamp >= 1) {
+                LogMessage("id:" + uploadInfo.getUploadId() + " progress: " + uploadInfo.getProgressPercent());
+                lastProgressTimestamp = currentTimestamp;
+
+                if (uploadCallback != null && !hasBeenDestroyed) {
+                    JSONObject objResult = new JSONObject(new HashMap() {{
+                        put("id", uploadInfo.getUploadId());
+                        put("progress", uploadInfo.getProgressPercent());
+                        put("state", "UPLOADING");
+                    }});
+                    sendCallback(objResult);
+                }
+            }
+
         }
-      });
 
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
+        @Override
+        public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
+            LogMessage("upload did fail: " + exception);
 
-  private void uploadPendingList() {
-    ArrayList<JSONObject> previousUploads = getUploadHistory();
-    for (JSONObject upload : previousUploads) {
-      try {
-        String state = upload.getString("state");
-        if (state.equalsIgnoreCase(UploadState.FAILED) || state.equalsIgnoreCase(UploadState.STARTED)) {
-          this.upload(upload, uploadCallback);
+
+            if (uploadCallback != null && !hasBeenDestroyed) {
+                JSONObject errorObj = new JSONObject(new HashMap() {{
+                    put("id", uploadInfo.getUploadId());
+                    put("state", "FAILED");
+                    put("error", "upload failed: " + exception != null ? exception.getMessage() : "");
+                    put("errorCode", 0);
+                }});
+                sendCallback(errorObj);
+            }
         }
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-  }
 
-  public void onDestroy() {
-    LogMessage("plugin onDestroy, unsubscribing all callbacks");
-    hasBeenDestroyed = true;
-    if (networkMonitor != null)
-      networkMonitor.stopMonitoring();
-    //broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
-  }
+        @Override
+        public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
+            LogMessage("server response : " + serverResponse.getBodyAsString() + " for " + uploadInfo.getUploadId());
+
+            if (uploadCallback != null && !hasBeenDestroyed) {
+                JSONObject jsonObj = new JSONObject(new HashMap() {{
+                    put("id", uploadInfo.getUploadId());
+                    put("state", "UPLOADED");
+                    put("serverResponse", serverResponse.getBodyAsString());
+                    put("statusCode", serverResponse.getHttpCode());
+                }});
+                sendCallback(jsonObj);
+            }
+        }
+
+        @Override
+        public void onCancelled(Context context, UploadInfo uploadInfo) {
+            LogMessage("upload cancelled " + uploadInfo.getUploadId());
+            PendingUpload.remove(uploadInfo.getUploadId());
+            if (hasBeenDestroyed) {
+                //most likely the upload service was killed by the system
+                return;
+            }
+            JSONObject jsonObj = new JSONObject(new HashMap() {{
+                put("id", uploadInfo.getUploadId());
+                put("state", "FAILED");
+                put("errorCode", -999);
+                put("error", "upload cancelled");
+            }});
+            sendCallback(jsonObj);
+        }
+    };
+
+    public void sendCallback(JSONObject obj) {
+        try {
+            obj.put("platform", "ios");
+            PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
+            result.setKeepCallback(true);
+            uploadCallback.sendPluginResult(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
+        if (action.equalsIgnoreCase("initManager")) {
+            uploadCallback = callbackContext;
+            this.initManager(args.get(0).toString(), callbackContext);
+        } else if (action.equalsIgnoreCase("removeUpload")) {
+            this.removeUpload(args.get(0).toString(), callbackContext);
+        } else {
+            uploadCallback = callbackContext;
+            upload((JSONObject) args.get(0), uploadCallback);
+        }
+        return true;
+    }
+
+    private void upload(JSONObject jsonPayload, final CallbackContext callbackContext) {
+        try {
+            final FileTransferSettings payload = new FileTransferSettings(jsonPayload.toString());
+            LogMessage("adding upload " + payload.id);
+            if (NetworkMonitor.isConnected) {
+                MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id, payload.serverUrl)
+                        .addFileToUpload(payload.filePath, payload.fileKey)
+                        .setMaxRetries(0);
+
+                if (payload.showNotification) {
+                    UploadNotificationConfig config = new UploadNotificationConfig();
+                    config.getCompleted().autoClear = true;
+                    config.getCancelled().autoClear = true;
+                    config.getError().autoClear = true;
+                    config.setClearOnActionForAllStatuses(true);
+                    Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
+                    PendingIntent pendingIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    config.setClickIntentForAllStatuses(pendingIntent);
+                    if (payload.notificationTitle != null)
+                        config.getProgress().title = payload.notificationTitle;
+                    request.setNotificationConfig(config);
+                }
+                for (String key : payload.parameters.keySet()) {
+                    request.addParameter(key, payload.parameters.get(key));
+                }
+
+                for (String key : payload.headers.keySet()) {
+                    request.addHeader(key, payload.headers.get(key));
+                }
+
+                request.startUpload();
+                PendingUpload.remove(payload.id);
+            } else {
+                LogMessage("No network available, adding upload to queue");
+                PendingUpload.create(jsonPayload);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void LogMessage(String message) {
+        Log.d("FileTransferBG", message);
+    }
+
+    private void removeUpload(String fileId, CallbackContext callbackContext) {
+        try {
+            PendingUpload.remove(fileId);
+            if (!UploadService.getTaskList().contains(fileId)) {
+                LogMessage("cancel upload: " + fileId + " which is not in progress, ignoring request");
+                PluginResult result = new PluginResult(PluginResult.Status.OK);
+                result.setKeepCallback(true);
+                callbackContext.sendPluginResult(result);
+                return;
+            }
+            LogMessage("cancel upload " + fileId);
+            UploadService.stopUpload(fileId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, e.toString());
+            errorResult.setKeepCallback(true);
+            callbackContext.sendPluginResult(errorResult);
+        }
+    }
+
+
+    private void removeUploadInfoFile(String fileId) {
+        storage.deleteFile(uploadDirectoryName, fileId + ".json");
+    }
+
+    private ArrayList<JSONObject> getUploadHistory() {
+        ArrayList<JSONObject> previousUploads = new ArrayList<JSONObject>();
+        try {
+            List<File> files = storage.getFiles(uploadDirectoryName, OrderType.DATE);
+            for (File file : files) {
+                if (file.getName().endsWith(".json")) {
+                    String content = storage.readTextFile(uploadDirectoryName, file.getName());
+                    if (content != null) {
+                        JSONObject uploadJson = new JSONObject(content);
+                        previousUploads.add(uploadJson);
+                    }
+
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return previousUploads;
+    }
+
+    private JSONObject getJsonFromMap(Map<String, Object> map) throws JSONException {
+        JSONObject jsonData = new JSONObject();
+        for (String key : map.keySet()) {
+            Object value = map.get(key);
+            if (value instanceof Map<?, ?>) {
+                value = getJsonFromMap((Map<String, Object>) value);
+            }
+            jsonData.put(key, value);
+        }
+        return jsonData;
+    }
+
+    private void initManager(String options, final CallbackContext callbackContext) {
+        try {
+
+            int parallelUploadsLimit = 1;
+            if (options != null) {
+                JSONObject settings = new JSONObject(options);
+                parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
+            }
+
+            UploadService.HTTP_STACK = new OkHttpStack();
+            UploadService.UPLOAD_POOL_SIZE = parallelUploadsLimit;
+            UploadService.NAMESPACE = cordova.getContext().getPackageName();
+            storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
+            storage.createDirectory(uploadDirectoryName);
+            LogMessage("created FileTransfer working directory ");
+
+            cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter(UploadService.NAMESPACE + ".uploadservice.broadcast.status"));
+
+
+            ArrayList<JSONObject> previousUploads = getUploadHistory();
+            for (JSONObject upload : previousUploads) {
+                String uploadId = upload.getString("id");
+                JSONObject jsonObj = new JSONObject(new HashMap() {{
+                    put("id", uploadId);
+                    put("state", "FAILED");
+                    put("errorCode", 500);
+                    put("error", "upload failed");
+                }});
+                sendCallback(jsonObj);
+                removeUploadInfoFile(uploadId);
+            }
+
+            networkMonitor = new NetworkMonitor(webView.getContext(), new ConnectionStatusListener() {
+                @Override
+                public void connectionDidChange(Boolean isConnected, String networkType) {
+                    LogMessage("detected network change, Connected:" + isConnected);
+                    uploadPendingList();
+                }
+            });
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void uploadPendingList() {
+        try {
+            List<PendingUpload> previousUploads = PendingUpload.all();
+            for (PendingUpload upload : previousUploads) {
+                this.upload(new JSONObject(upload.data), uploadCallback);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void onDestroy() {
+        LogMessage("plugin onDestroy, unsubscribing all callbacks");
+        hasBeenDestroyed = true;
+        if (networkMonitor != null)
+            networkMonitor.stopMonitoring();
+        //broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
+    }
 
 
 }

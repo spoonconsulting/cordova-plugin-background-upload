@@ -21,7 +21,7 @@ public class FileTransferSettings {
   HashMap<String, String> parameters = new HashMap<String, String>();
 
 
-  public FileTransferSettings(String jsonSettings) throws Exception {
+  public FileTransferSettings(String jsonSettings) {
     try {
       JSONObject settings = new JSONObject(jsonSettings);
 
@@ -66,7 +66,7 @@ public class FileTransferSettings {
         throw new IOException("File not found: " + filePath);
 
     } catch (Exception e) {
-      throw e;
+      e.printStackTrace();
     }
   }
 }
