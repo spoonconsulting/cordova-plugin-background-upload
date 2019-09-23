@@ -37,7 +37,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                 @"statusCode" : @(((NSHTTPURLResponse *)task.response).statusCode),
                 @"serverResponse" : serverResponse
             }];
-            NSLog(@"[CD]task did complete with success %@ response: %@",uploadId,serverResponse);
         } else {
             [weakSelf createAndSendEvent:@{
                 @"id" : uploadId,
@@ -45,7 +44,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                 @"error" : error.localizedDescription,
                 @"errorCode" : @(error.code)
             }];
-            NSLog(@"[CD]task did fail %@ %@",uploadId , error.localizedDescription);
         }
     }];
     
@@ -59,7 +57,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     }];
     
     [self.manager setDidFinishEventsForBackgroundURLSessionBlock:^(NSURLSession * _Nonnull session) {
-        NSLog(@"[CD]setDidFinishEventsForBackgroundURLSessionBlock block: %@",session);
         AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
         if (appDelegate.backgroundCompletionBlock) {
             void (^completionHandler)(void) = appDelegate.backgroundCompletionBlock;
