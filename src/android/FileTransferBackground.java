@@ -46,9 +46,7 @@ public class FileTransferBackground extends CordovaPlugin {
         public void onProgress(Context context, UploadInfo uploadInfo) {
             Long currentTimestamp = System.currentTimeMillis() / 1000;
             if (currentTimestamp - lastProgressTimestamp >= 1) {
-                LogMessage("id:" + uploadInfo.getUploadId() + " progress: " + uploadInfo.getProgressPercent());
                 lastProgressTimestamp = currentTimestamp;
-
                 if (uploadCallback != null && !hasBeenDestroyed) {
                     JSONObject objResult = new JSONObject(new HashMap() {{
                         put("id", uploadInfo.getUploadId());
@@ -58,14 +56,11 @@ public class FileTransferBackground extends CordovaPlugin {
                     sendCallback(objResult);
                 }
             }
-
         }
 
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
             LogMessage("upload did fail: " + exception);
-
-
             if (uploadCallback != null && !hasBeenDestroyed) {
                 JSONObject errorObj = new JSONObject(new HashMap() {{
                     put("id", uploadInfo.getUploadId());
@@ -112,7 +107,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
     public void sendCallback(JSONObject obj) {
         try {
-            obj.put("platform", "ios");
+            obj.put("platform", "android");
             PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
             result.setKeepCallback(true);
             uploadCallback.sendPluginResult(result);
@@ -125,17 +120,16 @@ public class FileTransferBackground extends CordovaPlugin {
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         if (action.equalsIgnoreCase("initManager")) {
             uploadCallback = callbackContext;
-            this.initManager(args.get(0).toString(), callbackContext);
+            this.initManager(args.get(0).toString());
         } else if (action.equalsIgnoreCase("removeUpload")) {
-            this.removeUpload(args.get(0).toString(), callbackContext);
+            this.removeUpload(args.get(0).toString());
         } else {
-            uploadCallback = callbackContext;
-            upload((JSONObject) args.get(0), uploadCallback);
+            upload((JSONObject) args.get(0));
         }
         return true;
     }
 
-    private void upload(JSONObject jsonPayload, final CallbackContext callbackContext) {
+    private void upload(JSONObject jsonPayload) {
         try {
             final FileTransferSettings payload = new FileTransferSettings(jsonPayload.toString());
             LogMessage("adding upload " + payload.id);
@@ -180,30 +174,11 @@ public class FileTransferBackground extends CordovaPlugin {
         Log.d("FileTransferBG", message);
     }
 
-    private void removeUpload(String fileId, CallbackContext callbackContext) {
-        try {
-            PendingUpload.remove(fileId);
-            if (!UploadService.getTaskList().contains(fileId)) {
-                LogMessage("cancel upload: " + fileId + " which is not in progress, ignoring request");
-                PluginResult result = new PluginResult(PluginResult.Status.OK);
-                result.setKeepCallback(true);
-                callbackContext.sendPluginResult(result);
-                return;
-            }
-            LogMessage("cancel upload " + fileId);
-            UploadService.stopUpload(fileId);
-        } catch (Exception e) {
-            e.printStackTrace();
-            PluginResult errorResult = new PluginResult(PluginResult.Status.ERROR, e.toString());
-            errorResult.setKeepCallback(true);
-            callbackContext.sendPluginResult(errorResult);
-        }
+    private void removeUpload(String fileId) {
+        PendingUpload.remove(fileId);
+        UploadService.stopUpload(fileId);
     }
 
-
-    private void removeUploadInfoFile(String fileId) {
-        storage.deleteFile(uploadDirectoryName, fileId + ".json");
-    }
 
     private ArrayList<JSONObject> getUploadHistory() {
         ArrayList<JSONObject> previousUploads = new ArrayList<JSONObject>();
@@ -239,7 +214,7 @@ public class FileTransferBackground extends CordovaPlugin {
         return jsonData;
     }
 
-    private void initManager(String options, final CallbackContext callbackContext) {
+    private void initManager(String options) {
         try {
 
             int parallelUploadsLimit = 1;
@@ -257,25 +232,20 @@ public class FileTransferBackground extends CordovaPlugin {
 
             cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter(UploadService.NAMESPACE + ".uploadservice.broadcast.status"));
 
-
-            ArrayList<JSONObject> previousUploads = getUploadHistory();
-            for (JSONObject upload : previousUploads) {
-                String uploadId = upload.getString("id");
-                JSONObject jsonObj = new JSONObject(new HashMap() {{
-                    put("id", uploadId);
-                    put("state", "FAILED");
-                    put("errorCode", 500);
-                    put("error", "upload failed");
-                }});
-                sendCallback(jsonObj);
-                removeUploadInfoFile(uploadId);
-            }
+            //mark v1 uploads as failed
+            migrateOldUploads();
 
             networkMonitor = new NetworkMonitor(webView.getContext(), new ConnectionStatusListener() {
                 @Override
                 public void connectionDidChange(Boolean isConnected, String networkType) {
-                    LogMessage("detected network change, Connected:" + isConnected);
-                    uploadPendingList();
+                    try {
+                        if (isConnected) {
+                            LogMessage("Network (" + networkType + ") now available, restarting pending uploads");
+                            uploadPendingList();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             });
 
@@ -284,14 +254,25 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void uploadPendingList() {
-        try {
-            List<PendingUpload> previousUploads = PendingUpload.all();
-            for (PendingUpload upload : previousUploads) {
-                this.upload(new JSONObject(upload.data), uploadCallback);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void migrateOldUploads() throws JSONException {
+        ArrayList<JSONObject> previousUploads = getUploadHistory();
+        for (JSONObject upload : previousUploads) {
+            String uploadId = upload.getString("id");
+            JSONObject jsonObj = new JSONObject(new HashMap() {{
+                put("id", uploadId);
+                put("state", "FAILED");
+                put("errorCode", 500);
+                put("error", "upload failed");
+            }});
+            sendCallback(jsonObj);
+            storage.deleteFile(uploadDirectoryName, uploadId + ".json");
+        }
+    }
+
+    private void uploadPendingList() throws JSONException {
+        List<PendingUpload> previousUploads = PendingUpload.all();
+        for (PendingUpload upload : previousUploads) {
+            this.upload(new JSONObject(upload.data));
         }
     }
 
@@ -302,6 +283,4 @@ public class FileTransferBackground extends CordovaPlugin {
             networkMonitor.stopMonitoring();
         //broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
     }
-
-
 }
