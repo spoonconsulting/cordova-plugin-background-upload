@@ -58,7 +58,6 @@ public class FileTransferBackground extends CordovaPlugin {
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
             logMessage("upload did fail: " + exception);
-
             JSONObject errorObj = new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
@@ -99,8 +98,13 @@ public class FileTransferBackground extends CordovaPlugin {
     };
 
     public void createAndSendEvent(JSONObject obj) {
-        UploadEvent.create(obj);
-        sendCallback(obj);
+        try {
+            UploadEvent event = UploadEvent.create(obj);
+            obj.put("eventId", event.eventId);
+            sendCallback(obj);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void sendCallback(JSONObject obj) {

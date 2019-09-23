@@ -24,8 +24,16 @@ public class UploadEvent extends SugarRecord {
         data = payload.toString();
     }
 
-    public static void create(JSONObject payload) {
-        new UploadEvent(payload).save();
+//    public JSONObject dataRepresentation() {
+//        JSONObject parseData = new JSONObject(this.data);
+//        parseData.put("platform", "android");
+//
+//    }
+
+    public static UploadEvent create(JSONObject payload) {
+        UploadEvent event = new UploadEvent(payload);
+        event.save();
+        return event;
     }
 
     public static void destroy(String eventId) {
