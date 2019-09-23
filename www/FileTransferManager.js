@@ -10,7 +10,9 @@ var FileTransferManager = function (options) {
   this.options.callback = function (result) {
     that.emit('event', result)
   }
-  exec(this.options.callback, null, 'FileTransferBackground', 'initManager', [options])
+  if (!this.options.parallelUploadsLimit)
+    this.options.parallelUploadsLimit = 1;
+  exec(this.options.callback, null, 'FileTransferBackground', 'initManager', [this.options])
 }
 
 FileTransferManager.prototype.startUpload = function (payload) {
