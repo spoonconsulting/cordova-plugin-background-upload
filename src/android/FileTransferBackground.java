@@ -125,7 +125,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private void upload(JSONObject jsonPayload) {
         try {
-            final FileTransferSettings payload = new FileTransferSettings(jsonPayload.toString());
+            final UploadPayload payload = new UploadPayload(jsonPayload.toString());
             logMessage("adding upload " + payload.id);
             if (NetworkMonitor.isConnected) {
                 MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id, payload.serverUrl)
