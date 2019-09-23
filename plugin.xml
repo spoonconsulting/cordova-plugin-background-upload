@@ -51,7 +51,6 @@
         </edit-config>
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundFileUpload" />
 		<source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/backgroundFileUpload" />
-		<source-file src="src/android/UploadState.java" target-dir="src/com/spoon/backgroundFileUpload" />
 		<source-file src="src/android/FileTransferSettings.java" target-dir="src/com/spoon/backgroundFileUpload" />
 		<source-file src="src/android/ConnectionStatusListener.java" target-dir="src/com/spoon/backgroundFileUpload" />
     </platform>
