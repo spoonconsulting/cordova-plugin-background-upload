@@ -24,6 +24,9 @@
 			<feature name="UploadPayload">
                 <param name="android-package" value="com.spoon.backgroundFileUpload.UploadPayload" />
             </feature>
+            <feature name="UploadEvent">
+                <param name="android-package" value="com.spoon.backgroundFileUpload.UploadEvent" />
+            </feature>
 			<feature name="ConnectionStatusListener">
                 <param name="android-package" value="com.spoon.backgroundFileUpload.ConnectionStatusListener" />
             </feature>

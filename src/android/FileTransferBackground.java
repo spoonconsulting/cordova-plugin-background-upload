@@ -58,13 +58,14 @@ public class FileTransferBackground extends CordovaPlugin {
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
             logMessage("upload did fail: " + exception);
+
             JSONObject errorObj = new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
                 put("error", "upload failed: " + exception != null ? exception.getMessage() : "");
                 put("errorCode", 0);
             }});
-            sendCallback(errorObj);
+            createAndSendEvent(errorObj);
         }
 
         @Override
@@ -76,7 +77,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 put("serverResponse", serverResponse.getBodyAsString());
                 put("statusCode", serverResponse.getHttpCode());
             }});
-            sendCallback(jsonObj);
+            createAndSendEvent(jsonObj);
         }
 
         @Override
@@ -93,9 +94,14 @@ public class FileTransferBackground extends CordovaPlugin {
                 put("errorCode", -999);
                 put("error", "upload cancelled");
             }});
-            sendCallback(jsonObj);
+            createAndSendEvent(jsonObj);
         }
     };
+
+    public void createAndSendEvent(JSONObject obj) {
+        UploadEvent.create(obj);
+        sendCallback(obj);
+    }
 
     public void sendCallback(JSONObject obj) {
         try {
@@ -117,7 +123,9 @@ public class FileTransferBackground extends CordovaPlugin {
             this.initManager(args.get(0).toString());
         } else if (action.equalsIgnoreCase("removeUpload")) {
             this.removeUpload(args.get(0).toString());
-        } else {
+        } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
+            this.acknowledgeEvent(args.get(0).toString());
+        } else if (action.equalsIgnoreCase("startUpload")) {
             upload((JSONObject) args.get(0));
         }
         return true;
@@ -247,11 +255,15 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
+    private void acknowledgeEvent(String eventId) {
+        UploadEvent.destroy(eventId);
+    }
+
     public void onDestroy() {
-        logMessage("plugin onDestroy, unsubscribing all callbacks");
+        logMessage("plugin onDestroy, stopping network monitor");
         hasBeenDestroyed = true;
         if (networkMonitor != null)
             networkMonitor.stopMonitoring();
-        //broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
+        broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
     }
 }
