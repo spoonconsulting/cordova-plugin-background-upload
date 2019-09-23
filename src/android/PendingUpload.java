@@ -36,7 +36,7 @@ public class PendingUpload extends SugarRecord {
     public static void remove(String uploadId) {
         try {
             List<PendingUpload> results = Select.from(PendingUpload.class)
-                    .where(Condition.prop("uploadId").eq(uploadId))
+                    .where(Condition.prop("upload_id").eq(uploadId))
                     .list();
             if (results.size() > 0)
                 results.get(0).delete();

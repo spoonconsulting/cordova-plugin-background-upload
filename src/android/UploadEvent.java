@@ -38,7 +38,7 @@ public class UploadEvent extends SugarRecord {
 
     public static void destroy(String eventId) {
         List<UploadEvent> results = Select.from(UploadEvent.class)
-                .where(Condition.prop("eventId").eq(eventId))
+                .where(Condition.prop("event_id").eq(eventId))
                 .list();
         if (results.size() > 0)
             results.get(0).delete();
