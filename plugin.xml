@@ -21,7 +21,7 @@
             <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
         </config-file> -->
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <activity android:label="@string/multi_app_name" android:configChanges="orientation|screenSize|keyboardHidden" android:name="com.synconset.MultiImageChooserActivity" android:theme="@style/Theme.AppCompat.Light">
+            <activity android:name="com.test.test" android:theme="@style/Theme.AppCompat.Light">
             </activity>
         </config-file>
         <config-file target="res/xml/config.xml" parent="/*">
