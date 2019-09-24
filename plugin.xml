@@ -14,6 +14,16 @@
         <framework src="net.gotev:uploadservice-okhttp:3.5.2" />
         <framework src="com.sromku:simple-storage:1.2.0" />
         <framework src="com.github.satyan:sugar:1.5" />
+         <!-- <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <meta-data android:name="DATABASE" android:value="cordova-plugin-background-upload.db" />
+            <meta-data android:name="VERSION" android:value="2" />
+            <meta-data android:name="QUERY_LOG" android:value="true" />
+            <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
+        </config-file> -->
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <activity android:label="@string/multi_app_name" android:configChanges="orientation|screenSize|keyboardHidden" android:name="com.synconset.MultiImageChooserActivity" android:theme="@style/Theme.AppCompat.Light">
+            </activity>
+        </config-file>
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
                 <param name="android-package" value="com.spoon.backgroundfileupload.FileTransferBackground" />
@@ -43,12 +53,7 @@
         <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
             <application android:name="com.orm.SugarApp" />
         </edit-config>
-        <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <meta-data android:name="DATABASE" android:value="cordova-plugin-background-upload.db" />
-            <meta-data android:name="VERSION" android:value="2" />
-            <meta-data android:name="QUERY_LOG" android:value="true" />
-            <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
-        </config-file>
+       
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundfileupload" />
 		<source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/backgroundfileupload" />
 		<source-file src="src/android/ConnectionStatusListener.java" target-dir="src/com/spoon/backgroundfileupload" />
