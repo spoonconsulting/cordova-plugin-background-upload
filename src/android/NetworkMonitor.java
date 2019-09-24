@@ -16,7 +16,7 @@
        specific language governing permissions and limitations
        under the License.
 */
-package com.spoon.backgroundFileUpload;
+package com.spoon.backgroundfileupload;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

@@ -16,22 +16,22 @@
         <framework src="com.github.satyan:sugar:1.5" />
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
-                <param name="android-package" value="com.spoon.backgroundFileUpload.FileTransferBackground" />
+                <param name="android-package" value="com.spoon.backgroundfileupload.FileTransferBackground" />
             </feature>
 			<feature name="NetworkMonitor">
-                <param name="android-package" value="com.spoon.backgroundFileUpload.NetworkMonitor" />
+                <param name="android-package" value="com.spoon.backgroundfileupload.NetworkMonitor" />
             </feature>
 			<feature name="UploadPayload">
-                <param name="android-package" value="com.spoon.backgroundFileUpload.UploadPayload" />
+                <param name="android-package" value="com.spoon.backgroundfileupload.UploadPayload" />
             </feature>
             <feature name="UploadEvent">
-                <param name="android-package" value="com.spoon.backgroundFileUpload.UploadEvent" />
+                <param name="android-package" value="com.spoon.backgroundfileupload.UploadEvent" />
             </feature>
 			<feature name="ConnectionStatusListener">
-                <param name="android-package" value="com.spoon.backgroundFileUpload.ConnectionStatusListener" />
+                <param name="android-package" value="com.spoon.backgroundfileupload.ConnectionStatusListener" />
             </feature>
             <feature name="PendingUpload">
-                <param name="android-package" value="com.spoon.backgroundFileUpload.PendingUpload" />
+                <param name="android-package" value="com.spoon.backgroundfileupload.PendingUpload" />
             </feature>
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/*">
@@ -40,18 +40,21 @@
             <uses-permission android:name="android.permission.INTERNET" />
 			<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
         </config-file>
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:name="com.orm.SugarApp" />
+        </edit-config>
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <meta-data android:name="DATABASE" android:value="cordova-plugin-background-upload.db" />
             <meta-data android:name="VERSION" android:value="2" />
             <meta-data android:name="QUERY_LOG" android:value="true" />
-            <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundFileUpload" />
+            <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
         </config-file>
-          <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
-            <application android:name="com.orm.SugarApp" />
-        </edit-config>
-        <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundFileUpload" />
-		<source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/backgroundFileUpload" />
-		<source-file src="src/android/ConnectionStatusListener.java" target-dir="src/com/spoon/backgroundFileUpload" />
+        <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundfileupload" />
+		<source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/backgroundfileupload" />
+		<source-file src="src/android/ConnectionStatusListener.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/PendingUpload" />
+        <source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/UploadPayload" />
+        <source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/UploadEvent" />
     </platform>
     <platform name="ios">
         <framework src="AFNetworking" type="podspec" spec="~> 3.2.1" />

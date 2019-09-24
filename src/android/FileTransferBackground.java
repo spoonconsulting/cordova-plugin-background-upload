@@ -1,4 +1,4 @@
-package com.spoon.backgroundFileUpload;
+package com.spoon.backgroundfileupload;
 
 import android.app.PendingIntent;
 import android.content.Context;

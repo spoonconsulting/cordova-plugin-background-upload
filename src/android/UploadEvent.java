@@ -1,4 +1,4 @@
-package com.spoon.backgroundFileUpload;
+package com.spoon.backgroundfileupload;
 
 import com.orm.SugarRecord;
 import com.orm.dsl.Unique;
