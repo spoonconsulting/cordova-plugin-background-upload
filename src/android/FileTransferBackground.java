@@ -41,6 +41,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private UploadServiceBroadcastReceiver broadcastReceiver = new UploadServiceBroadcastReceiver() {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
+            logMessage("upload " + uploadInfo.getUploadId() + " progress: " + uploadInfo.getProgressPercent());
             Long currentTimestamp = System.currentTimeMillis() / 1000;
             if (currentTimestamp - lastProgressTimestamp >= 1) {
                 lastProgressTimestamp = currentTimestamp;
@@ -216,6 +217,10 @@ public class FileTransferBackground extends CordovaPlugin {
             //mark v1 uploads as failed
             migrateOldUploads();
 
+            for (UploadEvent event :  UploadEvent.all()) {
+               sendCallback(event.dataRepresentation());
+            }
+
             networkMonitor = new NetworkMonitor(webView.getContext(), new ConnectionStatusListener() {
                 @Override
                 public void connectionDidChange(Boolean isConnected, String networkType) {
@@ -265,6 +270,6 @@ public class FileTransferBackground extends CordovaPlugin {
         hasBeenDestroyed = true;
         if (networkMonitor != null)
             networkMonitor.stopMonitoring();
-        broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
+//        broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
     }
 }

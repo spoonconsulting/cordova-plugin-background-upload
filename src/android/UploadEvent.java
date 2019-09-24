@@ -24,11 +24,16 @@ public class UploadEvent extends SugarRecord {
         data = payload.toString();
     }
 
-//    public JSONObject dataRepresentation() {
-//        JSONObject parseData = new JSONObject(this.data);
-//        parseData.put("platform", "android");
-//
-//    }
+    public JSONObject dataRepresentation() {
+        try {
+            JSONObject parseData = new JSONObject(this.data);
+            parseData.put("eventId", this.eventId);
+            return parseData;
+        } catch (Exception e) {
+            return null;
+        }
+
+    }
 
     public static UploadEvent create(JSONObject payload) {
         UploadEvent event = new UploadEvent(payload);
@@ -42,5 +47,9 @@ public class UploadEvent extends SugarRecord {
                 .list();
         if (results.size() > 0)
             results.get(0).delete();
+    }
+
+    public static List<UploadEvent> all() {
+        return UploadEvent.listAll(UploadEvent.class);
     }
 }
