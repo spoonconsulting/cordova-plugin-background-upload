@@ -110,7 +110,7 @@ uploader.on('event', function (event) {
 ```
 
 To prevent any event loss while transitioning between native code and javascript side, the plugin stores success/failure events on disk. Once you have received the event, you will need to acknowledge it else it will be broadcasted again when the plugin is initialised. Progress events do not have eventId and are not persisted.
-```
+```javascript
 uploader.on('event', function(event) {
     if (event.eventId) {
         uploader.acknowledgeEvent(event.eventId);
@@ -147,7 +147,7 @@ Hence to prevent the service from be killed, a progress notification is needed o
 - When v2 of the plugin is launched on an app containing uploads still in progress from v1 version, it will mark all of them as failed with `errorCode` 500 so that they can be retried.
 - If an upload is cancelled, an event with status `FAILED`, an error code -999 will be broadcasted in the global callback. It is up to the application to properly handle cancelled upload callbacks.
 - v2 removes the events `success`, `error`, `progress` and instead uses a single callback for all events delivery:
-    ```
+    ```javascript
     uploader.on('event', function (event) {
         //use event.state to handle different scenarios
     });
