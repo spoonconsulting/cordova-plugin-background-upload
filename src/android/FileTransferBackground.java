@@ -98,6 +98,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
     public void createAndSendEvent(JSONObject obj) {
         try {
+            PendingUpload.remove(obj.getString("id"));
             UploadEvent event = UploadEvent.create(obj);
             obj.put("eventId", event.eventId);
             sendCallback(obj);
@@ -137,7 +138,12 @@ public class FileTransferBackground extends CordovaPlugin {
     private void upload(JSONObject jsonPayload) {
         try {
             final UploadPayload payload = new UploadPayload(jsonPayload.toString());
+            if (UploadService.getTaskList().contains(payload.id)) {
+                logMessage("upload " + payload.id + " is already being uploaded. ignoring re-upload request");
+                return;
+            }
             logMessage("adding upload " + payload.id);
+            PendingUpload.create(jsonPayload);
             if (NetworkMonitor.isConnected) {
                 MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id, payload.serverUrl)
                         .addFileToUpload(payload.filePath, payload.fileKey)
@@ -165,10 +171,8 @@ public class FileTransferBackground extends CordovaPlugin {
                 }
 
                 request.startUpload();
-                PendingUpload.remove(payload.id);
             } else {
-                logMessage("No network available, adding upload (" + payload.id + ") to queue");
-                PendingUpload.create(jsonPayload);
+                logMessage("No network available, queueing upload (" + payload.id + ")");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -182,22 +186,6 @@ public class FileTransferBackground extends CordovaPlugin {
     private void removeUpload(String fileId) {
         PendingUpload.remove(fileId);
         UploadService.stopUpload(fileId);
-    }
-
-    private ArrayList<JSONObject> getUploadHistory() throws JSONException {
-        Storage storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
-        String uploadDirectoryName = "FileTransferBackground";
-        ArrayList<JSONObject> previousUploads = new ArrayList<JSONObject>();
-        List<File> files = storage.getFiles(uploadDirectoryName, OrderType.DATE);
-        for (File file : files) {
-            if (file.getName().endsWith(".json")) {
-                String content = storage.readTextFile(uploadDirectoryName, file.getName());
-                if (content != null) {
-                    previousUploads.add(new JSONObject(content));
-                }
-            }
-        }
-        return previousUploads;
     }
 
     private void initManager(String options) {
@@ -217,9 +205,13 @@ public class FileTransferBackground extends CordovaPlugin {
             //mark v1 uploads as failed
             migrateOldUploads();
 
-            for (UploadEvent event :  UploadEvent.all()) {
-               sendCallback(event.dataRepresentation());
+            //broadcast all completed upload events
+            for (UploadEvent event : UploadEvent.all()) {
+                sendCallback(event.dataRepresentation());
             }
+
+            //re-launch any pending uploads
+            uploadPendingList();
 
             networkMonitor = new NetworkMonitor(webView.getContext(), new ConnectionStatusListener() {
                 @Override
@@ -241,7 +233,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void migrateOldUploads() throws JSONException {
-        ArrayList<JSONObject> previousUploads = getUploadHistory();
+        ArrayList<JSONObject> previousUploads = getOldUploads();
         for (JSONObject upload : previousUploads) {
             String uploadId = upload.getString("id");
             JSONObject jsonObj = new JSONObject(new HashMap() {{
@@ -252,6 +244,22 @@ public class FileTransferBackground extends CordovaPlugin {
             }});
             sendCallback(jsonObj);
         }
+    }
+
+    private ArrayList<JSONObject> getOldUploads() throws JSONException {
+        Storage storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
+        String uploadDirectoryName = "FileTransferBackground";
+        ArrayList<JSONObject> previousUploads = new ArrayList<JSONObject>();
+        List<File> files = storage.getFiles(uploadDirectoryName, OrderType.DATE);
+        for (File file : files) {
+            if (file.getName().endsWith(".json")) {
+                String content = storage.readTextFile(uploadDirectoryName, file.getName());
+                if (content != null) {
+                    previousUploads.add(new JSONObject(content));
+                }
+            }
+        }
+        return previousUploads;
     }
 
     private void uploadPendingList() throws JSONException {
