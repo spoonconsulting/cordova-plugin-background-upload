@@ -22,8 +22,7 @@
             @"id" : uploadId,
             @"platform" : @"ios",
             @"error": @"upload failed",
-            @"errorCode" : @500,
-            @"serverResponse" : @500
+            @"errorCode" : @500
         }];
     }
 
