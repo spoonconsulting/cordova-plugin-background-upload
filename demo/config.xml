@@ -60,7 +60,7 @@
     <plugin name="cordova-plugin-image-picker" spec="~1.1.1" />
     <plugin name="cordova-plugin-background-upload" spec="https://github.com/spoonconsulting/cordova-plugin-background-upload.git" />
     <engine name="ios" spec="~4.3.1" />
-    <engine name="android" spec="~6.1.2" />
     <preference name="SplashScreen" value="screen" />
     <preference name="SplashScreenDelay" value="3000" />
+    <engine name="android" spec="8.0.0" />
 </widget>
