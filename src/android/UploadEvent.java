@@ -1,18 +1,12 @@
 package com.spoon.backgroundfileupload;
 
 import com.orm.SugarRecord;
-import com.orm.dsl.Unique;
-import com.orm.query.Condition;
-import com.orm.query.Select;
 
 import org.json.JSONObject;
 
 import java.util.List;
-import java.util.UUID;
 
 public class UploadEvent extends SugarRecord {
-    @Unique
-    String eventId;
     String data;
 
     public UploadEvent() {
@@ -20,19 +14,17 @@ public class UploadEvent extends SugarRecord {
     }
 
     public UploadEvent(JSONObject payload) {
-        eventId = UUID.randomUUID().toString();
         data = payload.toString();
     }
 
     public JSONObject dataRepresentation() {
         try {
             JSONObject parseData = new JSONObject(this.data);
-            parseData.put("eventId", this.eventId);
+            parseData.put("eventId", this.getId());
             return parseData;
         } catch (Exception e) {
             return null;
         }
-
     }
 
     public static UploadEvent create(JSONObject payload) {
@@ -41,12 +33,10 @@ public class UploadEvent extends SugarRecord {
         return event;
     }
 
-    public static void destroy(String eventId) {
-        List<UploadEvent> results = Select.from(UploadEvent.class)
-                .where(Condition.prop("event_id").eq(eventId))
-                .list();
-        if (results.size() > 0)
-            results.get(0).delete();
+    public static void destroy(Long eventId) {
+        UploadEvent event = UploadEvent.findById(UploadEvent.class, eventId);
+        if (event != null)
+            event.delete();
     }
 
     public static List<UploadEvent> all() {

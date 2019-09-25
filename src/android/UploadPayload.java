@@ -1,5 +1,6 @@
 package com.spoon.backgroundfileupload;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -21,47 +22,41 @@ public class UploadPayload {
     HashMap<String, String> parameters = new HashMap<String, String>();
 
 
-    public UploadPayload(String jsonSettings) {
-        try {
-            JSONObject settings = new JSONObject(jsonSettings);
-            filePath = settings.getString("filePath");
-            serverUrl = settings.getString("serverUrl");
-            id = settings.getString("id");
-            fileKey = settings.getString("fileKey");
-            if (settings.has("showNotification"))
-                showNotification = settings.getBoolean("showNotification");
-            if (settings.has("notificationTitle"))
-                notificationTitle = settings.getString("notificationTitle");
+    public UploadPayload(String jsonSettings) throws JSONException {
 
-            if (settings.has("headers")) {
-                JSONObject headersObject = settings.getJSONObject("headers");
-                if (headersObject != null) {
+        JSONObject settings = new JSONObject(jsonSettings);
+        filePath = settings.getString("filePath");
+        serverUrl = settings.getString("serverUrl");
+        id = settings.getString("id");
+        fileKey = settings.getString("fileKey");
+        if (settings.has("showNotification"))
+            showNotification = settings.getBoolean("showNotification");
+        if (settings.has("notificationTitle"))
+            notificationTitle = settings.getString("notificationTitle");
 
-                    Iterator<?> keys = headersObject.keys();
-                    while (keys.hasNext()) {
-                        String key = (String) keys.next();
-                        String value = headersObject.getString(key);
-                        headers.put(key, value);
-                    }
+        if (settings.has("headers")) {
+            JSONObject headersObject = settings.getJSONObject("headers");
+            if (headersObject != null) {
+                Iterator<?> keys = headersObject.keys();
+                while (keys.hasNext()) {
+                    String key = (String) keys.next();
+                    String value = headersObject.getString(key);
+                    headers.put(key, value);
                 }
             }
+        }
 
-            if (settings.has("parameters")) {
-                JSONObject parametersObject = settings.getJSONObject("parameters");
-                if (parametersObject != null) {
-
-                    Iterator<?> keys = parametersObject.keys();
-                    while (keys.hasNext()) {
-                        String key = (String) keys.next();
-                        String value = parametersObject.getString(key);
-                        parameters.put(key, value);
-                    }
-
+        if (settings.has("parameters")) {
+            JSONObject parametersObject = settings.getJSONObject("parameters");
+            if (parametersObject != null) {
+                Iterator<?> keys = parametersObject.keys();
+                while (keys.hasNext()) {
+                    String key = (String) keys.next();
+                    String value = parametersObject.getString(key);
+                    parameters.put(key, value);
                 }
-            }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+            }
         }
     }
 }
