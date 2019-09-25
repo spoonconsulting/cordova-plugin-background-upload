@@ -185,7 +185,6 @@ public class FileTransferBackground extends CordovaPlugin {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logMessage(jsonPayload.toString());
             String uploadId = id;
             JSONObject jsonObj = new JSONObject(new HashMap() {{
                 put("id", uploadId);
@@ -194,6 +193,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 put("error", e.getLocalizedMessage());
             }});
             sendCallback(jsonObj);
+            PendingUpload.remove(uploadId);
         }
     }
 
