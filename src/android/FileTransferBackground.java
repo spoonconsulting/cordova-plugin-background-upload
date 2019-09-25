@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
 
@@ -42,6 +43,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private boolean isNetworkAvailable = false;
     private Long lastProgressTimestamp = 0L;
     private boolean hasBeenDestroyed = false;
+    private Disposable networkObservable;
 
     private UploadServiceBroadcastReceiver broadcastReceiver = new UploadServiceBroadcastReceiver() {
         @Override
@@ -218,7 +220,7 @@ public class FileTransferBackground extends CordovaPlugin {
             //re-launch any pending uploads
             uploadPendingList();
 
-            ReactiveNetwork
+            networkObservable = ReactiveNetwork
                     .observeNetworkConnectivity(cordova.getContext())
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
@@ -230,6 +232,7 @@ public class FileTransferBackground extends CordovaPlugin {
                         }
 
                     });
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -281,6 +284,8 @@ public class FileTransferBackground extends CordovaPlugin {
     public void onDestroy() {
         logMessage("plugin onDestroy");
         hasBeenDestroyed = true;
+        if (networkObservable != null)
+            networkObservable.dispose();
 //        broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
     }
 }
