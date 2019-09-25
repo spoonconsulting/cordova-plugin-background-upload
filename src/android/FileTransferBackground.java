@@ -4,8 +4,10 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.NetworkInfo;
 import android.util.Log;
 
+import com.github.pwittchen.reactivenetwork.library.rx2.ReactiveNetwork;
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
@@ -29,6 +31,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 
 public class FileTransferBackground extends CordovaPlugin {
@@ -213,19 +218,31 @@ public class FileTransferBackground extends CordovaPlugin {
             //re-launch any pending uploads
             uploadPendingList();
 
-            networkMonitor = new NetworkMonitor(webView.getContext(), new ConnectionStatusListener() {
-                @Override
-                public void connectionDidChange(Boolean isConnected, String networkType) {
-                    try {
-                        if (isConnected) {
-                            logMessage("Network (" + networkType + ") now available, restarting pending uploads");
-                            uploadPendingList();
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
+            ReactiveNetwork
+                    .observeNetworkConnectivity(cordova.getContext())
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(connectivity -> {
+                        // do something with connectivity
+                        // you can call connectivity.state();
+                        // connectivity.type(); or connectivity.toString();
+                        if (connectivity.state() == NetworkInfo.State.CONNECTED)
+                            logMessage("Network now available, restarting pending uploads");
+                    });
+
+//            networkMonitor = new NetworkMonitor(webView.getContext(), new ConnectionStatusListener() {
+//                @Override
+//                public void connectionDidChange(Boolean isConnected, String networkType) {
+//                    try {
+//                        if (isConnected) {
+//                            logMessage("Network (" + networkType + ") now available, restarting pending uploads");
+//                            uploadPendingList();
+//                        }
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            });
 
         } catch (Exception e) {
             e.printStackTrace();
