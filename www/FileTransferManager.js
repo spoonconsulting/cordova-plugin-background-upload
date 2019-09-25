@@ -4,13 +4,12 @@ var FileTransferManager = function (options) {
   this._handlers = {
     event: []
   }
-  // store the options to this object instance
   this.options = options
   var that = this
   this.options.callback = function (result) {
     that.emit('event', result)
   }
-  exec(this.options.callback, null, 'FileTransferBackground', 'initManager', [options])
+  exec(this.options.callback, null, 'FileTransferBackground', 'initManager', [this.options])
 }
 
 FileTransferManager.prototype.startUpload = function (payload) {
@@ -54,10 +53,11 @@ FileTransferManager.prototype.startUpload = function (payload) {
     payload.parameters = {}
   }
 
-  // remove the prefix for mobile urls
-  payload.filePath = payload.filePath.replace('file://', '')
-
-  exec(this.options.callback, null, 'FileTransferBackground', 'startUpload', [payload])
+  var cb = this.options.callback
+  window.resolveLocalFileSystemURL(payload.filePath, function (entry) {
+    payload.filePath = entry.toURL().replace('file://', '')
+    exec(cb, null, 'FileTransferBackground', 'startUpload', [payload])
+  })
 }
 
 FileTransferManager.prototype.removeUpload = function (id, successCb, errorCb) {
