@@ -137,8 +137,9 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void upload(JSONObject jsonPayload) {
+        String id = null;
         try {
-            String id = jsonPayload.getString("id");
+            id = jsonPayload.getString("id");
             if (UploadService.getTaskList().contains(id)) {
                 logMessage("upload " + id + " is already being uploaded. ignoring re-upload request");
                 return;
@@ -160,7 +161,9 @@ public class FileTransferBackground extends CordovaPlugin {
                     Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
                     PendingIntent pendingIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
                     config.setClickIntentForAllStatuses(pendingIntent);
-                    String notificationTitle = jsonPayload.getString("notificationTitle");
+                    String notificationTitle = null;
+                    if (jsonPayload.has("notificationTitle"))
+                        notificationTitle = jsonPayload.getString("notificationTitle");
                     if (notificationTitle != null)
                         config.getProgress().title = notificationTitle;
                     request.setNotificationConfig(config);
@@ -182,6 +185,15 @@ public class FileTransferBackground extends CordovaPlugin {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            logMessage(jsonPayload.toString());
+            String uploadId = id;
+            JSONObject jsonObj = new JSONObject(new HashMap() {{
+                put("id", uploadId);
+                put("state", "FAILED");
+                put("errorCode", 500);
+                put("error", e.getLocalizedMessage());
+            }});
+            sendCallback(jsonObj);
         }
     }
 
