@@ -44,7 +44,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
     payload.fileKey = 'file'
   }
 
-  if (payload.showNotification == null) {
+  if (payload.showNotification === null || payload.showNotification === undefined) {
     payload.showNotification = true
   }
 
