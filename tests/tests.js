@@ -92,7 +92,7 @@ exports.defineAutoTests = function () {
             done()
           } else if (upload.state === 'UPLOADING') {
             expect(upload.id).toBe('a_file_id')
-            expect(upload.progress).toBeGreaterThan(0)
+            expect(upload.progress).toBeGreaterThanOrEqualTo(0)
             expect(upload.eventId).toBeUndefined()
             expect(upload.error).toBeUndefined()
           }
