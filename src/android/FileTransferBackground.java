@@ -173,7 +173,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
                 HashMap<String, String> parameters = convertToHashMap(jsonPayload.getJSONObject("parameters"));
                 for (String key : parameters.keySet()) {
-                    request.addHeader(key, parameters.get(key));
+                    request.addParameter(key, parameters.get(key));
                 }
 
                 request.startUpload();
