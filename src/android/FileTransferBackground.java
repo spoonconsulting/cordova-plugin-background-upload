@@ -28,6 +28,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -137,19 +138,20 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private void upload(JSONObject jsonPayload) {
         try {
-            final UploadPayload payload = new UploadPayload(jsonPayload.toString());
-            if (UploadService.getTaskList().contains(payload.id)) {
-                logMessage("upload " + payload.id + " is already being uploaded. ignoring re-upload request");
+            String id = jsonPayload.getString("id");
+            if (UploadService.getTaskList().contains(id)) {
+                logMessage("upload " + id + " is already being uploaded. ignoring re-upload request");
                 return;
             }
-            logMessage("adding upload " + payload.id);
+            logMessage("adding upload " + id);
             PendingUpload.create(jsonPayload);
             if (NetworkMonitor.isConnected) {
-                MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.id, payload.serverUrl)
-                        .addFileToUpload(payload.filePath, payload.fileKey)
+                MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), id,
+                        jsonPayload.getString("serverUrl"))
+                        .addFileToUpload(jsonPayload.getString("filePath"), jsonPayload.getString("fileKey"))
                         .setMaxRetries(0);
 
-                if (payload.showNotification) {
+                if (jsonPayload.getBoolean("showNotification")) {
                     UploadNotificationConfig config = new UploadNotificationConfig();
                     config.getCompleted().autoClear = true;
                     config.getCancelled().autoClear = true;
@@ -158,25 +160,43 @@ public class FileTransferBackground extends CordovaPlugin {
                     Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
                     PendingIntent pendingIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
                     config.setClickIntentForAllStatuses(pendingIntent);
-                    if (payload.notificationTitle != null)
-                        config.getProgress().title = payload.notificationTitle;
+                    String notificationTitle = jsonPayload.getString("notificationTitle");
+                    if (notificationTitle != null)
+                        config.getProgress().title = notificationTitle;
                     request.setNotificationConfig(config);
                 }
-                for (String key : payload.parameters.keySet()) {
-                    request.addParameter(key, payload.parameters.get(key));
+
+                HashMap<String, String> headers = convertToHashMap(jsonPayload.getJSONObject("headers"));
+                for (String key : headers.keySet()) {
+                    request.addHeader(key, headers.get(key));
                 }
 
-                for (String key : payload.headers.keySet()) {
-                    request.addHeader(key, payload.headers.get(key));
+                HashMap<String, String> parameters = convertToHashMap(jsonPayload.getJSONObject("parameters"));
+                for (String key : parameters.keySet()) {
+                    request.addHeader(key, parameters.get(key));
                 }
 
                 request.startUpload();
             } else {
-                logMessage("No network available, queueing upload (" + payload.id + ")");
+                logMessage("No network available, queueing upload (" + id + ")");
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+
+    private HashMap<String, String> convertToHashMap(JSONObject jsonObject) throws JSONException {
+        HashMap<String, String> hashMap = new HashMap<>();
+        if (jsonObject != null) {
+            Iterator<?> keys = jsonObject.keys();
+            while (keys.hasNext()) {
+                String key = (String) keys.next();
+                String value = jsonObject.getString(key);
+                hashMap.put(key, value);
+            }
+        }
+        return hashMap;
     }
 
     private void logMessage(String message) {

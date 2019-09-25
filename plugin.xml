@@ -26,9 +26,6 @@
 			<feature name="NetworkMonitor">
                 <param name="android-package" value="com.spoon.backgroundfileupload.NetworkMonitor" />
             </feature>
-			<feature name="UploadPayload">
-                <param name="android-package" value="com.spoon.backgroundfileupload.UploadPayload" />
-            </feature>
             <feature name="UploadEvent">
                 <param name="android-package" value="com.spoon.backgroundfileupload.UploadEvent" />
             </feature>
@@ -53,7 +50,6 @@
 		<source-file src="src/android/NetworkMonitor.java" target-dir="src/com/spoon/backgroundfileupload" />
 		<source-file src="src/android/ConnectionStatusListener.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/PendingUpload.java" target-dir="src/com/spoon/backgroundfileupload" />
-        <source-file src="src/android/UploadPayload.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEvent.java" target-dir="src/com/spoon/backgroundfileupload" />
     </platform>
     <platform name="ios">
