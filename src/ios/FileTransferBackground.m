@@ -99,6 +99,8 @@
             [oldUploadIds addObject:uploadId];
         }
     }
+    //remove the old uploads directory
+    [[NSFileManager defaultManager] removeItemAtURL:workDirectoryURL error:nil];
     return oldUploadIds;
 }
 @end
