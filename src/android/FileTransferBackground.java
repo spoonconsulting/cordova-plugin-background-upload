@@ -223,27 +223,12 @@ public class FileTransferBackground extends CordovaPlugin {
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(connectivity -> {
-                        // do something with connectivity
-                        // you can call connectivity.state();
-                        // connectivity.type(); or connectivity.toString();
-                        if (connectivity.state() == NetworkInfo.State.CONNECTED)
+                        if (connectivity.state() == NetworkInfo.State.CONNECTED) {
                             logMessage("Network now available, restarting pending uploads");
+                            uploadPendingList();
+                        }
+
                     });
-
-//            networkMonitor = new NetworkMonitor(webView.getContext(), new ConnectionStatusListener() {
-//                @Override
-//                public void connectionDidChange(Boolean isConnected, String networkType) {
-//                    try {
-//                        if (isConnected) {
-//                            logMessage("Network (" + networkType + ") now available, restarting pending uploads");
-//                            uploadPendingList();
-//                        }
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//            });
-
         } catch (Exception e) {
             e.printStackTrace();
         }

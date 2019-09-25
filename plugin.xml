@@ -15,7 +15,7 @@
         <framework src="com.sromku:simple-storage:1.2.0" />
         <framework src="com.github.satyan:sugar:1.5" />
         <framework src="com.github.pwittchen:ReactiveNetwork:v3.0.6-rx2" />
-        <framework src="src/android/plugin.gradle" custom="true" type="gradleReference"/>
+        <!-- <framework src="src/android/plugin.gradle" custom="true" type="gradleReference"/> -->
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
                 <param name="android-package" value="com.spoon.backgroundfileupload.FileTransferBackground" />
