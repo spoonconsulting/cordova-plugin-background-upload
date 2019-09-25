@@ -71,7 +71,7 @@ FileTransferManager.prototype.removeUpload = function (id, successCb, errorCb) {
 }
 
 FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorCb) {
-  if (!id) {
+  if (!id && errorCb) {
     return errorCb({ error: 'event id is required' })
   }
   exec(successCb, errorCb, 'FileTransferBackground', 'acknowledgeEvent', [id])
