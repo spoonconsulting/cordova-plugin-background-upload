@@ -56,10 +56,12 @@ FileTransferManager.prototype.startUpload = function (payload) {
     payload.parameters = {}
   }
 
-  var cb = this.options.callback
+  var self = this
   window.resolveLocalFileSystemURL(payload.filePath, function (entry) {
     payload.filePath = entry.toURL().replace('file://', '')
-    exec(cb, null, 'FileTransferBackground', 'startUpload', [payload])
+    exec(self.options.callback, null, 'FileTransferBackground', 'startUpload', [payload])
+  }, function () {
+    self.options.callback({ id: payload.id, error: 'file does not exist: ' + payload.filePath })
   })
 }
 
