@@ -17,26 +17,26 @@ var FileTransferManager = function (options) {
 
 FileTransferManager.prototype.startUpload = function (payload) {
   if (!payload) {
-    return this.options.callback({ error: 'upload settings object is missing or invalid argument' })
+    return this.options.callback({ state: 'FAILED', error: 'upload settings object is missing or invalid argument' })
   }
 
   if (!payload.id) {
-    return this.options.callback({ error: 'upload id is required' })
+    return this.options.callback({ state: 'FAILED', error: 'upload id is required' })
   }
 
   if (!payload.serverUrl) {
-    return this.options.callback({ id: payload.id, error: 'server url is required' })
+    return this.options.callback({ id: payload.id, state: 'FAILED', error: 'server url is required' })
   }
 
   if (payload.serverUrl.trim() === '') {
-    return this.options.callback({ id: payload.id, error: 'invalid server url' })
+    return this.options.callback({ id: payload.id, state: 'FAILED', error: 'invalid server url' })
   }
 
   if (!payload.filePath) {
     if (payload.file) {
       payload.filePath = payload.file
     } else {
-      return this.options.callback({ id: payload.id, error: 'filePath is required' })
+      return this.options.callback({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
     }
   }
 
@@ -61,7 +61,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
     payload.filePath = entry.toURL().replace('file://', '')
     exec(self.options.callback, null, 'FileTransferBackground', 'startUpload', [payload])
   }, function () {
-    self.options.callback({ id: payload.id, error: 'file does not exist: ' + payload.filePath })
+    self.options.callback({ id: payload.id, state: 'FAILED', error: 'file does not exist: ' + payload.filePath })
   })
 }
 
