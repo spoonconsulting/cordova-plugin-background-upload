@@ -232,7 +232,6 @@ exports.defineAutoTests = function () {
             expect(upload.eventId).toBeDefined()
             expect(upload.error).toContain('cancel')
             expect(upload.errorCode).toBe(-999)
-            expect(upload.platform).toBe('ios')
             nativeUploader.acknowledgeEvent(upload.eventId)
             nativeUploader.off('event', cb)
             done()

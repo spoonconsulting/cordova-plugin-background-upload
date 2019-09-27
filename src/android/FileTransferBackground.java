@@ -129,7 +129,7 @@ public class FileTransferBackground extends CordovaPlugin {
         } else if (action.equalsIgnoreCase("removeUpload")) {
             this.removeUpload(args.get(0).toString());
         } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
-            this.acknowledgeEvent(args.getLong(0));
+            this.acknowledgeEvent(args.getLong(0), callbackContext);
         } else if (action.equalsIgnoreCase("startUpload")) {
             upload((JSONObject) args.get(0));
         }
@@ -303,8 +303,11 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void acknowledgeEvent(Long eventId) {
+    private void acknowledgeEvent(Long eventId, CallbackContext context) {
         UploadEvent.destroy(eventId);
+        PluginResult result = new PluginResult(PluginResult.Status.OK);
+        result.setKeepCallback(true);
+        context.sendPluginResult(result);
     }
 
     public void onDestroy() {
