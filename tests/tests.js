@@ -283,7 +283,7 @@ exports.defineAutoTests = function () {
 
       it('does not return error if eventId is given', function (done) {
         var nativeUploader = FileTransferManager.init()
-        nativeUploader.acknowledgeEvent('x-coredata://123/UploadEvent/p1', done, null)
+        nativeUploader.acknowledgeEvent('123', done, null)
       })
     })
   })
