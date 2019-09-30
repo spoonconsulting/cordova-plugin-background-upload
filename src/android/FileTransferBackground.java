@@ -101,7 +101,7 @@ public class FileTransferBackground extends CordovaPlugin {
         try {
             PendingUpload.remove(obj.getString("id"));
             UploadEvent event = UploadEvent.create(obj);
-            obj.put("eventId", event.getId());
+            obj.put("eventId", event.getId().toString());
             sendCallback(obj);
         } catch (Exception e) {
             e.printStackTrace();
@@ -129,7 +129,7 @@ public class FileTransferBackground extends CordovaPlugin {
         } else if (action.equalsIgnoreCase("removeUpload")) {
             this.removeUpload(args.get(0).toString(), callbackContext);
         } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
-            this.acknowledgeEvent(args.getLong(0), callbackContext);
+            this.acknowledgeEvent(args.getString(0), callbackContext);
         } else if (action.equalsIgnoreCase("startUpload")) {
             upload((JSONObject) args.get(0));
         }
@@ -306,8 +306,8 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void acknowledgeEvent(Long eventId, CallbackContext context) {
-        UploadEvent.destroy(eventId);
+    private void acknowledgeEvent(String eventId, CallbackContext context) {
+        UploadEvent.destroy(Long.valueOf(eventId).longValue());
         PluginResult result = new PluginResult(PluginResult.Status.OK);
         result.setKeepCallback(true);
         context.sendPluginResult(result);
