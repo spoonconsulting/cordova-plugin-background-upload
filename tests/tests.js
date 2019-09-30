@@ -195,6 +195,21 @@ exports.defineAutoTests = function () {
         nativeUploader.on('event', cb)
         nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })
       })
+
+      it('sends a FAILED callback if file does not exist', function (done) {
+        var nativeUploader = FileTransferManager.init()
+        var cb = function (upload) {
+          if (upload.state === 'FAILED') {
+            expect(upload.id).toBe('nox')
+            expect(upload.eventId).toBeUndefined()
+            expect(upload.error).toContain('file does not exist')
+            nativeUploader.off('event', cb)
+            done()
+          }
+        }
+        nativeUploader.on('event', cb)
+        nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' })
+      })
     })
 
     describe('Remove upload', function () {
