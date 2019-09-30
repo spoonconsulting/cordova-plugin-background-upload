@@ -7,6 +7,10 @@
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
         <clobbers target="FileTransferManager" />
     </js-module>
+     <engines>
+        <engine name="cordova" version=">=8.0.0" />
+        <engine name="cordova-android" version=">=8.0.0" />
+    </engines>
    <dependency id="cordova-plugin-androidx" version="1.0.2"/>
    <dependency id="cordova-plugin-androidx-adapter" version="1.1.0"/>
     <platform name="android">
@@ -15,12 +19,13 @@
         <framework src="com.sromku:simple-storage:1.2.0" />
         <framework src="com.github.satyan:sugar:1.5" />
         <framework src="com.github.pwittchen:reactivenetwork-rx2:3.0.6" />
+         <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:name="com.orm.SugarApp" />
+        </edit-config>
+
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
                 <param name="android-package" value="com.spoon.backgroundfileupload.FileTransferBackground" />
-            </feature>
-			<feature name="UploadPayload">
-                <param name="android-package" value="com.spoon.backgroundfileupload.UploadPayload" />
             </feature>
             <feature name="UploadEvent">
                 <param name="android-package" value="com.spoon.backgroundfileupload.UploadEvent" />
@@ -29,19 +34,21 @@
                 <param name="android-package" value="com.spoon.backgroundfileupload.PendingUpload" />
             </feature>
         </config-file>
-        <config-file target="AndroidManifest.xml" parent="/*">
+        <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.INTERNET" />
-			<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
         </config-file>
-        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
-            <application android:name="com.orm.SugarApp" />
-        </edit-config>
-       
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <meta-data android:name="DATABASE" android:value="cordova-plugin-background-upload.db" />
+            <meta-data android:name="VERSION" android:value="1" />
+            <meta-data android:name="QUERY_LOG" android:value="true" />
+            <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
+        </config-file>
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/PendingUpload.java" target-dir="src/com/spoon/backgroundfileupload" />
-        <source-file src="src/android/UploadPayload.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEvent.java" target-dir="src/com/spoon/backgroundfileupload" />
     </platform>
     <platform name="ios">

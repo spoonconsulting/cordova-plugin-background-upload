@@ -9,6 +9,10 @@
     <description>Cordova plugin for background upload</description>
     <license>Apache 2.0</license>
     <repo>https://github.com/spoonconsulting/cordova-plugin-background-upload.git</repo>
+     <engines>
+        <engine name="cordova" version=">=8.0.0" />
+        <engine name="cordova-android" version=">=8.0.0" />
+    </engines>
    <js-module src="test-utils.js" name="TestUtils">
 		<clobbers target="window.TestUtils"/>
 	</js-module>
