@@ -34,17 +34,7 @@
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
     NSDictionary* payload = command.arguments[0];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:payload[@"filePath"]]){
-        [self sendCallback:@{
-            @"id" : payload[@"id"],
-            @"error" : @"file does not exists",
-            @"errorCode" : @(NSFileReadNoSuchFileError),
-            @"platform" : @"ios"
-        }];
-        return;
-    }
     __weak FileTransferBackground *weakSelf = self;
-    
     [[FileUploader sharedInstance] addUpload:payload
                            completionHandler:^(NSError* error) {
         if (error){
