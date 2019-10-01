@@ -40,7 +40,7 @@ app.post('/upload', fUpload, (req, res, next) => {
           parameters: params
         }
       }
-      res.send(JSON.stringify(toSend))
+      res.status(210).send(JSON.stringify(toSend))
     }
   })
 })
