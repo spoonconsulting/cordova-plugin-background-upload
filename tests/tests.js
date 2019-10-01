@@ -221,8 +221,8 @@ exports.defineAutoTests = function () {
             uploadCount++
             if (uploadCount === 2) {
               nativeUploader.off('event', cb)
-              expect(ids.has('file_1').toBeTruthy())
-              expect(ids.has('file_2').toBeTruthy())
+              expect(ids.has('file_1')).toBeTruthy()
+              expect(ids.has('file_2')).toBeTruthy()
               done()
             }
           } else if (upload.state === 'UPLOADING') {
