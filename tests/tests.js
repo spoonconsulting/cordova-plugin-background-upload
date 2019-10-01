@@ -139,7 +139,7 @@ exports.defineAutoTests = function () {
           }
         }
         nativeUploader.on('event', cb)
-        nativeUploader.startUpload({ id: 'pkl', serverUrl: 'https://httpbin.org/status/210', filePath: path })
+        nativeUploader.startUpload({ id: 'pkl', serverUrl: serverUrl, filePath: path })
       })
 
       it('sends supplied headers during upload', function (done) {
