@@ -1,9 +1,6 @@
 var exec = require('cordova/exec')
 
 var FileTransferManager = function (options) {
-  this._handlers = {
-    event: []
-  }
   this.options = options
   var that = this
   this.options.callback = function (result) {
@@ -79,65 +76,21 @@ FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorC
   exec(successCb, errorCb, 'FileTransferBackground', 'acknowledgeEvent', [id])
 }
 
-/**
- * Listen for an event.
- *
- * Any event is supported, but the following are built-in:
- *
- *   - registration
- *   - notification
- *   - error
- *
- * @param {String} eventName to subscribe to.
- * @param {Function} callback triggered on the event.
- */
-
 FileTransferManager.prototype.on = function (eventName, callback) {
-  if (!Object.prototype.hasOwnProperty.call(this._handlers, eventName)) {
-    this._handlers[eventName] = []
-  }
-  this._handlers[eventName].push(callback)
+  this.callback = callback
 }
-
-/**
- * Remove event listener.
- *
- * @param {String} eventName to match subscription.
- * @param {Function} handle function associated with event.
- */
 
 FileTransferManager.prototype.off = function (eventName, handle) {
-  if (Object.prototype.hasOwnProperty.call(this._handlers, eventName)) {
-    var handleIndex = this._handlers[eventName].indexOf(handle)
-    if (handleIndex >= 0) {
-      this._handlers[eventName].splice(handleIndex, 1)
-    }
-  }
+  this.callback = null
 }
-
-/**
- * Emit an event.
- *
- * This is intended for internal use only.
- *
- * @param {String} eventName is the event to trigger.
- * @param {*} all arguments are passed to the event listeners.
- *
- * @return {Boolean} is true when the event is triggered otherwise false.
- */
 
 FileTransferManager.prototype.emit = function () {
   var args = Array.prototype.slice.call(arguments)
   var eventName = args.shift()
-  if (!Object.prototype.hasOwnProperty.call(this._handlers, eventName)) { return false }
-
-  for (var i = 0, length = this._handlers[eventName].length; i < length; i++) {
-    var callback = this._handlers[eventName][i]
-    if (typeof callback === 'function') {
-      callback.apply(undefined, args)
-    } else {
-      console.log('event handler: ' + eventName + ' must be a function')
-    }
+  if (typeof this.callback === 'function') {
+    this.callback.apply(undefined, args)
+  } else {
+    console.log('event handler: ' + eventName + ' must be a function')
   }
   return true
 }
