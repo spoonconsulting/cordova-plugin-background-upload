@@ -36,7 +36,7 @@ exports.defineAutoTests = function () {
 
       it('returns an error if no argument is given', function (done) {
         var nativeUploader = FileTransferManager.init()
-        nativeUploader.on('event', function (result) {
+        nativeUploader.addEventListener(function (result) {
           expect(result.error).toBe('upload settings object is missing or invalid argument')
           done()
         })
@@ -45,7 +45,7 @@ exports.defineAutoTests = function () {
 
       it('returns an error if upload id is missing', function (done) {
         var nativeUploader = FileTransferManager.init()
-        nativeUploader.on('event', function (result) {
+        nativeUploader.addEventListener(function (result) {
           expect(result.error).toBe('upload id is required')
           done()
         })
@@ -54,7 +54,7 @@ exports.defineAutoTests = function () {
 
       it('returns an error if serverUrl is missing', function (done) {
         var nativeUploader = FileTransferManager.init()
-        nativeUploader.on('event', function (result) {
+        nativeUploader.addEventListener(function (result) {
           expect(result.id).toBe('test_id')
           expect(result.error).toBe('server url is required')
           done()
@@ -64,7 +64,7 @@ exports.defineAutoTests = function () {
 
       it('returns an error if serverUrl is invalid', function (done) {
         var nativeUploader = FileTransferManager.init()
-        nativeUploader.on('event', function (result) {
+        nativeUploader.addEventListener(function (result) {
           expect(result).toBeDefined()
           expect(result.id).toBe('123_456')
           expect(result.error).toBe('invalid server url')
@@ -75,7 +75,7 @@ exports.defineAutoTests = function () {
 
       it('returns an error if filePath is missing', function (done) {
         var nativeUploader = FileTransferManager.init()
-        nativeUploader.on('event', function (result) {
+        nativeUploader.addEventListener(function (result) {
           expect(result.id).toBe('some_id')
           expect(result.error).toBe('filePath is required')
           done()
