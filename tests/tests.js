@@ -88,7 +88,7 @@ exports.defineAutoTests = function () {
         var cb = function (upload) {
           if (upload.state === 'UPLOADED') {
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.off('event', cb)
+            nativeUploader.removeEventListener()
             done()
           } else if (upload.state === 'UPLOADING') {
             expect(upload.id).toBe('a_file_id')
@@ -97,7 +97,7 @@ exports.defineAutoTests = function () {
             expect(upload.error).toBeUndefined()
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'a_file_id', serverUrl: serverUrl, filePath: path })
       })
 
@@ -119,11 +119,11 @@ exports.defineAutoTests = function () {
               parameters: {}
             })
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.off('event', cb)
+            nativeUploader.removeEventListener()
             done()
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path })
       })
 
@@ -134,11 +134,11 @@ exports.defineAutoTests = function () {
             expect(upload.id).toBe('pkl')
             expect(upload.statusCode).toBe(210)
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.off('event', cb)
+            nativeUploader.removeEventListener()
             done()
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'pkl', serverUrl: serverUrl, filePath: path })
       })
 
@@ -152,11 +152,11 @@ exports.defineAutoTests = function () {
             expect(response.receivedInfo.headers.signature).toBe('secret_hash')
             expect(response.receivedInfo.headers.source).toBe('test')
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.off('event', cb)
+            nativeUploader.removeEventListener()
             done()
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers })
       })
 
@@ -172,11 +172,11 @@ exports.defineAutoTests = function () {
             var response = JSON.parse(upload.serverResponse)
             expect(response.receivedInfo.parameters).toEqual(params)
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.off('event', cb)
+            nativeUploader.removeEventListener()
             done()
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
       })
 
@@ -188,11 +188,11 @@ exports.defineAutoTests = function () {
             expect(upload.error).toBeDefined()
             expect(upload.errorCode).toBeDefined()
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.off('event', cb)
+            nativeUploader.removeEventListener()
             done()
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })
       })
 
@@ -203,11 +203,11 @@ exports.defineAutoTests = function () {
             expect(upload.id).toBe('nox')
             expect(upload.eventId).toBeUndefined()
             expect(upload.error).toContain('file does not exist')
-            nativeUploader.off('event', cb)
+            nativeUploader.removeEventListener()
             done()
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' })
       })
 
@@ -220,7 +220,7 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId)
             uploadCount++
             if (uploadCount === 2) {
-              nativeUploader.off('event', cb)
+              nativeUploader.removeEventListener()
               expect(ids.has('file_1')).toBeTruthy()
               expect(ids.has('file_2')).toBeTruthy()
               done()
@@ -229,7 +229,7 @@ exports.defineAutoTests = function () {
             ids.add(upload.id)
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
         nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
       })
@@ -271,13 +271,13 @@ exports.defineAutoTests = function () {
             expect(upload.error).toContain('cancel')
             expect(upload.errorCode).toBe(-999)
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.off('event', cb)
+            nativeUploader.removeEventListener()
             done()
           } else if (upload.state === 'UPLOADING') {
             nativeUploader.removeUpload('xyz', null, null)
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path })
       })
     })

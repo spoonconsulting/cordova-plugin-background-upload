@@ -9,7 +9,7 @@ var FileTransferManager = function (options) {
   if (!this.options.parallelUploadsLimit) {
     this.options.parallelUploadsLimit = 1
   }
-  exec(this.options.callback, null, 'FileTransferBackground', 'initManager', [this.options])
+  exec(null, null, 'FileTransferBackground', 'initManager', [this.options])
 }
 
 FileTransferManager.prototype.startUpload = function (payload) {
@@ -76,24 +76,23 @@ FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorC
   exec(successCb, errorCb, 'FileTransferBackground', 'acknowledgeEvent', [id])
 }
 
-FileTransferManager.prototype.on = function (eventName, callback) {
-  if(this.callback !== null) { throw new Errror('Callback already defined'); }
+FileTransferManager.prototype.addEventListener = function (callback) {
+  if (typeof callback !== 'function') {
+    throw new Error('event handler must be a function')
+  }
+  if (this.callback !== null) {
+    throw new Error('Callback already defined')
+  }
   this.callback = callback
 }
 
-FileTransferManager.prototype.off = function (eventName, handle) {
+FileTransferManager.prototype.removeEventListener = function () {
   this.callback = null
 }
 
 FileTransferManager.prototype.emit = function () {
   var args = Array.prototype.slice.call(arguments)
-  var eventName = args.shift()
-  if (typeof this.callback === 'function') {
-    this.callback.apply(undefined, args)
-  } else {
-    console.log('event handler: ' + eventName + ' must be a function')
-  }
-  return true
+  this.callback.apply(undefined, args)
 }
 
 module.exports = {
