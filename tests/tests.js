@@ -2,6 +2,7 @@
 
 exports.defineAutoTests = function () {
   describe('Uploader', function () {
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 25000
     var sampleFile = 'tree.jpg'
     var path = ''
     var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
