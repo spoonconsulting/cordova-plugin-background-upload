@@ -183,7 +183,7 @@ exports.defineAutoTests = function () {
 
       it('can upload in parallel', function (done) {
         var nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 2 })
-        const ids = new Set()
+        let ids = new Set()
         let uploadCount = 0
         var cb = function (upload) {
           if (upload.state === 'UPLOADED') {
@@ -198,14 +198,12 @@ exports.defineAutoTests = function () {
               done()
             }
           } else if (upload.state === 'UPLOADING') {
-            console.log('upload progress for ', uploadCount)
             ids.add(upload.id)
           }
         }
         nativeUploader.on('event', cb)
         nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
         nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
-        // done()
       })
 
       it('sends a FAILED event if upload fails', function (done) {
