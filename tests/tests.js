@@ -184,10 +184,8 @@ exports.defineAutoTests = function () {
           if (upload.state === 'UPLOADED') {
             nativeUploader.acknowledgeEvent(upload.eventId)
             if (ids.size === 1) {
-              console.log('parallel ids:', ids)
               expect(ids).toEqual(new Set(['file_1', 'file_2']))
-            } else
-            if (ids.size === 2) {
+            } else if (ids.size === 2) {
               nativeUploader.off('event', cb)
               done()
             }
