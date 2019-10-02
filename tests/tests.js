@@ -211,7 +211,6 @@ exports.defineAutoTests = function () {
         nativeUploader.on('event', cb)
         nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' })
       })
-
     })
 
     describe('Remove upload', function () {
