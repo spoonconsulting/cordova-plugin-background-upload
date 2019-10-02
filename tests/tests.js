@@ -187,7 +187,7 @@ exports.defineAutoTests = function () {
         // let uploadCount = 0
         var cb = function (upload) {
           if (upload.state === 'UPLOADED') {
-            // nativeUploader.acknowledgeEvent(upload.eventId)
+            nativeUploader.acknowledgeEvent(upload.eventId)
             //     uploadCount++
             //     //     if (uploadCount === 1) {
             //     //       expect(ids.has('file_1')).toBeTruthy()
