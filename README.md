@@ -43,7 +43,7 @@ Initialises the uploader with provided configuration. To control the number of p
 Adds an upload. In case the plugin was not able to enqueue the upload, an error will be emitted in the global event listener.
 ```javascript
 var payload = {
-    id: "sj5f9",
+    id: "c3a4b4c7-4f1e-4c69-a951-773602e269fb",
     filePath: "/storage/emulated/0/Download/Heli.divx",
     fileKey: "file",
     serverUrl: "http://requestb.in/14cizzj1",
