@@ -9,7 +9,7 @@ var FileTransferManager = function (options) {
   if (!this.options.parallelUploadsLimit) {
     this.options.parallelUploadsLimit = 1
   }
-  exec(null, null, 'FileTransferBackground', 'initManager', [this.options])
+  exec(this.options.callback, null, 'FileTransferBackground', 'initManager', [this.options])
 }
 
 FileTransferManager.prototype.startUpload = function (payload) {
