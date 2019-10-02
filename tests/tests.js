@@ -38,6 +38,7 @@ exports.defineAutoTests = function () {
         var nativeUploader = FileTransferManager.init()
         nativeUploader.addEventListener(function (result) {
           expect(result.error).toBe('upload settings object is missing or invalid argument')
+          nativeUploader.removeEventListener()
           done()
         })
         nativeUploader.startUpload(null)
@@ -47,6 +48,7 @@ exports.defineAutoTests = function () {
         var nativeUploader = FileTransferManager.init()
         nativeUploader.addEventListener(function (result) {
           expect(result.error).toBe('upload id is required')
+          nativeUploader.removeEventListener()
           done()
         })
         nativeUploader.startUpload({ })
@@ -57,6 +59,7 @@ exports.defineAutoTests = function () {
         nativeUploader.addEventListener(function (result) {
           expect(result.id).toBe('test_id')
           expect(result.error).toBe('server url is required')
+          nativeUploader.removeEventListener()
           done()
         })
         nativeUploader.startUpload({ id: 'test_id', filePath: path })
@@ -68,6 +71,7 @@ exports.defineAutoTests = function () {
           expect(result).toBeDefined()
           expect(result.id).toBe('123_456')
           expect(result.error).toBe('invalid server url')
+          nativeUploader.removeEventListener()
           done()
         })
         nativeUploader.startUpload({ id: '123_456', serverUrl: '  ' })
