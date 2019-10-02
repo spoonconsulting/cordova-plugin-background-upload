@@ -189,15 +189,14 @@ exports.defineAutoTests = function () {
           if (upload.state === 'UPLOADED') {
             nativeUploader.acknowledgeEvent(upload.eventId)
             uploadCount++
-            // if (uploadCount === 1) {
-            //     //       expect(ids.has('file_1')).toBeTruthy()
-            //     //       expect(ids.has('file_2')).toBeTruthy()
-            // }
-            // else
-            //     if (uploadCount === 2) {
-            // nativeUploader.off('event', cb)
-            done()
-            //     }
+            if (uploadCount === 1) {
+              expect(ids.has('file_1')).toBeTruthy()
+              expect(ids.has('file_2')).toBeTruthy()
+            } else
+            if (uploadCount === 2) {
+              nativeUploader.off('event', cb)
+              done()
+            }
           } else if (upload.state === 'UPLOADING') {
             console.log('upload progress for ', uploadCount)
             ids.add(upload.id)
