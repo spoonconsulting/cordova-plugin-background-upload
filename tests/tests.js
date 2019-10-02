@@ -187,14 +187,14 @@ exports.defineAutoTests = function () {
         // let uploadCount = 0
         var cb = function (upload) {
           if (upload.state === 'UPLOADED') {
-            nativeUploader.acknowledgeEvent(upload.eventId)
+            // nativeUploader.acknowledgeEvent(upload.eventId)
             //     uploadCount++
             //     //     if (uploadCount === 1) {
             //     //       expect(ids.has('file_1')).toBeTruthy()
             //     //       expect(ids.has('file_2')).toBeTruthy()
             //     //     } else
             //     if (uploadCount === 2) {
-            nativeUploader.off('event', cb)
+            // nativeUploader.off('event', cb)
             done()
             //     }
           } else if (upload.state === 'UPLOADING') {
