@@ -1,11 +1,7 @@
-
 /* global FileTransferManager, TestUtils */
 
 exports.defineAutoTests = function () {
   describe('Uploader', function () {
-    // increase the timeout since android emulators run without acceleration on Travis and are very slow
-    jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
-
     var sampleFile = 'tree.jpg'
     var path = ''
     var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
@@ -184,16 +180,14 @@ exports.defineAutoTests = function () {
       it('can upload in parallel', function (done) {
         var nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 2 })
         var ids = new Set()
-        var uploadCount = 0
         var cb = function (upload) {
           if (upload.state === 'UPLOADED') {
             nativeUploader.acknowledgeEvent(upload.eventId)
-            uploadCount++
-            if (uploadCount === 1) {
-              expect(ids.has('file_1')).toBeTruthy()
-              expect(ids.has('file_2')).toBeTruthy()
+            if (ids.size === 1) {
+              console.log('parallel ids:', ids)
+              expect(ids).toEqual(new Set(['file_1', 'file_2']))
             } else
-            if (uploadCount === 2) {
+            if (ids.size === 2) {
               nativeUploader.off('event', cb)
               done()
             }
