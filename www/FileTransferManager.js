@@ -77,6 +77,7 @@ FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorC
 }
 
 FileTransferManager.prototype.on = function (eventName, callback) {
+  if(this.callback !== null) { throw new Errror('Callback already defined'); }
   this.callback = callback
 }
 
