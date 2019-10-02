@@ -1,9 +1,10 @@
+
 /* global FileTransferManager, TestUtils */
 
 exports.defineAutoTests = function () {
   describe('Uploader', function () {
     // increase the timeout since android emulators run without acceleration on Travis and are very slow
-    jasmine.DEFAULT_TIMEOUT_INTERVAL = 80000
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
 
     var sampleFile = 'tree.jpg'
     var path = ''
@@ -92,7 +93,7 @@ exports.defineAutoTests = function () {
             done()
           } else if (upload.state === 'UPLOADING') {
             expect(upload.id).toBe('a_file_id')
-            expect(upload.progress).toBeGreaterThan(0)
+            expect(typeof upload.progress).toBe('number')
             expect(upload.eventId).toBeUndefined()
             expect(upload.error).toBeUndefined()
           }
@@ -142,7 +143,7 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'pkl', serverUrl: serverUrl, filePath: path })
       })
 
-      it('sends supplied headers during upload', function (done) {
+      it('sends headers during upload', function (done) {
         var nativeUploader = FileTransferManager.init()
         var headers = { signature: 'secret_hash', source: 'test' }
         var cb = function (upload) {
@@ -160,7 +161,7 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers })
       })
 
-      it('sends supplied parameters during upload', function (done) {
+      it('sends parameters during upload', function (done) {
         var nativeUploader = FileTransferManager.init()
         var params = {
           role: 'tester',
@@ -178,6 +179,31 @@ exports.defineAutoTests = function () {
         }
         nativeUploader.on('event', cb)
         nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
+      })
+
+      it('can upload in parallel', function (done) {
+        var nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 2 })
+        var ids = new Set()
+        var uploadCount = 0
+        var cb = function (upload) {
+          if (upload.state === 'UPLOADED') {
+            nativeUploader.acknowledgeEvent(upload.eventId)
+            uploadCount++
+            if (uploadCount === 1) {
+              expect(ids.has('file_1')).toBeTruthy()
+              expect(ids.has('file_2')).toBeTruthy()
+            } else
+            if (uploadCount === 2) {
+              nativeUploader.off('event', cb)
+              done()
+            }
+          } else if (upload.state === 'UPLOADING') {
+            ids.add(upload.id)
+          }
+        }
+        nativeUploader.on('event', cb)
+        nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
+        nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
       })
 
       it('sends a FAILED event if upload fails', function (done) {
@@ -209,29 +235,6 @@ exports.defineAutoTests = function () {
         }
         nativeUploader.on('event', cb)
         nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' })
-      })
-
-      it('can upload in parallel', function (done) {
-        var nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 2 })
-        const ids = new Set()
-        let uploadCount = 0
-        var cb = function (upload) {
-          if (upload.state === 'UPLOADED') {
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            uploadCount++
-            if (uploadCount === 2) {
-              nativeUploader.off('event', cb)
-              expect(ids.has('file_1')).toBeTruthy()
-              expect(ids.has('file_2')).toBeTruthy()
-              done()
-            }
-          } else if (upload.state === 'UPLOADING') {
-            ids.add(upload.id)
-          }
-        }
-        nativeUploader.on('event', cb)
-        nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
-        nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
       })
     })
 
@@ -270,7 +273,6 @@ exports.defineAutoTests = function () {
             expect(upload.eventId).toBeDefined()
             expect(upload.error).toContain('cancel')
             expect(upload.errorCode).toBe(-999)
-            expect(upload.platform).toBe('ios')
             nativeUploader.acknowledgeEvent(upload.eventId)
             nativeUploader.off('event', cb)
             done()
