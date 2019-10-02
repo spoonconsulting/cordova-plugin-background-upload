@@ -183,8 +183,8 @@ exports.defineAutoTests = function () {
 
       it('can upload in parallel', function (done) {
         var nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 2 })
-        let ids = new Set()
-        let uploadCount = 0
+        var ids = new Set()
+        var uploadCount = 0
         var cb = function (upload) {
           if (upload.state === 'UPLOADED') {
             nativeUploader.acknowledgeEvent(upload.eventId)
