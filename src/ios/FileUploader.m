@@ -101,7 +101,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                 [weakSelf sendEvent:@{
                     @"progress" : @(roundedProgress),
                     @"id" : [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request],
-                    @"platform": @"ios",
                     @"state": @"UPLOADING"
                 }];
             }

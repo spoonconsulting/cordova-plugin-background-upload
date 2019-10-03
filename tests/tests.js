@@ -2,9 +2,7 @@
 
 exports.defineAutoTests = function () {
   describe('Uploader', function () {
-    // increase the timeout since android emulators run without acceleration on Travis and are very slow
-    jasmine.DEFAULT_TIMEOUT_INTERVAL = 80000
-
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 25000
     var sampleFile = 'tree.jpg'
     var path = ''
     var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
@@ -146,7 +144,7 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'pkl', serverUrl: serverUrl, filePath: path })
       })
 
-      it('sends supplied headers during upload', function (done) {
+      it('sends headers during upload', function (done) {
         var nativeUploader = FileTransferManager.init()
         var headers = { signature: 'secret_hash', source: 'test' }
         var cb = function (upload) {
@@ -164,7 +162,7 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers })
       })
 
-      it('sends supplied parameters during upload', function (done) {
+      it('sends parameters during upload', function (done) {
         var nativeUploader = FileTransferManager.init()
         var params = {
           role: 'tester',
@@ -182,6 +180,27 @@ exports.defineAutoTests = function () {
         }
         nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
+      })
+
+      it('can upload in parallel', function (done) {
+        var nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 2 })
+        var ids = new Set()
+        var cb = function (upload) {
+          if (upload.state === 'UPLOADED') {
+            nativeUploader.acknowledgeEvent(upload.eventId)
+            if (ids.size === 1) {
+              expect(ids).toEqual(new Set(['file_1', 'file_2']))
+            } else if (ids.size === 2) {
+              nativeUploader.off('event', cb)
+              done()
+            }
+          } else if (upload.state === 'UPLOADING') {
+            ids.add(upload.id)
+          }
+        }
+        nativeUploader.on('event', cb)
+        nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
+        nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
       })
 
       it('sends a FAILED event if upload fails', function (done) {
@@ -213,29 +232,6 @@ exports.defineAutoTests = function () {
         }
         nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' })
-      })
-
-      it('can upload in parallel', function (done) {
-        var nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 2 })
-        const ids = new Set()
-        let uploadCount = 0
-        var cb = function (upload) {
-          if (upload.state === 'UPLOADED') {
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            uploadCount++
-            if (uploadCount === 2) {
-              nativeUploader.removeEventListener()
-              expect(ids.has('file_1')).toBeTruthy()
-              expect(ids.has('file_2')).toBeTruthy()
-              done()
-            }
-          } else if (upload.state === 'UPLOADING') {
-            ids.add(upload.id)
-          }
-        }
-        nativeUploader.addEventListener(cb)
-        nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
-        nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
       })
     })
 

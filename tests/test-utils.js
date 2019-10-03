@@ -9,7 +9,8 @@ var TestUtils = (function () {
           },
           function (err) {
             console.log(err)
-            reject(err)
+            //file already exist
+            resolve((cordova.file.dataDirectory + fileName))
           })
         }, reject)
       }, reject)

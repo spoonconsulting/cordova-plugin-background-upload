@@ -35,7 +35,6 @@ static NSPersistentStoreCoordinator * persistentStoreCoordinator;
     NSData *data = [self.data dataUsingEncoding:NSUTF8StringEncoding];
     NSMutableDictionary* dictRepresentation = [[NSJSONSerialization JSONObjectWithData:data options:0 error:nil] mutableCopy];
     [dictRepresentation addEntriesFromDictionary: @{
-        @"platform": @"ios",
         @"eventId" : self.objectID.URIRepresentation.absoluteString
     }];
     return dictRepresentation;
