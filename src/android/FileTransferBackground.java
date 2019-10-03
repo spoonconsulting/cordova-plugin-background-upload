@@ -4,8 +4,10 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.NetworkInfo;
 import android.util.Log;
 
+import com.github.pwittchen.reactivenetwork.library.rx2.ReactiveNetwork;
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
@@ -31,13 +33,18 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+
 
 public class FileTransferBackground extends CordovaPlugin {
 
     private CallbackContext uploadCallback;
-    private NetworkMonitor networkMonitor;
+    private boolean isNetworkAvailable = false;
     private Long lastProgressTimestamp = 0L;
     private boolean hasBeenDestroyed = false;
+    private Disposable networkObservable;
 
     private UploadServiceBroadcastReceiver broadcastReceiver = new UploadServiceBroadcastReceiver() {
         @Override
@@ -146,7 +153,7 @@ public class FileTransferBackground extends CordovaPlugin {
             }
             logMessage("adding upload " + id);
             PendingUpload.create(jsonPayload);
-            if (NetworkMonitor.isConnected) {
+            if (isNetworkAvailable) {
                 MultipartUploadRequest request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), id,
                         jsonPayload.getString("serverUrl"))
                         .addFileToUpload(jsonPayload.getString("filePath"), jsonPayload.getString("fileKey"))
@@ -248,19 +255,18 @@ public class FileTransferBackground extends CordovaPlugin {
             //re-launch any pending uploads
             uploadPendingList();
 
-            networkMonitor = new NetworkMonitor(webView.getContext(), new ConnectionStatusListener() {
-                @Override
-                public void connectionDidChange(Boolean isConnected, String networkType) {
-                    try {
-                        if (isConnected) {
-                            logMessage("Network (" + networkType + ") now available, restarting pending uploads");
+            networkObservable = ReactiveNetwork
+                    .observeNetworkConnectivity(cordova.getContext())
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(connectivity -> {
+                        this.isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
+                        if (this.isNetworkAvailable) {
+                            logMessage("Network now available, restarting pending uploads");
                             uploadPendingList();
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
+
+                    });
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -315,10 +321,10 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void onDestroy() {
-        logMessage("plugin onDestroy, stopping network monitor");
+        logMessage("plugin onDestroy");
         hasBeenDestroyed = true;
-        if (networkMonitor != null)
-            networkMonitor.stopMonitoring();
+        if (networkObservable != null)
+            networkObservable.dispose();
 //        broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
     }
 }
