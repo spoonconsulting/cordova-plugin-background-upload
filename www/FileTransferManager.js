@@ -4,7 +4,7 @@ var FileTransferManager = function (options) {
   this.options = options
   var that = this
   this.options.callback = function (result) {
-    that.emit('event', result)
+    that.emit(result)
   }
   if (!this.options.parallelUploadsLimit) {
     this.options.parallelUploadsLimit = 1
@@ -80,7 +80,7 @@ FileTransferManager.prototype.addEventListener = function (callback) {
   if (typeof callback !== 'function') {
     throw new Error('event handler must be a function')
   }
-  if (this.callback !== null) {
+  if (this.callback) {
     throw new Error('Callback already defined')
   }
   this.callback = callback
