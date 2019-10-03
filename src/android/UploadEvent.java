@@ -1,17 +1,13 @@
 package com.spoon.backgroundfileupload;
 
 import com.orm.SugarRecord;
-
 import org.json.JSONObject;
-
 import java.util.List;
 
 public class UploadEvent extends SugarRecord {
     String data;
 
-    public UploadEvent() {
-
-    }
+    public UploadEvent() {}
 
     public UploadEvent(JSONObject payload) {
         data = payload.toString();
