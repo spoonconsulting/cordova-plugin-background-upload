@@ -20,7 +20,6 @@
         [self sendCallback:@{
             @"state" : @"FAILED",
             @"id" : uploadId,
-            @"platform" : @"ios",
             @"error": @"upload failed",
             @"errorCode" : @500
         }];
@@ -31,7 +30,6 @@
     }
 }
 
-
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
     NSDictionary* payload = command.arguments[0];
     __weak FileTransferBackground *weakSelf = self;
@@ -41,8 +39,7 @@
             [weakSelf sendCallback:@{
                 @"error" : error.localizedDescription,
                 @"id" : payload[@"id"],
-                @"errorCode" : @(error.code),
-                @"platform" : @"ios"
+                @"errorCode" : @(error.code)
             }];
         }
     }];
@@ -75,7 +72,7 @@
 -(NSArray*)getV1Uploads{
     //returns uploads made by older version of the plugin
     NSMutableArray* oldUploadIds = [[NSMutableArray alloc] init];
-    NSURL* cachess =  [[NSFileManager defaultManager] URLForDirectory:NSCachesDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:NULL];
+    NSURL* cachess = [[NSFileManager defaultManager] URLForDirectory:NSCachesDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:NULL];
     NSURL* workDirectoryURL = [cachess URLByAppendingPathComponent:@"FileUploadManager"];
     NSArray* directoryContents = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:workDirectoryURL
                                                                includingPropertiesForKeys:@[NSURLIsDirectoryKey]
