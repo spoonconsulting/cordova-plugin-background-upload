@@ -31,8 +31,9 @@
 }
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
+    NSDictionary* payload = command.arguments[0];
     __weak FileTransferBackground *weakSelf = self;
-    [[FileUploader sharedInstance] addUpload:(NSDictionary*)command.arguments[0]
+    [[FileUploader sharedInstance] addUpload:payload
                            completionHandler:^(NSError* error) {
         if (error){
             [weakSelf sendCallback:@{
