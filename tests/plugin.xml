@@ -15,9 +15,9 @@
      <js-module src="tests.js" name="tests"></js-module>
      <dependency id="cordova-plugin-file" version="6.0.2" />
      <platform name="android">
-        <resource-file src="tree.jpg" target="assets/tree.jpg" />
+        <resource-file src="DigitalGlobe.jpg" target="assets/DigitalGlobe.jpg" />
      </platform>
       <platform name="ios">
-        <resource-file src="tree.jpg" target="Resources/tree.jpg" />
+        <resource-file src="DigitalGlobe.jpg" target="Resources/DigitalGlobe.jpg" />
      </platform>
 </plugin>
