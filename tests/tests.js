@@ -191,14 +191,14 @@ exports.defineAutoTests = function () {
             if (ids.size === 1) {
               expect(ids).toEqual(new Set(['file_1', 'file_2']))
             } else if (ids.size === 2) {
-              nativeUploader.off('event', cb)
+              nativeUploader.removeEventListener()
               done()
             }
           } else if (upload.state === 'UPLOADING') {
             ids.add(upload.id)
           }
         }
-        nativeUploader.on('event', cb)
+        nativeUploader.addEventListener(cb)
         nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
         nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
       })
