@@ -11,7 +11,7 @@
     self.pluginCommand = command;
     if (command.arguments.count > 0){
         NSDictionary* config = command.arguments[0];
-        FileUploader.parallelUploadsLimit = config[@"parallelUploadsLimit"] ? (NSInteger)config[@"parallelUploadsLimit"] : 1;
+        FileUploader.parallelUploadsLimit = ((NSNumber*)config[@"parallelUploadsLimit"]).integerValue;
     }
     
     [FileUploader sharedInstance].delegate = self;
