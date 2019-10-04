@@ -33,11 +33,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
   }
 
   if (!payload.filePath) {
-    if (payload.file) {
-      payload.filePath = payload.file
-    } else {
-      return this.options.callback({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
-    }
+    return this.options.callback({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
   }
 
   if (!payload.fileKey) {
