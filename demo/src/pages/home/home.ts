@@ -44,9 +44,9 @@ export class HomePage {
 
     private getMediaWithId(mediaId) {
         for (var media of this.allMedia) {
-            if (media.id == mediaId) {
-                return media;
-            }
+          if (media.id == mediaId) {
+            return media;
+          }
         }
         return null;
     }
@@ -76,13 +76,11 @@ export class HomePage {
                     showNotification: 1,
                     headers: {},
                     parameters: {
-                      api_key: 912252245121691,
                       colors: 1,
                       faces: 1,
                       image_metadata: 1,
-                      notification_url: "https://test.com/api/v1/native_upload/image",
                       phash: 1,
-                      signature: "924736c08cbd1dbe10f486",
+                      signature: "924736486",
                       tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
                       timestamp: 1572858811,
                       type: "authenticated"
