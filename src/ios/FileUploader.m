@@ -27,6 +27,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
         NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
+        NSLog(@"[BackgroundUpload] Task %@ did complete with error %@", uploadId, error);
         if (!error){
             NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
             NSString* serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";
@@ -95,6 +96,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
                                         progress:^(NSProgress * _Nonnull uploadProgress)
           {
             float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
+            NSLog(@"[BackgroundUpload] Task %@ progression %f", [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request], roundedProgress);
             NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
             if (currentTimestamp - lastProgressTimeStamp >= 1){
                 lastProgressTimeStamp = currentTimestamp;
