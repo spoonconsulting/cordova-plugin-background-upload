@@ -26,11 +26,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
   }
 
   if (!payload.filePath) {
-    if (payload.file) {
-      payload.filePath = payload.file
-    } else {
-      return this.emit({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
-    }
+    return this.emit({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
   }
 
   if (!payload.fileKey) {
