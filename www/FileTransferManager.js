@@ -80,16 +80,6 @@ FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorC
   }
 }
 
-FileTransferManager.prototype.addEventListener = function (callback) {
-  if (typeof callback !== 'function') {
-    throw new Error('event handler must be a function')
-  }
-  if (this.callback) {
-    throw new Error('Callback already defined')
-  }
-  this.callback = callback
-}
-
 FileTransferManager.prototype.removeEventListener = function () {
   this.callback = null
 }
@@ -100,8 +90,8 @@ FileTransferManager.prototype.emit = function () {
 }
 
 module.exports = {
-  init: function (options) {
-    return new FileTransferManager(options || {})
+  init: function (options, cb) {
+    return new FileTransferManager(options || {}, cb)
   },
   FileTransferManager: FileTransferManager
 }
