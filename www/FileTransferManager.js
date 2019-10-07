@@ -80,7 +80,7 @@ FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorC
   }
 }
 
-FileTransferManager.prototype.removeEventListener = function () {
+FileTransferManager.prototype.destroy = function () {
   this.callback = null
 }
 

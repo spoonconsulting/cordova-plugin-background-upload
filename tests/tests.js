@@ -35,7 +35,7 @@ exports.defineAutoTests = function () {
       it('returns an error if no argument is given', function (done) {
         var nativeUploader = FileTransferManager.init({}, function (result) {
           expect(result.error).toBe('upload settings object is missing or invalid argument')
-          nativeUploader.removeEventListener()
+          nativeUploader.destroy()
           done()
         })
         nativeUploader.startUpload(null)
@@ -44,7 +44,7 @@ exports.defineAutoTests = function () {
       it('returns an error if upload id is missing', function (done) {
         var nativeUploader = FileTransferManager.init({}, function (result) {
           expect(result.error).toBe('upload id is required')
-          nativeUploader.removeEventListener()
+          nativeUploader.destroy()
           done()
         })
         nativeUploader.startUpload({ })
@@ -54,7 +54,7 @@ exports.defineAutoTests = function () {
         var nativeUploader = FileTransferManager.init({}, function (result) {
           expect(result.id).toBe('test_id')
           expect(result.error).toBe('server url is required')
-          nativeUploader.removeEventListener()
+          nativeUploader.destroy()
           done()
         })
         nativeUploader.startUpload({ id: 'test_id', filePath: path })
@@ -65,7 +65,7 @@ exports.defineAutoTests = function () {
           expect(result).toBeDefined()
           expect(result.id).toBe('123_456')
           expect(result.error).toBe('invalid server url')
-          nativeUploader.removeEventListener()
+          nativeUploader.destroy()
           done()
         })
         nativeUploader.startUpload({ id: '123_456', serverUrl: '  ' })
@@ -84,7 +84,7 @@ exports.defineAutoTests = function () {
         var nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'UPLOADED') {
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.removeEventListener()
+            nativeUploader.destroy()
             done()
           } else if (upload.state === 'UPLOADING') {
             expect(upload.id).toBe('a_file_id')
@@ -114,7 +114,7 @@ exports.defineAutoTests = function () {
               parameters: {}
             })
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.removeEventListener()
+            nativeUploader.destroy()
             done()
           }
         })
@@ -128,7 +128,7 @@ exports.defineAutoTests = function () {
             expect(upload.id).toBe('pkl')
             expect(upload.statusCode).toBe(210)
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.removeEventListener()
+            nativeUploader.destroy()
             done()
           }
         })
@@ -145,7 +145,7 @@ exports.defineAutoTests = function () {
             expect(response.receivedInfo.headers.signature).toBe('secret_hash')
             expect(response.receivedInfo.headers.source).toBe('test')
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.removeEventListener()
+            nativeUploader.destroy()
             done()
           }
         })
@@ -163,7 +163,7 @@ exports.defineAutoTests = function () {
             var response = JSON.parse(upload.serverResponse)
             expect(response.receivedInfo.parameters).toEqual(params)
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.removeEventListener()
+            nativeUploader.destroy()
             done()
           }
         })
@@ -179,7 +179,7 @@ exports.defineAutoTests = function () {
             if (ids.size === 1) {
               expect(ids).toEqual(new Set(['file_1', 'file_2']))
             } else if (ids.size === 2) {
-              nativeUploader.removeEventListener()
+              nativeUploader.destroy()
               done()
             }
           } else if (upload.state === 'UPLOADING') {
@@ -197,7 +197,7 @@ exports.defineAutoTests = function () {
             expect(upload.error).toBeDefined()
             expect(upload.errorCode).toBeDefined()
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.removeEventListener()
+            nativeUploader.destroy()
             done()
           }
         })
@@ -211,7 +211,7 @@ exports.defineAutoTests = function () {
             expect(upload.id).toBe('nox')
             expect(upload.eventId).toBeUndefined()
             expect(upload.error).toContain('file does not exist')
-            nativeUploader.removeEventListener()
+            nativeUploader.destroy()
             done()
           }
         })
@@ -254,7 +254,7 @@ exports.defineAutoTests = function () {
             expect(upload.error).toContain('cancel')
             expect(upload.errorCode).toBe(-999)
             nativeUploader.acknowledgeEvent(upload.eventId)
-            nativeUploader.removeEventListener()
+            nativeUploader.destroy()
             done()
           } else if (upload.state === 'UPLOADING') {
             nativeUploader.removeUpload('xyz', null, null)
