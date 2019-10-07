@@ -1,10 +1,16 @@
 var exec = require('cordova/exec')
 
-var FileTransferManager = function (options) {
+var FileTransferManager = function (options, callback) {
   this.options = options
   if (!this.options.parallelUploadsLimit) {
     this.options.parallelUploadsLimit = 1
   }
+
+  if (typeof callback !== 'function') {
+    throw new Error('event handler must be a function')
+  }
+  
+  this.callback = callback
   exec(this.emit, null, 'FileTransferBackground', 'initManager', [this.options])
 }
 
