@@ -49,7 +49,6 @@ public class FileTransferBackground extends CordovaPlugin {
     private UploadServiceBroadcastReceiver broadcastReceiver = new UploadServiceBroadcastReceiver() {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
-            logMessage("upload " + uploadInfo.getUploadId() + " progress: " + uploadInfo.getProgressPercent());
             Long currentTimestamp = System.currentTimeMillis() / 1000;
             if (currentTimestamp - lastProgressTimestamp >= 1) {
                 lastProgressTimestamp = currentTimestamp;
@@ -116,15 +115,10 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void sendCallback(JSONObject obj) {
-        try {
-            if (uploadCallback != null && !hasBeenDestroyed) {
-                obj.put("platform", "android");
-                PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
-                result.setKeepCallback(true);
-                uploadCallback.sendPluginResult(result);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (!hasBeenDestroyed) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
+            result.setKeepCallback(true);
+            uploadCallback.sendPluginResult(result);
         }
     }
 
@@ -232,28 +226,13 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private void initManager(String options) {
         try {
-
-            int parallelUploadsLimit = 1;
-            if (options != null) {
-                JSONObject settings = new JSONObject(options);
-                parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
-            }
+            JSONObject settings = new JSONObject(options);
+            int parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
 
             UploadService.HTTP_STACK = new OkHttpStack();
             UploadService.UPLOAD_POOL_SIZE = parallelUploadsLimit;
             UploadService.NAMESPACE = cordova.getContext().getPackageName();
             cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter(UploadService.NAMESPACE + ".uploadservice.broadcast.status"));
-
-            //mark v1 uploads as failed
-            migrateOldUploads();
-
-            //broadcast all completed upload events
-            for (UploadEvent event : UploadEvent.all()) {
-                sendCallback(event.dataRepresentation());
-            }
-
-            //re-launch any pending uploads
-            uploadPendingList();
 
             networkObservable = ReactiveNetwork
                     .observeNetworkConnectivity(cordova.getContext())
@@ -267,6 +246,17 @@ public class FileTransferBackground extends CordovaPlugin {
                         }
 
                     });
+
+            //mark v1 uploads as failed
+            migrateOldUploads();
+
+            //broadcast all completed upload events
+            for (UploadEvent event : UploadEvent.all()) {
+                sendCallback(event.dataRepresentation());
+            }
+
+            //re-launch any pending uploads
+            uploadPendingList();
 
         } catch (Exception e) {
             e.printStackTrace();
