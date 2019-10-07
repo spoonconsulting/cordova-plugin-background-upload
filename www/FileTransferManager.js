@@ -9,7 +9,7 @@ var FileTransferManager = function (options, callback) {
   if (typeof callback !== 'function') {
     throw new Error('event handler must be a function')
   }
-  
+
   this.callback = callback
   exec(this.emit, null, 'FileTransferBackground', 'initManager', [this.options])
 }
