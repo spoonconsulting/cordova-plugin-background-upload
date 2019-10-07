@@ -80,7 +80,7 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'some_id', serverUrl: serverUrl })
       })
 
-      fit('sends upload progress events', function (done) {
+      it('sends upload progress events', function (done) {
         var nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'UPLOADED') {
             nativeUploader.acknowledgeEvent(upload.eventId)
