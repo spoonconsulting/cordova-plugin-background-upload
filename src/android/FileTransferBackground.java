@@ -68,7 +68,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
                 put("error", "upload failed: " + exception != null ? exception.getMessage() : "");
-                put("errorCode", 0);
+                put("errorCode", serverResponse != null ? serverResponse.getHttpCode() : 0);
             }});
             createAndSendEvent(errorObj);
         }
