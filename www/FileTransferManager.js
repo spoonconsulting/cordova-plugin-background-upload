@@ -57,7 +57,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
     payload.filePath = entry.toURL().replace('file://', '')
     exec(self.options.callback, null, 'FileTransferBackground', 'startUpload', [payload])
   }, function () {
-    self.options.callback({ id: payload.id, state: 'FAILED', error: 'file does not exist: ' + payload.filePath })
+    self.options.callback({ id: payload.id, state: 'FAILED', error: 'File not found: ' + payload.filePath })
   })
 }
 
