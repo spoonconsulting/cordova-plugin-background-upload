@@ -182,7 +182,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
                 request.startUpload();
             } else {
-                logMessage("No network available, queueing upload (" + id + ")");
+                logMessage("No network available, upload (" + id + ") has been queued");
             }
         } catch (Exception e) {
             e.printStackTrace();
