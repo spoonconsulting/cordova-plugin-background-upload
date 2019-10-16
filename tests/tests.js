@@ -221,7 +221,7 @@ exports.defineAutoTests = function () {
           if (upload.state === 'FAILED') {
             expect(upload.id).toBe('nox')
             expect(upload.eventId).toBeUndefined()
-            expect(upload.error).toContain('file does not exist')
+            expect(upload.error).toContain('File not found')
             nativeUploader.off('event', cb)
             done()
           }
