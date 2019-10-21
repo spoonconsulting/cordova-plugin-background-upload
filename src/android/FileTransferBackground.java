@@ -255,9 +255,6 @@ public class FileTransferBackground extends CordovaPlugin {
                 sendCallback(event.dataRepresentation());
             }
 
-            //re-launch any pending uploads
-            uploadPendingList();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
