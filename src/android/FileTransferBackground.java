@@ -94,15 +94,6 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     };
 
-    public void deletePendingUploadAndSendEvent(JSONObject obj) {
-        try {
-            PendingUpload.remove(obj.getString("id"));
-        } catch (JSONException error) {
-            logMessage("eventLabel:'could not delete pending upload' error:'" + error.getMessage() + "'");
-        }
-        createAndSendEvent(obj);
-    }
-
     public void createAndSendEvent(JSONObject obj) {
         UploadEvent event = UploadEvent.create(obj);
         sendCallback(event.dataRepresentation());
@@ -293,6 +284,15 @@ public class FileTransferBackground extends CordovaPlugin {
         }}));
     }
 
+    public void deletePendingUploadAndSendEvent(JSONObject obj) {
+        try {
+            PendingUpload.remove(obj.getString("id"));
+        } catch (JSONException error) {
+            logMessage("eventLabel:'could not delete pending upload' error:'" + error.getMessage() + "'");
+        }
+        createAndSendEvent(obj);
+    }
+
     private UploadNotificationConfig getNotificationConfiguration(String title) {
         UploadNotificationConfig config = new UploadNotificationConfig();
         config.getCompleted().autoClear = true;
@@ -318,20 +318,6 @@ public class FileTransferBackground extends CordovaPlugin {
         }
         return hashMap;
     }
-
-//    private HashMap<String, Object> convertToHashMap(JSONObject object) throws JSONException {
-//        HashMap<String, Object> map = new HashMap();
-//        Iterator<String> keysItr = object.keys();
-//        while (keysItr.hasNext()) {
-//            String key = keysItr.next();
-//            Object value = object.get(key);
-//            if (value instanceof JSONObject) {
-//                value = convertToHashMap((JSONObject) value);
-//            }
-//            map.put(key, value);
-//        }
-//        return map;
-//    }
 
     private void logMessage(String message) {
         Log.d("CordovaBackgroundUpload", message);
