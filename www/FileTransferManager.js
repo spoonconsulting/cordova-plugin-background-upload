@@ -44,6 +44,10 @@ FileTransferManager.prototype.startUpload = function (payload) {
     payload.showNotification = true
   }
 
+  if (!payload.notificationTitle) {
+    payload.notificationTitle = 'Uploading files'
+  }
+
   if (!payload.headers) {
     payload.headers = {}
   }
