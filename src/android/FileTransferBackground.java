@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
@@ -63,7 +62,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
-            logMessage("upload " + uploadInfo.getUploadId() + " failed: " + exception);
+            logMessage("eventLabel:'upload failed' uploadId:'" + uploadInfo.getUploadId() + "' error:'" + exception.getMessage() + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
@@ -74,7 +73,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-            logMessage("upload " + uploadInfo.getUploadId() + " completed with response : " + serverResponse.getBodyAsString() + " for " + uploadInfo.getUploadId());
+            logMessage("eventLabel:'upload completed' uploadId:'" + uploadInfo.getUploadId() + "' response:'" + serverResponse.getBodyAsString() + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "UPLOADED");
@@ -85,7 +84,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         @Override
         public void onCancelled(Context context, UploadInfo uploadInfo) {
-            logMessage("upload cancelled " + uploadInfo.getUploadId());
+            logMessage("eventLabel:'upload cancelled' uploadId:'" + uploadInfo.getUploadId() + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
@@ -235,46 +234,58 @@ public class FileTransferBackground extends CordovaPlugin {
         if (payload == null) return;
         String id = payload.get("id").toString();
         if (UploadService.getTaskList().contains(id)) {
-            logMessage("eventLabel: 'upload is already being uploaded. ignoring re-upload request' uploadId:'" + id + "'");
+            logMessage("eventLabel:'upload is already being uploaded. ignoring re-upload request' uploadId:'" + id + "'");
             return;
         }
-        logMessage("eventLabel: 'adding upload' uploadId:'" + id + "'");
+        logMessage("eventLabel:'adding upload' uploadId:'" + id + "'");
         PendingUpload.create(jsonPayload);
         if (isNetworkAvailable) {
             MultipartUploadRequest request = null;
             try {
                 request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), id, payload.get("serverUrl").toString()).addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString()).setMaxRetries(0);
             } catch (MalformedURLException error) {
-                String uploadId = id;
-                deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-                    put("id", uploadId);
-                    put("state", "FAILED");
-                    put("errorCode", 0);
-                    put("error", error.getMessage());
-                }}));
+                sendAddingUploadError(id, error);
+                return;
             } catch (FileNotFoundException error) {
-                String uploadId = id;
-                deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-                    put("id", uploadId);
-                    put("state", "FAILED");
-                    put("errorCode", 0);
-                    put("error", error.getMessage());
-                }}));
+                sendAddingUploadError(id, error);
+                return;
             }
-            UploadNotificationConfig config = getNotificationConfiguration(payload.get("notificationTitle").toString());
+            UploadNotificationConfig config = getNotificationConfiguration("uploading files");
             request.setNotificationConfig(config);
-            HashMap<String, String> headers = (HashMap) payload.get("headers");
-            for (String key : headers.keySet()) {
-                request.addHeader(key, headers.get(key));
+
+            try {
+                HashMap<String, Object> headers = convertToHashMap((JSONObject) payload.get("headers"));
+                for (String key : headers.keySet()) {
+                    request.addHeader(key, headers.get(key).toString());
+                }
+            } catch (JSONException exception) {
+                logMessage("eventLabel:'could not parse request headers' uploadId:'" + id + "' error:'" + exception.getMessage() + "'");
+                sendAddingUploadError(id, exception);
+                return;
             }
-            HashMap<String, String> parameters = (HashMap) payload.get("parameters");
-            for (String key : parameters.keySet()) {
-                request.addParameter(key, parameters.get(key));
+            try {
+                HashMap<String, Object> parameters = convertToHashMap((JSONObject) payload.get("parameters"));
+                for (String key : parameters.keySet()) {
+                    request.addParameter(key, parameters.get(key).toString());
+                }
+            } catch (JSONException exception) {
+                logMessage("eventLabel:'could not parse request parameters' uploadId:'" + id + "' error:'" + exception.getMessage() + "'");
+                sendAddingUploadError(id, exception);
+                return;
             }
             request.startUpload();
         } else {
-            logMessage("eventLabel: 'No network available, upload has been queued' uploadId:'" + id + "'");
+            logMessage("eventLabel:'No network available, upload has been queued' uploadId:'" + id + "'");
         }
+    }
+
+    private void sendAddingUploadError(String uploadId, Exception error) {
+        deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
+            put("id", uploadId);
+            put("state", "FAILED");
+            put("errorCode", 0);
+            put("error", error.getMessage());
+        }}));
     }
 
     private UploadNotificationConfig getNotificationConfiguration(String title) {
@@ -290,32 +301,32 @@ public class FileTransferBackground extends CordovaPlugin {
         return config;
     }
 
-//    private HashMap<String, Object> convertToHashMap(JSONObject jsonObject) throws JSONException {
-//        HashMap<String, Object> hashMap = new HashMap<>();
-//        if (jsonObject != null) {
-//            Iterator<?> keys = jsonObject.keys();
-//            while (keys.hasNext()) {
-//                String key = (String) keys.next();
-//                Object value = jsonObject.get(key);
-//                hashMap.put(key, value);
-//            }
-//        }
-//        return hashMap;
-//    }
-
-    private HashMap<String, Object> convertToHashMap(JSONObject object) throws JSONException {
-        HashMap<String, Object> map = new HashMap();
-        Iterator<String> keysItr = object.keys();
-        while (keysItr.hasNext()) {
-            String key = keysItr.next();
-            Object value = object.get(key);
-            if (value instanceof JSONObject) {
-                value = convertToHashMap((JSONObject) value);
+    private HashMap<String, Object> convertToHashMap(JSONObject jsonObject) throws JSONException {
+        HashMap<String, Object> hashMap = new HashMap<>();
+        if (jsonObject != null) {
+            Iterator<?> keys = jsonObject.keys();
+            while (keys.hasNext()) {
+                String key = (String) keys.next();
+                Object value = jsonObject.get(key);
+                hashMap.put(key, value);
             }
-            map.put(key, value);
         }
-        return map;
+        return hashMap;
     }
+
+//    private HashMap<String, Object> convertToHashMap(JSONObject object) throws JSONException {
+//        HashMap<String, Object> map = new HashMap();
+//        Iterator<String> keysItr = object.keys();
+//        while (keysItr.hasNext()) {
+//            String key = keysItr.next();
+//            Object value = object.get(key);
+//            if (value instanceof JSONObject) {
+//                value = convertToHashMap((JSONObject) value);
+//            }
+//            map.put(key, value);
+//        }
+//        return map;
+//    }
 
     private void logMessage(String message) {
         Log.d("CordovaBackgroundUpload", message);
@@ -338,7 +349,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void onDestroy() {
-        logMessage("eventLabel: 'plugin onDestroy'");
+        logMessage("eventLabel:'plugin onDestroy'");
         ready = false;
         if (networkObservable != null)
             networkObservable.dispose();
