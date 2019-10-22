@@ -47,7 +47,6 @@ var payload = {
     filePath: "/storage/emulated/0/Download/Heli.divx",
     fileKey: "file",
     serverUrl: "http://requestb.in/14cizzj1",
-    showNotification: true,
     notificationTitle: "Uploading images",
     headers: {
         api_key: "asdasdwere123sad"
@@ -67,7 +66,6 @@ fileKey | the name of the key to use for the file
 serverUrl | remote server url
 headers | custom http headers
 parameters | custom parameters for multipart data
-showNotification | show progress notification on Android (true by default)
 notificationTitle | Notification title when file is being uploaded (Android only)
 
 
@@ -149,6 +147,7 @@ On android Oreo and above, there are strict limits on background services and it
     });
     ```
 - Events need to be acknowledged to be removed. Failure to do so will always broadcasts the list of saved events on `init`.
+-`showNotification` parameter has been removed (A notification will always be shown on android during upload)
 
 
 ## License
