@@ -133,9 +133,11 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
 
-    private void initManager(String options) throws IllegalStateException {
+    private void initManager(String options) {
         if (this.ready) {
-            throw new IllegalStateException("initManager was called twice");
+            // throw new IllegalStateException("initManager was called twice");
+            logMessage("eventLabel:'initManager was called more than once'");
+            return;
         }
         this.ready = true;
         int parallelUploadsLimit = 1;
@@ -244,6 +246,9 @@ public class FileTransferBackground extends CordovaPlugin {
             try {
                 request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), id, payload.get("serverUrl").toString()).addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString()).setMaxRetries(0);
             } catch (MalformedURLException error) {
+                sendAddingUploadError(id, error);
+                return;
+            } catch (IllegalArgumentException error){
                 sendAddingUploadError(id, error);
                 return;
             } catch (FileNotFoundException error) {
