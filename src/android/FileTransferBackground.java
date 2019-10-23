@@ -119,15 +119,16 @@ public class FileTransferBackground extends CordovaPlugin {
             this.acknowledgeEvent(args.getString(0), callbackContext);
         } else if (action.equalsIgnoreCase("startUpload")) {
             this.upload((JSONObject) args.get(0));
+        } else if (action.equalsIgnoreCase("destroy")) {
+            this.destroy();
         }
         return true;
     }
 
 
-    private void initManager(String options) {
+    private void initManager(String options) throws IllegalStateException {
         if (this.ready) {
-            // throw new IllegalStateException("initManager was called twice");
-            logMessage("eventLabel:'initManager was called more than once'");
+            throw new IllegalStateException("initManager was called twice");
             return;
         }
         this.ready = true;
@@ -340,7 +341,11 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void onDestroy() {
-        logMessage("eventLabel:'plugin onDestroy'");
+       logMessage("eventLabel:'plugin onDestroy'");
+       destroy();
+    }
+
+     public void destroy() {
         ready = false;
         if (networkObservable != null)
             networkObservable.dispose();

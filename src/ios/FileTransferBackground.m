@@ -69,6 +69,10 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+-(void)destroy:(CDVInvokedUrlCommand*)command{
+    self.pluginCommand = nil;
+}
+
 -(NSArray*)getV1Uploads{
     //returns uploads made by older version of the plugin
     NSMutableArray* oldUploadIds = [[NSMutableArray alloc] init];

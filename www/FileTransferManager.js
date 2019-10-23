@@ -75,6 +75,10 @@ FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorC
   exec(successCb, errorCb, 'FileTransferBackground', 'acknowledgeEvent', [id])
 }
 
+FileTransferManager.prototype.destroy = function (successCb, errorCb) {
+  exec(successCb, errorCb, 'FileTransferBackground', 'destroy', [])
+}
+
 /**
  * Listen for an event.
  *
