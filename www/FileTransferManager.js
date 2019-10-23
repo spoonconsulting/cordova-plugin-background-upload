@@ -80,8 +80,9 @@ FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorC
   }
 }
 
-FileTransferManager.prototype.destroy = function () {
+FileTransferManager.prototype.destroy = function (successCb, errorCb) {
   this.callback = null
+  exec(successCb, errorCb, 'FileTransferBackground', 'destroy', [])
 }
 
 module.exports = {
