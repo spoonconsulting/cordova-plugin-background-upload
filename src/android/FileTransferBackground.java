@@ -129,7 +129,6 @@ public class FileTransferBackground extends CordovaPlugin {
     private void initManager(String options) throws IllegalStateException {
         if (this.ready) {
             throw new IllegalStateException("initManager was called twice");
-            return;
         }
         this.ready = true;
         int parallelUploadsLimit = 1;
