@@ -1,9 +1,13 @@
 package com.spoon.backgroundfileupload;
 
+import android.util.Log;
+
 import com.orm.SugarRecord;
 import com.orm.dsl.Unique;
 import com.orm.query.Condition;
 import com.orm.query.Select;
+
+import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.List;
 
@@ -17,8 +21,8 @@ public class PendingUpload extends SugarRecord {
         try {
             uploadId = payload.getString("id");
             data = payload.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (JSONException e) {
+            Log.d("CordovaBackgroundUpload", "eventLabel:'error reading id during PendingUpload creation'");
         }
     }
 

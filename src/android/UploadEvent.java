@@ -1,6 +1,8 @@
 package com.spoon.backgroundfileupload;
 
 import com.orm.SugarRecord;
+
+import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.List;
 
@@ -18,7 +20,7 @@ public class UploadEvent extends SugarRecord {
             JSONObject parseData = new JSONObject(this.data);
             parseData.put("eventId", this.getId());
             return parseData;
-        } catch (Exception e) {
+        } catch (JSONException e) {
             return null;
         }
     }
