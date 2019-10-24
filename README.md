@@ -29,15 +29,15 @@ The plugin needs to be initialised before any upload. Ideally this should be cal
 ```javascript
 declare var FileTransferManager: any;
 var config = {};
-var uploader = FileTransferManager.init(config);
+var uploader = FileTransferManager.init(config, callback);
 ```
 
 **Methods** 
 
-### uploader.init(config)
-Initialises the uploader with provided configuration. To control the number of parallel uploads, pass `parallelUploadsLimit` in config
-
-`var uploader = FileTransferManager.init({parallelUploadsLimit: 2});`
+### uploader.init(config, callback)
+Initialises the uploader with provided configuration. To control the number of parallel uploads, pass `parallelUploadsLimit` in config.
+The callback is used to track progress of the uploads
+`var uploader = FileTransferManager.init({parallelUploadsLimit: 2}, event => {});`
 
 ### uploader.startUpload(payload)
 Adds an upload. In case the plugin was not able to enqueue the upload, an error will be emitted in the global event listener.
@@ -69,7 +69,6 @@ parameters | custom parameters for multipart data
 notificationTitle | Notification title when file is being uploaded (Android only)
 
 
-
 ### uploader.removeUpload(uploadId, successCallback, errorCallback)
 Cancel and removes an upload
 ```javascript
@@ -90,7 +89,7 @@ uploader.acknowledgeEvent(eventId);
 
 The uploader will provide global events which can be used to check the status of the uploads.
 ```javascript
-uploader.on('event', function (event) {
+FileTransferManager.init({}, function (event) {
     if (event.state == 'UPLOADED') {
         console.log("upload: " + event.id + " has been completed successfully");
         console.log(event.statusCode, event.serverResponse);
@@ -109,11 +108,9 @@ uploader.on('event', function (event) {
 
 To prevent any event loss while transitioning between native code and javascript side, the plugin stores success/failure events on disk. Once you have received the event, you will need to acknowledge it else it will be broadcasted again when the plugin is initialised. Progress events do not have eventId and are not persisted.
 ```javascript
-uploader.on('event', function(event) {
-    if (event.eventId) {
-        uploader.acknowledgeEvent(event.eventId);
-    }
-});
+if (event.eventId) {
+    uploader.acknowledgeEvent(event.eventId);
+}
 ```
 An event has the following attributes:
 
