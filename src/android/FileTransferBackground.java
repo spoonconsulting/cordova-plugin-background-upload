@@ -246,7 +246,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 sendAddingUploadError(id, error);
                 return;
             }
-            UploadNotificationConfig config = getNotificationConfiguration("uploading files");
+            UploadNotificationConfig config = getNotificationConfiguration(payload.get("notificationTitle").toString());
             request.setNotificationConfig(config);
 
             try {
