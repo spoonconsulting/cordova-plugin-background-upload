@@ -62,11 +62,12 @@ public class FileTransferBackground extends CordovaPlugin {
 
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
-            logMessage("eventLabel:'upload failed' uploadId:'" + uploadInfo.getUploadId() + "' error:'" + exception.getMessage() + "'");
+            String errorMsg = exception != null ? exception.getMessage() : "";
+            logMessage("eventLabel:'upload failed' uploadId:'" + uploadInfo.getUploadId() + "' error:'" + errorMsg + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
-                put("error", "upload failed: " + exception != null ? exception.getMessage() : "");
+                put("error", "upload failed: " + errorMsg);
                 put("errorCode", serverResponse != null ? serverResponse.getHttpCode() : 0);
             }}));
         }
