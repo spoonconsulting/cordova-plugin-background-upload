@@ -22,7 +22,7 @@ public class PendingUpload extends SugarRecord {
             uploadId = payload.getString("id");
             data = payload.toString();
         } catch (JSONException e) {
-            Log.d("CordovaBackgroundUpload", "eventLabel:'error reading id during PendingUpload creation'");
+            Log.d("CordovaBackgroundUpload", "eventLabel='error reading id during PendingUpload creation'");
         }
     }
 
