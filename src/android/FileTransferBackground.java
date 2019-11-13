@@ -63,7 +63,7 @@ public class FileTransferBackground extends CordovaPlugin {
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
             String errorMsg = exception != null ? exception.getMessage() : "";
-            logMessage("eventLabel:'upload failed' uploadId:'" + uploadInfo.getUploadId() + "' error:'" + errorMsg + "'");
+            logMessage("eventLabel = 'upload failed' uploadId = '" + uploadInfo.getUploadId() + "' error = '" + errorMsg + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
@@ -74,7 +74,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-            logMessage("eventLabel:'upload completed' uploadId:'" + uploadInfo.getUploadId() + "' response:'" + serverResponse.getBodyAsString() + "'");
+            logMessage("eventLabel = 'upload completed' uploadId = '" + uploadInfo.getUploadId() + "' response = '" + serverResponse.getBodyAsString() + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "UPLOADED");
@@ -85,7 +85,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         @Override
         public void onCancelled(Context context, UploadInfo uploadInfo) {
-            logMessage("eventLabel:'upload cancelled' uploadId:'" + uploadInfo.getUploadId() + "'");
+            logMessage("eventLabel = 'upload cancelled' uploadId = '" + uploadInfo.getUploadId() + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
@@ -137,7 +137,7 @@ public class FileTransferBackground extends CordovaPlugin {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
         } catch (JSONException error) {
-            logMessage("eventLabel:'could not read parallelUploadsLimit from config' error:'" + error.getMessage() + "'");
+            logMessage("eventLabel = 'could not read parallelUploadsLimit from config' error = '" + error.getMessage() + "'");
         }
         UploadService.HTTP_STACK = new OkHttpStack();
         UploadService.UPLOAD_POOL_SIZE = parallelUploadsLimit;
@@ -151,7 +151,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 .subscribe(connectivity -> {
                     this.isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
                     if (this.isNetworkAvailable) {
-                        logMessage("eventLabel:'Network now available, restarting pending uploads'");
+                        logMessage("eventLabel = 'Network now available, restarting pending uploads'");
                         uploadPendingList();
                     }
                 });
@@ -194,7 +194,7 @@ public class FileTransferBackground extends CordovaPlugin {
                     try {
                         previousUploads.add(new JSONObject(content).getString("id"));
                     } catch (JSONException exception) {
-                        logMessage("eventLabel:'could not read old uploads' error:'" + exception.getMessage() + "'");
+                        logMessage("eventLabel = 'could not read old uploads' error = '" + exception.getMessage() + "'");
                     }
                 }
             }
@@ -209,7 +209,7 @@ public class FileTransferBackground extends CordovaPlugin {
             try {
                 obj = new JSONObject(upload.data);
             } catch (JSONException exception) {
-                logMessage("eventLabel:'could not parse pending upload' uploadId:'" + upload.uploadId + "' error:'" + exception.getMessage() + "'");
+                logMessage("eventLabel = 'could not parse pending upload' uploadId = '" + upload.uploadId + "' error = '" + exception.getMessage() + "'");
             }
             if (obj != null) {
                 this.upload(obj);
@@ -223,15 +223,15 @@ public class FileTransferBackground extends CordovaPlugin {
         try {
             payload = convertToHashMap(jsonPayload);
         } catch (JSONException error) {
-            logMessage("eventLabel:'could not read id from payload' error:'" + error.getMessage() + "'");
+            logMessage("eventLabel = 'could not read id from payload' error:'" + error.getMessage() + "'");
         }
         if (payload == null) return;
         String id = payload.get("id").toString();
         if (UploadService.getTaskList().contains(id)) {
-            logMessage("eventLabel:'upload is already being uploaded. ignoring re-upload request' uploadId:'" + id + "'");
+            logMessage("eventLabel = 'upload is already being uploaded. ignoring re-upload request' uploadId = '" + id + "'");
             return;
         }
-        logMessage("eventLabel:'adding upload' uploadId:'" + id + "'");
+        logMessage("eventLabel = 'adding upload' uploadId = '" + id + "'");
         PendingUpload.create(jsonPayload);
         if (isNetworkAvailable) {
             MultipartUploadRequest request = null;
@@ -256,7 +256,7 @@ public class FileTransferBackground extends CordovaPlugin {
                     request.addHeader(key, headers.get(key).toString());
                 }
             } catch (JSONException exception) {
-                logMessage("eventLabel:'could not parse request headers' uploadId:'" + id + "' error:'" + exception.getMessage() + "'");
+                logMessage("eventLabel = 'could not parse request headers' uploadId = '" + id + "' error = '" + exception.getMessage() + "'");
                 sendAddingUploadError(id, exception);
                 return;
             }
@@ -266,13 +266,13 @@ public class FileTransferBackground extends CordovaPlugin {
                     request.addParameter(key, parameters.get(key).toString());
                 }
             } catch (JSONException exception) {
-                logMessage("eventLabel:'could not parse request parameters' uploadId:'" + id + "' error:'" + exception.getMessage() + "'");
+                logMessage("eventLabel = 'could not parse request parameters' uploadId = '" + id + "' error = '" + exception.getMessage() + "'");
                 sendAddingUploadError(id, exception);
                 return;
             }
             request.startUpload();
         } else {
-            logMessage("eventLabel:'No network available, upload has been queued' uploadId:'" + id + "'");
+            logMessage("eventLabel = 'No network available, upload has been queued' uploadId = '" + id + "'");
         }
     }
 
@@ -289,7 +289,7 @@ public class FileTransferBackground extends CordovaPlugin {
         try {
             PendingUpload.remove(obj.getString("id"));
         } catch (JSONException error) {
-            logMessage("eventLabel:'could not delete pending upload' error:'" + error.getMessage() + "'");
+            logMessage("eventLabel = 'could not delete pending upload' error = '" + error.getMessage() + "'");
         }
         createAndSendEvent(obj);
     }
@@ -341,7 +341,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void onDestroy() {
-       logMessage("eventLabel:'plugin onDestroy'");
+       logMessage("eventLabel = 'plugin onDestroy'");
        destroy();
     }
 
