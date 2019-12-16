@@ -484,7 +484,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
                 }
             }
         } else {
-            // assert(upload.task == task);
+            upload = nil;
         }
         assert(upload.isStateValid);
     }
