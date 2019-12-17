@@ -484,7 +484,11 @@ static NSString * kMutableInfoProgressKey = @"progress";
                 }
             }
         } else {
-            assert(upload.task == task);
+            // assert(upload.task == task);
+             if (upload.task != task){
+                [self logWithFormat:@"upload task not matching %@ %@", upload.task, task];
+                @throw [NSException exceptionWithName:@"upload task not matching" reason:[NSString stringWithFormat: @"upload details: fileId:%@ uuid:%@ uploadDir:%@ state:%@ task==> expected %@ actual %@ ", upload.fileId, upload.uploadUUID.UUIDString, upload.uploadDirURL, FormatTypeNames[upload.state], upload.task.description, task.description] userInfo:nil];
+             }
         }
         assert(upload.isStateValid);
     }
