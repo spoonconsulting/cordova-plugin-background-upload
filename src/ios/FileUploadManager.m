@@ -490,7 +490,7 @@ static NSString * kMutableInfoProgressKey = @"progress";
                 upload = nil;
             }
         }
-        assert(upload.isStateValid);
+        // assert(upload.isStateValid);
     }
     
     // If there's no matching upload, we have no idea what this task is about
