@@ -484,16 +484,21 @@ static NSString * kMutableInfoProgressKey = @"progress";
                 }
             }
         } else {
-            assert(upload.task == task);
+            //assert(upload.task == task);
+            if (upload.task != task){
+                [self logWithFormat:@"upload task not matching %@ %@", upload.task, task];
+                upload = nil;
+            }
         }
-        assert(upload.isStateValid);
+        // assert(upload.isStateValid);
     }
     
     // If there's no matching upload, we have no idea what this task is about
     // so we simply cancel it.
     
     if ( (upload == nil) && (task.state != NSURLSessionTaskStateCompleted) ) {
-        [task cancel];
+        if (task.state != NSURLSessionTaskStateCanceling)
+            [task cancel];
     }
     
     return upload;
