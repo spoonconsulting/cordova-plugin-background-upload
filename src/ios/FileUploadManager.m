@@ -497,7 +497,8 @@ static NSString * kMutableInfoProgressKey = @"progress";
     // so we simply cancel it.
     
     if ( (upload == nil) && (task.state != NSURLSessionTaskStateCompleted) ) {
-        [task cancel];
+        if (task.state != NSURLSessionTaskStateCanceling)
+            [task cancel];
     }
     
     return upload;
