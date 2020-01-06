@@ -1,24 +1,32 @@
 package com.spoon.backgroundfileupload;
 
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.util.Log;
 
 import com.github.pwittchen.reactivenetwork.library.rx2.ReactiveNetwork;
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
-
-import net.gotev.uploadservice.MultipartUploadRequest;
-import net.gotev.uploadservice.ServerResponse;
-import net.gotev.uploadservice.UploadInfo;
-import net.gotev.uploadservice.UploadNotificationConfig;
+import android.app.NotificationChannel;
 import net.gotev.uploadservice.UploadService;
-import net.gotev.uploadservice.UploadServiceBroadcastReceiver;
+import net.gotev.uploadservice.UploadServiceConfig;
+import net.gotev.uploadservice.data.UploadInfo;
+import net.gotev.uploadservice.data.UploadNotificationAction;
+import net.gotev.uploadservice.data.UploadNotificationConfig;
+import net.gotev.uploadservice.data.UploadNotificationStatusConfig;
+import net.gotev.uploadservice.network.ServerResponse;
+import net.gotev.uploadservice.observer.request.RequestObserver;
+import net.gotev.uploadservice.observer.request.RequestObserverDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
+import net.gotev.uploadservice.protocols.multipart.MultipartUploadRequest;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -45,7 +53,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private Long lastProgressTimestamp = 0L;
     private boolean ready = false;
     private Disposable networkObservable;
-    private UploadServiceBroadcastReceiver broadcastReceiver = new UploadServiceBroadcastReceiver() {
+    private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
             Long currentTimestamp = System.currentTimeMillis() / 1000;
@@ -61,37 +69,36 @@ public class FileTransferBackground extends CordovaPlugin {
         }
 
         @Override
-        public void onError(final Context context, final UploadInfo uploadInfo, final ServerResponse serverResponse, final Exception exception) {
+        public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
             String errorMsg = exception != null ? exception.getMessage() : "";
-            logMessage("eventLabel='upload failed' uploadId='" + uploadInfo.getUploadId() + "' error='" + errorMsg + "'");
-            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-                put("id", uploadInfo.getUploadId());
-                put("state", "FAILED");
-                put("error", "upload failed: " + errorMsg);
-                put("errorCode", serverResponse != null ? serverResponse.getHttpCode() : 0);
-            }}));
+            logMessage("eventLabel = 'upload failed' uploadId = '" + uploadInfo.getUploadId() + "' error = '" + errorMsg + "'");
+//            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
+//                put("id", uploadInfo.getUploadId());
+//                put("state", "FAILED");
+//                put("error", "upload failed: " + errorMsg);
+//                put("errorCode", serverResponse != null ? serverResponse.getHttpCode() : 0);
+//            }}));
         }
 
         @Override
-        public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-            logMessage("eventLabel='upload completed' uploadId='" + uploadInfo.getUploadId() + "' response='" + serverResponse.getBodyAsString() + "'");
-            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-                put("id", uploadInfo.getUploadId());
-                put("state", "UPLOADED");
-                put("serverResponse", serverResponse.getBodyAsString());
-                put("statusCode", serverResponse.getHttpCode());
-            }}));
+        public void onSuccess(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
+
         }
 
         @Override
-        public void onCancelled(Context context, UploadInfo uploadInfo) {
-            logMessage("eventLabel='upload cancelled' uploadId='" + uploadInfo.getUploadId() + "'");
-            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-                put("id", uploadInfo.getUploadId());
-                put("state", "FAILED");
-                put("errorCode", -999);
-                put("error", "upload cancelled");
-            }}));
+        public void onCompleted(Context context, UploadInfo uploadInfo) {
+//            logMessage("eventLabel = 'upload completed' uploadId = '" + uploadInfo.getUploadId() + "' response = '" + serverResponse.getBodyAsString() + "'");
+//            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
+//                put("id", uploadInfo.getUploadId());
+//                put("state", "UPLOADED");
+//                put("serverResponse", serverResponse.getBodyAsString());
+//                put("statusCode", serverResponse.getHttpCode());
+//            }}));
+        }
+
+        @Override
+        public void onCompletedWhileNotObserving(){
+
         }
     };
 
@@ -126,23 +133,44 @@ public class FileTransferBackground extends CordovaPlugin {
         return true;
     }
 
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel channel =new  NotificationChannel(
+                    "com.spoon.backgroundfileupload.channel",
+                    "TestApp Channel",
+                    NotificationManager.IMPORTANCE_LOW
+            );
+            NotificationManager manager = (NotificationManager) cordova.getActivity()
+                    .getApplication()
+                    .getApplicationContext()
+                    .getSystemService(Context.NOTIFICATION_SERVICE);
+            manager.createNotificationChannel(channel);
+        }
+    }
 
     private void initManager(String options) throws IllegalStateException {
         if (this.ready) {
             throw new IllegalStateException("initManager was called twice");
         }
         this.ready = true;
+
+//        new RequestObserver(this, broadcastReceiver).register();
+        String notificationChannelID = "TestChannel";
+        UploadServiceConfig.initialize(
+                this.cordova.getActivity().getApplication(),
+                notificationChannelID,
+                BuildConfig.DEBUG
+        );
         int parallelUploadsLimit = 1;
         try {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
         } catch (JSONException error) {
-            logMessage("eventLabel='could not read parallelUploadsLimit from config' error='" + error.getMessage() + "'");
+            logMessage("eventLabel = 'could not read parallelUploadsLimit from config' error = '" + error.getMessage() + "'");
         }
-        UploadService.HTTP_STACK = new OkHttpStack();
-        UploadService.UPLOAD_POOL_SIZE = parallelUploadsLimit;
-        UploadService.NAMESPACE = cordova.getContext().getPackageName();
-        cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter(UploadService.NAMESPACE + ".uploadservice.broadcast.status"));
+        UploadServiceConfig.setHttpStack(new OkHttpStack());
+        this.createNotificationChannel();
+//        cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter(UploadService.NAMESPACE + ".uploadservice.broadcast.status"));
 
         networkObservable = ReactiveNetwork
                 .observeNetworkConnectivity(cordova.getContext())
@@ -236,10 +264,12 @@ public class FileTransferBackground extends CordovaPlugin {
         if (isNetworkAvailable) {
             MultipartUploadRequest request = null;
             try {
-                request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), id, payload.get("serverUrl").toString()).addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString()).setMaxRetries(0);
-            } catch (MalformedURLException error) {
-                sendAddingUploadError(id, error);
-                return;
+
+                request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.get("serverUrl").toString())
+                        .setUploadID(id)
+                        .setMethod("POST")
+                        .addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString())
+                        .setMaxRetries(0);
             } catch (IllegalArgumentException error){
                 sendAddingUploadError(id, error);
                 return;
@@ -247,8 +277,8 @@ public class FileTransferBackground extends CordovaPlugin {
                 sendAddingUploadError(id, error);
                 return;
             }
-            UploadNotificationConfig config = getNotificationConfiguration(payload.get("notificationTitle").toString());
-            request.setNotificationConfig(config);
+
+            request.setNotificationConfig((context, uploadId) -> getNotificationConfiguration(uploadId));
 
             try {
                 HashMap<String, Object> headers = convertToHashMap((JSONObject) payload.get("headers"));
@@ -295,15 +325,51 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private UploadNotificationConfig getNotificationConfiguration(String title) {
-        UploadNotificationConfig config = new UploadNotificationConfig();
-        config.getCompleted().autoClear = true;
-        config.getCancelled().autoClear = true;
-        config.getError().autoClear = true;
-        config.setClearOnActionForAllStatuses(true);
         Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
-        PendingIntent pendingIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        config.setClickIntentForAllStatuses(pendingIntent);
-        config.getProgress().title = title;
+        PendingIntent clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        final boolean autoClear = false;
+        final Bitmap largeIcon = null;
+        final boolean clearOnAction = true;
+        final ArrayList<UploadNotificationAction> noActions = new ArrayList<>(1);
+        final ArrayList<UploadNotificationAction> progressActions = new ArrayList<>(0);
+
+        UploadNotificationStatusConfig progress = new UploadNotificationStatusConfig(
+                "Upload in progress",
+                "",
+                R.drawable.ic_upload,
+                Color.BLUE,
+                largeIcon,
+                clickIntent,
+                progressActions,
+                clearOnAction,
+                autoClear
+        );
+
+        UploadNotificationStatusConfig success = new UploadNotificationStatusConfig(
+                "Upload completed",
+                "",
+                R.drawable.ic_upload,
+                Color.GREEN,
+                largeIcon,
+                clickIntent,
+                noActions,
+                clearOnAction,
+                autoClear
+        );
+
+        UploadNotificationStatusConfig error = new UploadNotificationStatusConfig(
+                "Upload error",
+                "",
+                R.drawable.ic_upload,
+                Color.RED,
+                largeIcon,
+                clickIntent,
+                noActions,
+                clearOnAction,
+                autoClear
+        );
+
+        UploadNotificationConfig config = new UploadNotificationConfig("com.spoon.backgroundfileupload.channel", false, progress, success, error, null);
         return config;
     }
 
