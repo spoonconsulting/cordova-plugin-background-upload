@@ -37,7 +37,6 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -53,6 +52,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private Long lastProgressTimestamp = 0L;
     private boolean ready = false;
     private Disposable networkObservable;
+    private HashMap responseMapping = new HashMap<String, ServerResponse>();
     private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
@@ -72,28 +72,38 @@ public class FileTransferBackground extends CordovaPlugin {
         public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
             String errorMsg = exception != null ? exception.getMessage() : "";
             logMessage("eventLabel = 'upload failed' uploadId = '" + uploadInfo.getUploadId() + "' error = '" + errorMsg + "'");
-//            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-//                put("id", uploadInfo.getUploadId());
-//                put("state", "FAILED");
-//                put("error", "upload failed: " + errorMsg);
-//                put("errorCode", serverResponse != null ? serverResponse.getHttpCode() : 0);
-//            }}));
+            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
+                put("id", uploadInfo.getUploadId());
+                put("state", "FAILED");
+                put("error", "upload failed: " + errorMsg);
+            }}));
         }
 
         @Override
         public void onSuccess(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-
+            if (serverResponse != null) {
+                responseMapping.put(uploadInfo.getUploadId(), serverResponse);
+            }
         }
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
-//            logMessage("eventLabel = 'upload completed' uploadId = '" + uploadInfo.getUploadId() + "' response = '" + serverResponse.getBodyAsString() + "'");
-//            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-//                put("id", uploadInfo.getUploadId());
-//                put("state", "UPLOADED");
-//                put("serverResponse", serverResponse.getBodyAsString());
-//                put("statusCode", serverResponse.getHttpCode());
-//            }}));
+            ServerResponse serverResponseObject = (ServerResponse)responseMapping.get(uploadInfo.getUploadId());
+            String serverResponse = "";
+            int responseCode = 0;
+            if (serverResponseObject != null) {
+                serverResponse = serverResponseObject.getBodyString();
+                responseCode = serverResponseObject.getCode();
+            }
+            final String response = serverResponse;
+            final int httpStatusCode = responseCode;
+            logMessage("eventLabel = 'upload completed' uploadId = '" + uploadInfo.getUploadId() + "' response = '" + serverResponse+ "'");
+            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
+                put("id", uploadInfo.getUploadId());
+                put("state", "UPLOADED");
+                put("serverResponse", response);
+                put("statusCode", httpStatusCode);
+            }}));
         }
 
         @Override
@@ -154,7 +164,7 @@ public class FileTransferBackground extends CordovaPlugin {
         }
         this.ready = true;
 
-//        new RequestObserver(this, broadcastReceiver).register();
+        new RequestObserver(this.cordova.getActivity().getApplicationContext(), broadcastReceiver).register();
         String notificationChannelID = "TestChannel";
         UploadServiceConfig.initialize(
                 this.cordova.getActivity().getApplication(),
@@ -407,11 +417,11 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void onDestroy() {
-       logMessage("eventLabel='plugin onDestroy'");
-       destroy();
+        logMessage("eventLabel='plugin onDestroy'");
+        destroy();
     }
 
-     public void destroy() {
+    public void destroy() {
         ready = false;
         if (networkObservable != null)
             networkObservable.dispose();
