@@ -5,8 +5,10 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.util.Log;
@@ -169,7 +171,7 @@ public class FileTransferBackground extends CordovaPlugin {
         UploadServiceConfig.initialize(
                 this.cordova.getActivity().getApplication(),
                 notificationChannelID,
-                BuildConfig.DEBUG
+                false
         );
         int parallelUploadsLimit = 1;
         try {
@@ -180,7 +182,6 @@ public class FileTransferBackground extends CordovaPlugin {
         }
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         this.createNotificationChannel();
-//        cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter(UploadService.NAMESPACE + ".uploadservice.broadcast.status"));
 
         networkObservable = ReactiveNetwork
                 .observeNetworkConnectivity(cordova.getContext())
@@ -342,11 +343,13 @@ public class FileTransferBackground extends CordovaPlugin {
         final boolean clearOnAction = true;
         final ArrayList<UploadNotificationAction> noActions = new ArrayList<>(1);
         final ArrayList<UploadNotificationAction> progressActions = new ArrayList<>(0);
+        Resources activityRes = cordova.getActivity().getResources();
+        int iconId = activityRes.getIdentifier("ic_upload", "drawable", cordova.getActivity().getPackageName());
 
         UploadNotificationStatusConfig progress = new UploadNotificationStatusConfig(
                 "Upload in progress",
                 "",
-                R.drawable.ic_upload,
+                iconId,
                 Color.BLUE,
                 largeIcon,
                 clickIntent,
@@ -358,7 +361,7 @@ public class FileTransferBackground extends CordovaPlugin {
         UploadNotificationStatusConfig success = new UploadNotificationStatusConfig(
                 "Upload completed",
                 "",
-                R.drawable.ic_upload,
+                iconId,
                 Color.GREEN,
                 largeIcon,
                 clickIntent,
@@ -370,7 +373,7 @@ public class FileTransferBackground extends CordovaPlugin {
         UploadNotificationStatusConfig error = new UploadNotificationStatusConfig(
                 "Upload error",
                 "",
-                R.drawable.ic_upload,
+                iconId,
                 Color.RED,
                 largeIcon,
                 clickIntent,
