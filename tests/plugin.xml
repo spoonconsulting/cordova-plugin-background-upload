@@ -20,4 +20,7 @@
       <platform name="ios">
         <resource-file src="tree.jpg" target="Resources/tree.jpg" />
      </platform>
+     <edit-config file="AndroidManifest.xml" target="/manifest/uses-sdk" mode="merge">
+         <uses-sdk android:minSdkVersion="21" />
+      </edit-config>
 </plugin>
