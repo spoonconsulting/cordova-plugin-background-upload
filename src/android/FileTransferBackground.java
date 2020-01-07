@@ -4,11 +4,9 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.util.Log;
@@ -54,7 +52,6 @@ public class FileTransferBackground extends CordovaPlugin {
     private Long lastProgressTimestamp = 0L;
     private boolean ready = false;
     private Disposable networkObservable;
-    private HashMap responseMapping = new HashMap<String, ServerResponse>();
     private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
@@ -83,29 +80,18 @@ public class FileTransferBackground extends CordovaPlugin {
 
         @Override
         public void onSuccess(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-            if (serverResponse != null) {
-                responseMapping.put(uploadInfo.getUploadId(), serverResponse);
-            }
+            logMessage("eventLabel='upload completed' uploadId='" + uploadInfo.getUploadId() + "' response='" + serverResponse.getBodyString() + "'");
+            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
+                put("id", uploadInfo.getUploadId());
+                put("state", "UPLOADED");
+                put("serverResponse", serverResponse.getBodyString());
+                put("statusCode", serverResponse.getCode());
+            }}));
         }
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
-            ServerResponse serverResponseObject = (ServerResponse)responseMapping.get(uploadInfo.getUploadId());
-            String serverResponse = "";
-            int responseCode = 0;
-            if (serverResponseObject != null) {
-                serverResponse = serverResponseObject.getBodyString();
-                responseCode = serverResponseObject.getCode();
-            }
-            final String response = serverResponse;
-            final int httpStatusCode = responseCode;
-            logMessage("eventLabel = 'upload completed' uploadId = '" + uploadInfo.getUploadId() + "' response = '" + serverResponse+ "'");
-            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-                put("id", uploadInfo.getUploadId());
-                put("state", "UPLOADED");
-                put("serverResponse", response);
-                put("statusCode", httpStatusCode);
-            }}));
+
         }
 
         @Override
@@ -165,14 +151,13 @@ public class FileTransferBackground extends CordovaPlugin {
             throw new IllegalStateException("initManager was called twice");
         }
         this.ready = true;
-
-        new RequestObserver(this.cordova.getActivity().getApplicationContext(), broadcastReceiver).register();
-        String notificationChannelID = "TestChannel";
+        String notificationChannelID = "com.spoon.backgroundfileupload.channel";
         UploadServiceConfig.initialize(
                 this.cordova.getActivity().getApplication(),
                 notificationChannelID,
                 false
         );
+        new RequestObserver(this.cordova.getActivity().getApplicationContext(), broadcastReceiver).register();
         int parallelUploadsLimit = 1;
         try {
             JSONObject settings = new JSONObject(options);
@@ -338,7 +323,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private UploadNotificationConfig getNotificationConfiguration(String title) {
         Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
         PendingIntent clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        final boolean autoClear = false;
+        final boolean autoClear = true;
         final Bitmap largeIcon = null;
         final boolean clearOnAction = true;
         final ArrayList<UploadNotificationAction> noActions = new ArrayList<>(1);
@@ -350,7 +335,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 "Upload in progress",
                 "",
                 iconId,
-                Color.BLUE,
+                Color.GRAY,
                 largeIcon,
                 clickIntent,
                 progressActions,
@@ -374,7 +359,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 "Upload error",
                 "",
                 iconId,
-                Color.RED,
+                Color.GRAY,
                 largeIcon,
                 clickIntent,
                 noActions,
@@ -382,7 +367,19 @@ public class FileTransferBackground extends CordovaPlugin {
                 autoClear
         );
 
-        UploadNotificationConfig config = new UploadNotificationConfig("com.spoon.backgroundfileupload.channel", false, progress, success, error, null);
+        UploadNotificationStatusConfig cancelled = new UploadNotificationStatusConfig(
+                "Upload cancelled",
+                "",
+                iconId,
+                Color.GRAY,
+                largeIcon,
+                clickIntent,
+                noActions,
+                clearOnAction,
+                autoClear
+        );
+
+        UploadNotificationConfig config = new UploadNotificationConfig("com.spoon.backgroundfileupload.channel", false, progress, success, error, cancelled);
         return config;
     }
 
