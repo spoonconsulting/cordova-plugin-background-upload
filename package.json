@@ -26,7 +26,7 @@
     "lint": "npx standard tests/tests.js && npx standard www/FileTransferManager.js",
     "cordova-paramedic": "cordova-paramedic",
     "test:android": "cordova-paramedic --platform android --plugin . --cleanUpAfterRun --verbose",
-    "test:ios": "cordova-paramedic --platform ios --plugin . --cleanUpAfterRun"
+    "test:ios": "cordova-paramedic --platform ios --plugin . --cleanUpAfterRun --verbose"
   },
   "dependencies": {},
   "author": "Mevin Dhunnooa",
