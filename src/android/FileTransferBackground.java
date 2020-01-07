@@ -1,5 +1,6 @@
 package com.spoon.backgroundfileupload;
 
+import android.app.Activity;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -333,9 +334,10 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private UploadNotificationStatusConfig buildNotification(String title){
-        Resources activityRes = cordova.getActivity().getResources();
-        int iconId = activityRes.getIdentifier("ic_upload", "drawable", cordova.getActivity().getPackageName());
-        Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
+        Activity mainActivity = cordova.getActivity();
+        Resources activityRes = mainActivity.getResources();
+        int iconId = activityRes.getIdentifier("ic_upload", "drawable", mainActivity.getPackageName());
+        Intent intent = new Intent(cordova.getContext(), mainActivity.getClass());
         PendingIntent clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         return new UploadNotificationStatusConfig(
                 title,
