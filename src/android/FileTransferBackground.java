@@ -5,7 +5,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.NetworkInfo;
 import android.os.Build;
@@ -19,7 +18,6 @@ import android.app.NotificationChannel;
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadServiceConfig;
 import net.gotev.uploadservice.data.UploadInfo;
-import net.gotev.uploadservice.data.UploadNotificationAction;
 import net.gotev.uploadservice.data.UploadNotificationConfig;
 import net.gotev.uploadservice.data.UploadNotificationStatusConfig;
 import net.gotev.uploadservice.network.ServerResponse;
@@ -43,7 +41,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -335,64 +332,28 @@ public class FileTransferBackground extends CordovaPlugin {
         createAndSendEvent(obj);
     }
 
-    private UploadNotificationConfig getNotificationConfiguration(String title) {
-        Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
-        PendingIntent clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        final boolean autoClear = true;
-        final Bitmap largeIcon = null;
-        final boolean clearOnAction = true;
-        final ArrayList<UploadNotificationAction> noActions = new ArrayList<>(1);
+    private UploadNotificationStatusConfig buildNotification(String title){
         Resources activityRes = cordova.getActivity().getResources();
         int iconId = activityRes.getIdentifier("ic_upload", "drawable", cordova.getActivity().getPackageName());
-        int tintColor = Color.parseColor("#396496");
-        UploadNotificationStatusConfig progress = new UploadNotificationStatusConfig(
+        Intent intent = new Intent(cordova.getContext(), cordova.getActivity().getClass());
+        PendingIntent clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        return new UploadNotificationStatusConfig(
                 title,
                 "",
                 iconId,
-                tintColor,
-                largeIcon,
+                Color.parseColor("#396496"),
+                null,
                 clickIntent,
                 new ArrayList<>(0),
-                clearOnAction,
-                autoClear
+                true,
+                true
         );
-
-        UploadNotificationStatusConfig success = new UploadNotificationStatusConfig(
-                "",
-                "",
-                iconId,
-                tintColor,
-                largeIcon,
-                clickIntent,
-                noActions,
-                clearOnAction,
-                autoClear
-        );
-
-        UploadNotificationStatusConfig error = new UploadNotificationStatusConfig(
-                "",
-                "",
-                iconId,
-                tintColor,
-                largeIcon,
-                clickIntent,
-                noActions,
-                clearOnAction,
-                autoClear
-        );
-
-        UploadNotificationStatusConfig cancelled = new UploadNotificationStatusConfig(
-                "Upload cancelled",
-                "",
-                iconId,
-                Color.GRAY,
-                largeIcon,
-                clickIntent,
-                noActions,
-                clearOnAction,
-                autoClear
-        );
-
+    }
+    private UploadNotificationConfig getNotificationConfiguration(String title) {
+        UploadNotificationStatusConfig progress = buildNotification(title);
+        UploadNotificationStatusConfig success = buildNotification("");
+        UploadNotificationStatusConfig error = buildNotification("");
+        UploadNotificationStatusConfig cancelled = buildNotification("");
         UploadNotificationConfig config = new UploadNotificationConfig("com.spoon.backgroundfileupload.channel", false, progress, success, error, cancelled);
         return config;
     }
