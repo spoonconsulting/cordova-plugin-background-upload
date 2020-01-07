@@ -50,6 +50,7 @@
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/PendingUpload.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEvent.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
     </platform>
     <platform name="ios">
         <framework src="AFNetworking" type="podspec" spec="~> 3.2.1" />
