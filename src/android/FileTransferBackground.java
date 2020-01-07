@@ -41,6 +41,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
@@ -166,6 +172,15 @@ public class FileTransferBackground extends CordovaPlugin {
             logMessage("eventLabel = 'could not read parallelUploadsLimit from config' error = '" + error.getMessage() + "'");
         }
         UploadServiceConfig.setHttpStack(new OkHttpStack());
+        ExecutorService threadPoolExecutor =
+                new ThreadPoolExecutor(
+                        parallelUploadsLimit,
+                        parallelUploadsLimit,
+                        5000,
+                        TimeUnit.MILLISECONDS,
+                        new LinkedBlockingQueue<Runnable>()
+                );
+        UploadServiceConfig.setThreadPool((AbstractExecutorService)threadPoolExecutor);
         this.createNotificationChannel();
 
         networkObservable = ReactiveNetwork
@@ -273,8 +288,8 @@ public class FileTransferBackground extends CordovaPlugin {
                 sendAddingUploadError(id, error);
                 return;
             }
-
-            request.setNotificationConfig((context, uploadId) -> getNotificationConfiguration(uploadId));
+            String title = payload.get("notificationTitle").toString();
+            request.setNotificationConfig((context, uploadId) -> getNotificationConfiguration(title));
 
             try {
                 HashMap<String, Object> headers = convertToHashMap((JSONObject) payload.get("headers"));
@@ -327,27 +342,26 @@ public class FileTransferBackground extends CordovaPlugin {
         final Bitmap largeIcon = null;
         final boolean clearOnAction = true;
         final ArrayList<UploadNotificationAction> noActions = new ArrayList<>(1);
-        final ArrayList<UploadNotificationAction> progressActions = new ArrayList<>(0);
         Resources activityRes = cordova.getActivity().getResources();
         int iconId = activityRes.getIdentifier("ic_upload", "drawable", cordova.getActivity().getPackageName());
-
+        int tintColor = Color.parseColor("#396496");
         UploadNotificationStatusConfig progress = new UploadNotificationStatusConfig(
-                "Upload in progress",
+                title,
                 "",
                 iconId,
-                Color.GRAY,
+                tintColor,
                 largeIcon,
                 clickIntent,
-                progressActions,
+                new ArrayList<>(0),
                 clearOnAction,
                 autoClear
         );
 
         UploadNotificationStatusConfig success = new UploadNotificationStatusConfig(
-                "Upload completed",
+                "",
                 "",
                 iconId,
-                Color.GREEN,
+                tintColor,
                 largeIcon,
                 clickIntent,
                 noActions,
@@ -356,10 +370,10 @@ public class FileTransferBackground extends CordovaPlugin {
         );
 
         UploadNotificationStatusConfig error = new UploadNotificationStatusConfig(
-                "Upload error",
+                "",
                 "",
                 iconId,
-                Color.GRAY,
+                tintColor,
                 largeIcon,
                 clickIntent,
                 noActions,
@@ -425,6 +439,5 @@ public class FileTransferBackground extends CordovaPlugin {
         ready = false;
         if (networkObservable != null)
             networkObservable.dispose();
-//        broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
     }
 }
