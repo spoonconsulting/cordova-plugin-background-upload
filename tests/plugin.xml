@@ -20,7 +20,10 @@
       <platform name="ios">
         <resource-file src="tree.jpg" target="Resources/tree.jpg" />
      </platform>
-     <edit-config file="AndroidManifest.xml" target="/manifest/uses-sdk" mode="merge">
+      <platform name="android">
+         <framework src="test.gradle" custom="true" type="gradleReference"/>
+      </platform>
+     <!-- <edit-config file="AndroidManifest.xml" target="/manifest/uses-sdk" mode="merge">
          <uses-sdk android:minSdkVersion="21" />
-      </edit-config>
+      </edit-config> -->
 </plugin>
