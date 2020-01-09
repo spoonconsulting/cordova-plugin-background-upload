@@ -64,6 +64,5 @@
         <source-file src="src/ios/UploadEvent.m" />
         <header-file src="src/ios/FileUploader.h" />
         <source-file src="src/ios/FileUploader.m" />
-       
     </platform>
 </plugin>
