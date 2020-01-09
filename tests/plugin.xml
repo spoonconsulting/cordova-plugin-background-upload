@@ -22,8 +22,8 @@
      </platform>
       <platform name="android">
          <framework src="test.gradle" custom="true" type="gradleReference"/>
+         <edit-config file="AndroidManifest.xml" target="/manifest/uses-sdk" mode="merge">
+            <uses-sdk android:minSdkVersion="21" />
+         </edit-config>
       </platform>
-     <!-- <edit-config file="AndroidManifest.xml" target="/manifest/uses-sdk" mode="merge">
-         <uses-sdk android:minSdkVersion="21" />
-      </edit-config> -->
 </plugin>
