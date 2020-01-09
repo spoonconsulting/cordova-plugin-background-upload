@@ -20,7 +20,6 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include "TargetConditionals.h"
-#import "AppDelegate+upload.h"
 #import <Cordova/CDV.h>
 #import "FileTransferBackground.h"
 
@@ -220,7 +219,7 @@ NSString *const FormatTypeName[5] = {
     
     configuration.HTTPMaximumConnectionsPerHost =1;
     configuration.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
-    //configuration.discretionary = YES;
+    configuration.sessionSendsLaunchEvents = NO;
 }
 
 - (void)uploadManager:(FileUploadManager *)manager didChangeStateForUpload:(FileUpload *)upload{
@@ -288,18 +287,6 @@ NSString *const FormatTypeName[5] = {
     [self.commandDelegate sendPluginResult:pluginResult callbackId:pluginCommand.callbackId];
 }
 
-- (void)uploadManagerDidFinishBackgroundEvents:(FileUploadManager *)manager
-{
-    //all uploads in this session completed
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-    
-    if (appDelegate.backgroundCompletionBlock) {
-        void (^completionHandler)() = appDelegate.backgroundCompletionBlock;
-        appDelegate.backgroundCompletionBlock = nil;
-        completionHandler();
-    }
-    
-}
 
 - (void)uploadManager:(FileUploadManager *)manager logWithFormat:(NSString *)format arguments:(va_list)arguments
 {

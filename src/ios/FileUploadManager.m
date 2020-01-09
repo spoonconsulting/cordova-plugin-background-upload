@@ -809,9 +809,6 @@ static NSString * kMutableInfoProgressKey = @"progress";
             id<FileUploadManagerDelegate>       delegate;
             
             delegate = self.delegate;
-            if ([delegate respondsToSelector:@selector(uploadManagerDidFinishBackgroundEvents:)]) {
-                [delegate uploadManagerDidFinishBackgroundEvents:self];
-            }
         }
     }];
 }
