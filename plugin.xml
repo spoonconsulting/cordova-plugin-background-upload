@@ -23,10 +23,7 @@
          <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application">
             <application android:name="com.orm.SugarApp" />
         </edit-config>
-        <framework src="src/android/test.gradle" custom="true" type="gradleReference"/>
-         <!-- <edit-config file="AndroidManifest.xml" target="/manifest/uses-sdk" mode="merge">
-            <uses-sdk android:minSdkVersion="21" />
-         </edit-config> -->
+        <framework src="src/android/config.gradle" custom="true" type="gradleReference"/>
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
                 <param name="android-package" value="com.spoon.backgroundfileupload.FileTransferBackground" />
