@@ -56,6 +56,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private Long lastProgressTimestamp = 0L;
     private boolean ready = false;
     private Disposable networkObservable;
+    private RequestObserver globalObserver;
     private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
@@ -161,7 +162,8 @@ public class FileTransferBackground extends CordovaPlugin {
                 notificationChannelID,
                 false
         );
-        new RequestObserver(this.cordova.getActivity().getApplicationContext(), broadcastReceiver).register();
+        this.globalObserver = new RequestObserver(this.cordova.getActivity().getApplicationContext(), broadcastReceiver);
+        this.globalObserver.register();
         int parallelUploadsLimit = 1;
         try {
             JSONObject settings = new JSONObject(options);
@@ -399,8 +401,8 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void destroy() {
-        ready = false;
-        if (networkObservable != null)
-            networkObservable.dispose();
+        this.ready = false;
+        this.networkObservable.dispose();
+        this.globalObserver.unregister();
     }
 }
