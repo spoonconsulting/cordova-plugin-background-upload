@@ -171,7 +171,7 @@ public class FileTransferBackground extends CordovaPlugin {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
         } catch (JSONException error) {
-            logMessage("eventLabel = 'could not read parallelUploadsLimit from config' error = '" + error.getMessage() + "'");
+            logMessage("eventLabel='could not read parallelUploadsLimit from config' error='" + error.getMessage() + "'");
         }
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =

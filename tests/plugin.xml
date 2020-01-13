@@ -20,7 +20,4 @@
       <platform name="ios">
         <resource-file src="tree.jpg" target="Resources/tree.jpg" />
      </platform>
-      <platform name="android">
-         <!-- <framework src="test.gradle" custom="true" type="gradleReference"/> -->
-      </platform>
 </plugin>
