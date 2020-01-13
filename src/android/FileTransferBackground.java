@@ -337,14 +337,14 @@ public class FileTransferBackground extends CordovaPlugin {
         createAndSendEvent(obj);
     }
 
-    private UploadNotificationStatusConfig buildNotification(String title){
+    private UploadNotificationStatusConfig buildNotificationStatusConfig(String title){
         Activity mainActivity = cordova.getActivity();
         Resources activityRes = mainActivity.getResources();
         int iconId = activityRes.getIdentifier("ic_upload", "drawable", mainActivity.getPackageName());
         Intent intent = new Intent(cordova.getContext(), mainActivity.getClass());
         PendingIntent clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         return new UploadNotificationStatusConfig(
-                title,
+                title != null ? title : "",
                 "",
                 iconId,
                 Color.parseColor("#396496"),
@@ -356,11 +356,13 @@ public class FileTransferBackground extends CordovaPlugin {
         );
     }
     private UploadNotificationConfig getNotificationConfiguration(String title) {
-        UploadNotificationStatusConfig progress = buildNotification(title);
-        UploadNotificationStatusConfig success = buildNotification("");
-        UploadNotificationStatusConfig error = buildNotification("");
-        UploadNotificationStatusConfig cancelled = buildNotification("");
-        UploadNotificationConfig config = new UploadNotificationConfig("com.spoon.backgroundfileupload.channel", false, progress, success, error, cancelled);
+        UploadNotificationConfig config = new UploadNotificationConfig(
+                "com.spoon.backgroundfileupload.channel",
+                false,
+                buildNotificationStatusConfig(title),
+                buildNotificationStatusConfig(null),
+                buildNotificationStatusConfig(null),
+                buildNotificationStatusConfig(null));
         return config;
     }
 
