@@ -164,21 +164,24 @@ exports.defineAutoTests = function () {
       })
 
       it('can upload in parallel', function (done) {
-        var ids = new Set()
-        nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 2 }, function (upload) {
+        var uploadingSet = new Set()
+        var uploadedSet = new Set()
+        nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 3 }, function (upload) {
           if (upload.state === 'UPLOADED') {
+            uploadedSet.add(upload.id)
             nativeUploader.acknowledgeEvent(upload.eventId)
-            if (ids.size === 1) {
-              expect(ids).toEqual(new Set(['file_1', 'file_2']))
-            } else if (ids.size === 2) {
+            if (uploadedSet.size === 1) {
+              expect(uploadingSet.size).toBeGreaterThan(1)
+            } else if (uploadedSet.size === 3) {
               done()
             }
           } else if (upload.state === 'UPLOADING') {
-            ids.add(upload.id)
+            uploadingSet.add(upload.id)
           }
         })
         nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
         nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
+        nativeUploader.startUpload({ id: 'file_3', serverUrl: serverUrl, filePath: path })
       })
 
       it('sends a FAILED event if upload fails', function (done) {
