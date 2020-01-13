@@ -21,12 +21,13 @@ import net.gotev.uploadservice.UploadServiceConfig;
 import net.gotev.uploadservice.data.UploadInfo;
 import net.gotev.uploadservice.data.UploadNotificationConfig;
 import net.gotev.uploadservice.data.UploadNotificationStatusConfig;
+import net.gotev.uploadservice.exceptions.UserCancelledUploadException;
 import net.gotev.uploadservice.network.ServerResponse;
 import net.gotev.uploadservice.observer.request.RequestObserver;
 import net.gotev.uploadservice.observer.request.RequestObserverDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
 import net.gotev.uploadservice.protocols.multipart.MultipartUploadRequest;
-import net.gotev.uploadservice.exceptions.UserCancelledUploadException;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
@@ -75,7 +76,7 @@ public class FileTransferBackground extends CordovaPlugin {
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
             String errorMsg = exception != null ? exception.getMessage() : "";
-            logMessage("eventLabel = 'upload failed' uploadId = '" + uploadInfo.getUploadId() + "' error = '" + errorMsg + "'");
+            logMessage("eventLabel='upload failed' uploadId='" + uploadInfo.getUploadId() + "' error='" + errorMsg + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
@@ -86,7 +87,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         @Override
         public void onSuccess(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-            logMessage("eventLabel='upload completed' uploadId='" + uploadInfo.getUploadId() + "' response='" + serverResponse.getBodyString() + "'");
+            logMessage("eventLabel='upload success' uploadId='" + uploadInfo.getUploadId() + "' response='" + serverResponse.getBodyString() + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "UPLOADED");
