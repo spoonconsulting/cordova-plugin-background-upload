@@ -142,7 +142,7 @@ public class FileTransferBackground extends CordovaPlugin {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel channel =new  NotificationChannel(
                     "com.spoon.backgroundfileupload.channel",
-                    "TestApp Channel",
+                    "upload channel",
                     NotificationManager.IMPORTANCE_LOW
             );
             NotificationManager manager = (NotificationManager) cordova.getActivity()
