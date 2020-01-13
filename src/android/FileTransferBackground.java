@@ -111,17 +111,21 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
-        if (action.equalsIgnoreCase("initManager")) {
-            uploadCallback = callbackContext;
-            this.initManager(args.get(0).toString());
-        } else if (action.equalsIgnoreCase("removeUpload")) {
-            this.removeUpload(args.get(0).toString(), callbackContext);
-        } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
-            this.acknowledgeEvent(args.getString(0), callbackContext);
-        } else if (action.equalsIgnoreCase("startUpload")) {
-            this.upload((JSONObject) args.get(0));
-        } else if (action.equalsIgnoreCase("destroy")) {
-            this.destroy();
+        try {
+            if (action.equalsIgnoreCase("initManager")) {
+                uploadCallback = callbackContext;
+                this.initManager(args.get(0).toString());
+            } else if (action.equalsIgnoreCase("removeUpload")) {
+                this.removeUpload(args.get(0).toString(), callbackContext);
+            } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
+                this.acknowledgeEvent(args.getString(0), callbackContext);
+            } else if (action.equalsIgnoreCase("startUpload")) {
+                this.upload((JSONObject) args.get(0));
+            } else if (action.equalsIgnoreCase("destroy")) {
+                this.destroy();
+            }
+        } catch (Exception error) {
+            callbackContext.error(e.getMessage());
         }
         return true;
     }

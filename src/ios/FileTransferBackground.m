@@ -8,48 +8,63 @@
 @end
 @implementation FileTransferBackground
 -(void)initManager:(CDVInvokedUrlCommand*)command{
-    self.pluginCommand = command;
-    if (command.arguments.count > 0){
-        NSDictionary* config = command.arguments[0];
-        FileUploader.parallelUploadsLimit = ((NSNumber*)config[@"parallelUploadsLimit"]).integerValue;
-    }
-    
-    [FileUploader sharedInstance].delegate = self;
-    //mark all old uploads as failed to be retried
-    for (NSString* uploadId in [self getV1Uploads]){
-        [self sendCallback:@{
-            @"state" : @"FAILED",
-            @"id" : uploadId,
-            @"error": @"upload failed",
-            @"errorCode" : @500
-        }];
-    }
+    @try {
+        self.pluginCommand = command;
+        if (command.arguments.count > 0){
+            NSDictionary* config = command.arguments[0];
+            FileUploader.parallelUploadsLimit = ((NSNumber*)config[@"parallelUploadsLimit"]).integerValue;
+        }
+        
+        [FileUploader sharedInstance].delegate = self;
+        //mark all old uploads as failed to be retried
+        for (NSString* uploadId in [self getV1Uploads]){
+            [self sendCallback:@{
+                @"state" : @"FAILED",
+                @"id" : uploadId,
+                @"error": @"upload failed",
+                @"errorCode" : @500
+            }];
+        }
 
-    for (UploadEvent* event in [UploadEvent allEvents]){
-        [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
+        for (UploadEvent* event in [UploadEvent allEvents]){
+            [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
+        }
+    } @catch (NSException *exception) {
+        NSString* message = [NSString stringWithFormat:@"(%@) - %@", exception.name, exception.reason];
+        [self sendErrorCallback:command withMsg:message];
     }
 }
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
-    NSDictionary* payload = command.arguments[0];
-    __weak FileTransferBackground *weakSelf = self;
-    [[FileUploader sharedInstance] addUpload:payload
-                           completionHandler:^(NSError* error) {
-        if (error){
-            [weakSelf sendCallback:@{
-                @"error" : error.localizedDescription,
-                @"id" : payload[@"id"],
-                @"errorCode" : @(error.code)
-            }];
-        }
-    }];
+    @try {
+        NSDictionary* payload = command.arguments[0];
+        __weak FileTransferBackground *weakSelf = self;
+        [[FileUploader sharedInstance] addUpload:payload
+                            completionHandler:^(NSError* error) {
+            if (error){
+                [weakSelf sendCallback:@{
+                    @"error" : error.localizedDescription,
+                    @"id" : payload[@"id"],
+                    @"errorCode" : @(error.code)
+                }];
+            }
+        }];
+     } @catch (NSException *exception) {
+        NSString* message = [NSString stringWithFormat:@"(%@) - %@", exception.name, exception.reason];
+        [self sendErrorCallback:command withMsg:message];
+    }
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
-    [[FileUploader sharedInstance] removeUpload:command.arguments[0]];
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [pluginResult setKeepCallback:@YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    @try {
+        [[FileUploader sharedInstance] removeUpload:command.arguments[0]];
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [pluginResult setKeepCallback:@YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+     } @catch (NSException *exception) {
+        NSString* message = [NSString stringWithFormat:@"(%@) - %@", exception.name, exception.reason];
+        [self sendErrorCallback:command withMsg:message];
+    }
 }
 
 -(void)uploadManagerDidReceiveCallback:(NSDictionary*)info{
@@ -93,5 +108,9 @@
     //remove the old uploads directory
     [[NSFileManager defaultManager] removeItemAtURL:workDirectoryURL error:nil];
     return oldUploadIds;
+}
+
+-(void)sendErrorCallback:(CDVInvokedUrlCommand*)command withMsg:(NSString*)msg{
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsString:msg] callbackId:command.callbackId];
 }
 @end
