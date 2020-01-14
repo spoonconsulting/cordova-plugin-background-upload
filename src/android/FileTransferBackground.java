@@ -125,13 +125,16 @@ public class FileTransferBackground extends CordovaPlugin {
                 this.destroy();
             }
         } catch (Exception error) {
-            callbackContext.error(error.getMessage());
+            callbackContext.error("(" + error.getClass().getSimpleName() + ") - " + error.getMessage());
         }
         return true;
     }
 
 
     private void initManager(String options){
+        if (this.ready) {
+            return;
+        }
         this.ready = true;
         int parallelUploadsLimit = 1;
         try {
