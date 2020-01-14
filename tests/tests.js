@@ -171,15 +171,16 @@ exports.defineAutoTests = function () {
           if (upload.state === 'UPLOADED') {
             uploadedSet.add(upload.id)
             nativeUploader.acknowledgeEvent(upload.eventId)
-            if (uploadedSet.size === 3) {
+            if (uploadedSet.size === 2) {
               var eventsArray = Array.from(events)
-              var file2UploadedEventIndex = eventsArray.indexOf('file_2_UPLOADED')
+              var secondUploadedEventIndex = eventsArray.indexOf(upload.id)
               var file1UploadingEventIndex = eventsArray.indexOf('file_1_UPLOADING')
               var file2UploadingEventIndex = eventsArray.indexOf('file_2_UPLOADING')
               var file3UploadingEventIndex = eventsArray.indexOf('file_3_UPLOADING')
-              expect(file1UploadingEventIndex).toBeLessThan(file2UploadedEventIndex)
-              expect(file2UploadingEventIndex).toBeLessThan(file2UploadedEventIndex)
-              expect(file3UploadingEventIndex).toBeLessThan(file2UploadedEventIndex)
+              expect(file1UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
+              expect(file2UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
+              expect(file3UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
+            } else if (uploadedSet.size === 3) {
               done()
             }
           }
