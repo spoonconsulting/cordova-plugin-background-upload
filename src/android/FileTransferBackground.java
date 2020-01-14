@@ -125,7 +125,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 this.destroy();
             }
         } catch (Exception error) {
-            callbackContext.error(e.getMessage());
+            callbackContext.error(error.getMessage());
         }
         return true;
     }
