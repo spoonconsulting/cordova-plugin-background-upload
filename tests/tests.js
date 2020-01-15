@@ -164,21 +164,30 @@ exports.defineAutoTests = function () {
       })
 
       it('can upload in parallel', function (done) {
-        var ids = new Set()
-        nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 2 }, function (upload) {
+        var uploadedSet = new Set()
+        var events = new Set()
+        nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 3 }, function (upload) {
+          events.add(upload.id + '_' + upload.state)
           if (upload.state === 'UPLOADED') {
+            uploadedSet.add(upload.id)
             nativeUploader.acknowledgeEvent(upload.eventId)
-            if (ids.size === 1) {
-              expect(ids).toEqual(new Set(['file_1', 'file_2']))
-            } else if (ids.size === 2) {
+            if (uploadedSet.size === 2) {
+              var eventsArray = Array.from(events)
+              var secondUploadedEventIndex = eventsArray.indexOf(upload.id + '_' + upload.state)
+              var file1UploadingEventIndex = eventsArray.indexOf('file_1_UPLOADING')
+              var file2UploadingEventIndex = eventsArray.indexOf('file_2_UPLOADING')
+              var file3UploadingEventIndex = eventsArray.indexOf('file_3_UPLOADING')
+              expect(file1UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
+              expect(file2UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
+              expect(file3UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
+            } else if (uploadedSet.size === 3) {
               done()
             }
-          } else if (upload.state === 'UPLOADING') {
-            ids.add(upload.id)
           }
         })
         nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
         nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
+        nativeUploader.startUpload({ id: 'file_3', serverUrl: serverUrl, filePath: path })
       })
 
       it('sends a FAILED event if upload fails', function (done) {
