@@ -203,19 +203,6 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })
       })
 
-      it('sends a FAILED event if upload fails', function (done) {
-        nativeUploader = FileTransferManager.init({}, function (upload) {
-          if (upload.state === 'FAILED') {
-            expect(upload.id).toBe('err_id')
-            expect(upload.error).toBeDefined()
-            expect(upload.errorCode).toBeDefined()
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            done()
-          }
-        })
-        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })
-      })
-
       it('sends a FAILED callback if file does not exist', function (done) {
         nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'FAILED') {
