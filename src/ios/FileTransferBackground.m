@@ -30,8 +30,7 @@
             [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
         }
     } @catch (NSException *exception) {
-        NSString* message = [NSString stringWithFormat:@"(%@) - %@", exception.name, exception.reason];
-        [self sendErrorCallback:command withMsg:message];
+        [self sendErrorCallback:command forException:exception];
     }
 }
 
@@ -50,8 +49,7 @@
             }
         }];
      } @catch (NSException *exception) {
-        NSString* message = [NSString stringWithFormat:@"(%@) - %@", exception.name, exception.reason];
-        [self sendErrorCallback:command withMsg:message];
+        [self sendErrorCallback:command forException:exception];
     }
 }
 
@@ -62,8 +60,7 @@
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
      } @catch (NSException *exception) {
-        NSString* message = [NSString stringWithFormat:@"(%@) - %@", exception.name, exception.reason];
-        [self sendErrorCallback:command withMsg:message];
+        [self sendErrorCallback:command forException:exception];
     }
 }
 
@@ -110,7 +107,8 @@
     return oldUploadIds;
 }
 
--(void)sendErrorCallback:(CDVInvokedUrlCommand*)command withMsg:(NSString*)msg{
-    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsString:msg] callbackId:command.callbackId];
+-(void)sendErrorCallback:(CDVInvokedUrlCommand*)command forException:(NSException*)exception{
+    NSString* message = [NSString stringWithFormat:@"(%@) - %@", exception.name, exception.reason];
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsString:message] callbackId:command.callbackId];
 }
 @end
