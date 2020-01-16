@@ -48,8 +48,6 @@
                 <param name="ios-package" value="FileTransferBackground" />
             </feature>
         </config-file>
-        <header-file src="src/ios/AppDelegate+upload.h" />
-        <source-file src="src/ios/AppDelegate+upload.m" />
          <header-file src="src/ios/FileTransferBackground.h" />
         <source-file src="src/ios/FileTransferBackground.m" />
          <header-file src="src/ios/FileUploadManager.h" />

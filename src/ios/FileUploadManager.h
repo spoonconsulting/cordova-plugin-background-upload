@@ -82,9 +82,6 @@ typedef enum FileUploadState FileUploadState;
 - (void)uploadManager:(FileUploadManager *)manager willCreateSessionWithConfiguration:(NSURLSessionConfiguration *)configuration;
     // allows you to override configuration parameters
 
-- (void)uploadManagerDidFinishBackgroundEvents:(FileUploadManager *)manager;
-    // comes directly from the background session's -URLSessionDidFinishEventsForBackgroundURLSession: callback
-
 - (void)uploadManager:(FileUploadManager *)manager didChangeStateForUpload:(FileUpload *)upload;
 
 - (void)uploadManager:(FileUploadManager *)manager logWithFormat:(NSString *)format arguments:(va_list)arguments;
