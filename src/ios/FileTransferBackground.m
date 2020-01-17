@@ -8,7 +8,7 @@
 @end
 @implementation FileTransferBackground
 -(void)initManager:(CDVInvokedUrlCommand*)command{
-    @try {
+    [self runBlockInBackgroundWithTryCatch:^{
         self.pluginCommand = command;
         if (command.arguments.count > 0){
             NSDictionary* config = command.arguments[0];
@@ -25,21 +25,19 @@
                 @"errorCode" : @500
             }];
         }
-
+        
         for (UploadEvent* event in [UploadEvent allEvents]){
             [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
         }
-    } @catch (NSException *exception) {
-        [self sendErrorCallback:command forException:exception];
-    }
+    } forCommand:command];
 }
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
-    @try {
+    [self runBlockInBackgroundWithTryCatch:^{
         NSDictionary* payload = command.arguments[0];
         __weak FileTransferBackground *weakSelf = self;
         [[FileUploader sharedInstance] addUpload:payload
-                            completionHandler:^(NSError* error) {
+                               completionHandler:^(NSError* error) {
             if (error){
                 [weakSelf sendCallback:@{
                     @"error" : error.localizedDescription,
@@ -48,20 +46,16 @@
                 }];
             }
         }];
-     } @catch (NSException *exception) {
-        [self sendErrorCallback:command forException:exception];
-    }
+    } forCommand:command];
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
-    @try {
+    [self runBlockInBackgroundWithTryCatch:^{
         [[FileUploader sharedInstance] removeUpload:command.arguments[0]];
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-     } @catch (NSException *exception) {
-        [self sendErrorCallback:command forException:exception];
-    }
+    } forCommand:command];
 }
 
 -(void)uploadManagerDidReceiveCallback:(NSDictionary*)info{
@@ -74,11 +68,23 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
+- (void)runBlockInBackgroundWithTryCatch:(void (^)(void))block forCommand:(CDVInvokedUrlCommand*)command{
+    [self.commandDelegate runInBackground:^{
+        @try {
+            block();
+        } @catch (NSException *exception) {
+            [self sendErrorCallback:command forException:exception];
+        }
+    }];
+}
+
 -(void)acknowledgeEvent:(CDVInvokedUrlCommand*)command{
-    [[FileUploader sharedInstance] acknowledgeEventReceived:command.arguments[0]];
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [pluginResult setKeepCallback:@YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    [self runBlockInBackgroundWithTryCatch:^{
+        [[FileUploader sharedInstance] acknowledgeEventReceived:command.arguments[0]];
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [pluginResult setKeepCallback:@YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    } forCommand:command];
 }
 
 -(void)destroy:(CDVInvokedUrlCommand*)command{
