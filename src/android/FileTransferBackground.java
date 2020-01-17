@@ -156,7 +156,6 @@ public class FileTransferBackground extends CordovaPlugin {
         UploadService.UPLOAD_POOL_SIZE = parallelUploadsLimit;
         UploadService.NAMESPACE = cordova.getContext().getPackageName();
         cordova.getActivity().getApplicationContext().registerReceiver(broadcastReceiver, new IntentFilter(UploadService.NAMESPACE + ".uploadservice.broadcast.status"));
-
         networkObservable = ReactiveNetwork
                 .observeNetworkConnectivity(cordova.getContext())
                 .subscribeOn(Schedulers.io())
