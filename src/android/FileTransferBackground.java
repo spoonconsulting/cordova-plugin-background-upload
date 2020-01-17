@@ -365,3 +365,4 @@ public class FileTransferBackground extends CordovaPlugin {
 //        broadcastReceiver.unregister(cordova.getActivity().getApplicationContext());
     }
 }
+
