@@ -111,29 +111,38 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
-        try {
-            if (action.equalsIgnoreCase("initManager")) {
-                uploadCallback = callbackContext;
-                this.initManager(args.get(0).toString());
-            } else if (action.equalsIgnoreCase("removeUpload")) {
-                this.removeUpload(args.get(0).toString(), callbackContext);
-            } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
-                this.acknowledgeEvent(args.getString(0), callbackContext);
-            } else if (action.equalsIgnoreCase("startUpload")) {
-                this.upload((JSONObject) args.get(0));
-            } else if (action.equalsIgnoreCase("destroy")) {
-                this.destroy();
+        FileTransferBackground self = this;
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    if (action.equalsIgnoreCase("initManager")) {
+                        uploadCallback = callbackContext;
+                        self.initManager(args.get(0).toString());
+                    } else if (action.equalsIgnoreCase("removeUpload")) {
+                        self.removeUpload(args.get(0).toString(), callbackContext);
+                    } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
+                        self.acknowledgeEvent(args.getString(0), callbackContext);
+                    } else if (action.equalsIgnoreCase("startUpload")) {
+                        self.upload((JSONObject) args.get(0));
+                    } else if (action.equalsIgnoreCase("destroy")) {
+                        self.destroy();
+                    }
+                } catch (Exception exception) {
+                    String message = "(" + exception.getClass().getSimpleName() + ") - " + exception.getMessage();
+                    PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
+                    result.setKeepCallback(true);
+                    callbackContext.sendPluginResult(result);
+                    exception.printStackTrace();
+                }
             }
-        } catch (Exception error) {
-            callbackContext.error("(" + error.getClass().getSimpleName() + ") - " + error.getMessage());
-        }
+        });
         return true;
     }
 
 
-    private void initManager(String options){
+    private void initManager(String options) throws IllegalStateException {
         if (this.ready) {
-            return;
+            throw new IllegalStateException("initManager was called twice");
         }
         this.ready = true;
         int parallelUploadsLimit = 1;
