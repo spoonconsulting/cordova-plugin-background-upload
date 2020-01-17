@@ -84,7 +84,7 @@ exports.defineAutoTests = function () {
       it('sends upload progress events', function (done) {
         nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'UPLOADED') {
-            nativeUploader.acknowledgeEvent(upload.eventId)
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
             done()
           } else if (upload.state === 'UPLOADING') {
             expect(upload.id).toBe('a_file_id')
@@ -112,8 +112,7 @@ exports.defineAutoTests = function () {
               width: 3024,
               parameters: {}
             })
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            done()
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
         nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path })
@@ -124,8 +123,7 @@ exports.defineAutoTests = function () {
           if (upload.state === 'UPLOADED') {
             expect(upload.id).toBe('pkl')
             expect(upload.statusCode).toBe(210)
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            done()
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
         nativeUploader.startUpload({ id: 'pkl', serverUrl: serverUrl, filePath: path })
@@ -139,8 +137,7 @@ exports.defineAutoTests = function () {
             var response = JSON.parse(upload.serverResponse)
             expect(response.receivedInfo.headers.signature).toBe('secret_hash')
             expect(response.receivedInfo.headers.source).toBe('test')
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            done()
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
         nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers })
@@ -156,8 +153,7 @@ exports.defineAutoTests = function () {
             expect(upload.id).toBe('xeon')
             var response = JSON.parse(upload.serverResponse)
             expect(response.receivedInfo.parameters).toEqual(params)
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            done()
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
         nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
@@ -196,8 +192,7 @@ exports.defineAutoTests = function () {
             expect(upload.id).toBe('err_id')
             expect(upload.error).toBeDefined()
             expect(upload.errorCode).toBeDefined()
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            done()
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
         nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })
@@ -250,8 +245,7 @@ exports.defineAutoTests = function () {
             expect(upload.eventId).toBeDefined()
             expect(upload.error).toContain('cancel')
             expect(upload.errorCode).toBe(-999)
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            done()
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
           } else if (upload.state === 'UPLOADING') {
             nativeUploader.removeUpload('xyz', null, null)
           }
@@ -295,8 +289,7 @@ exports.defineAutoTests = function () {
             nativeUploader = FileTransferManager.init({}, function (event2) {
               expect(event2.id).toBe('unsub')
               expect(event2.eventId).toBe(eventId)
-              nativeUploader.acknowledgeEvent(event2.eventId)
-              done()
+              nativeUploader.acknowledgeEvent(event2.eventId, done)
             })
           }
         })
