@@ -15,7 +15,9 @@ import com.github.pwittchen.reactivenetwork.library.rx2.ReactiveNetwork;
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
+
 import android.app.NotificationChannel;
+
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadServiceConfig;
 import net.gotev.uploadservice.data.UploadInfo;
@@ -102,7 +104,7 @@ public class FileTransferBackground extends CordovaPlugin {
         }
 
         @Override
-        public void onCompletedWhileNotObserving(){
+        public void onCompletedWhileNotObserving() {
 
         }
     };
@@ -140,7 +142,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel channel =new  NotificationChannel(
+            NotificationChannel channel = new NotificationChannel(
                     "com.spoon.backgroundfileupload.channel",
                     "upload channel",
                     NotificationManager.IMPORTANCE_LOW
@@ -182,7 +184,7 @@ public class FileTransferBackground extends CordovaPlugin {
                         TimeUnit.MILLISECONDS,
                         new LinkedBlockingQueue<Runnable>()
                 );
-        UploadServiceConfig.setThreadPool((AbstractExecutorService)threadPoolExecutor);
+        UploadServiceConfig.setThreadPool((AbstractExecutorService) threadPoolExecutor);
         this.createNotificationChannel();
 
         networkObservable = ReactiveNetwork
@@ -283,7 +285,7 @@ public class FileTransferBackground extends CordovaPlugin {
                         .setMethod("POST")
                         .addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString())
                         .setMaxRetries(0);
-            } catch (IllegalArgumentException error){
+            } catch (IllegalArgumentException error) {
                 sendAddingUploadError(id, error);
                 return;
             } catch (FileNotFoundException error) {
@@ -337,7 +339,7 @@ public class FileTransferBackground extends CordovaPlugin {
         createAndSendEvent(obj);
     }
 
-    private UploadNotificationStatusConfig buildNotificationStatusConfig(String title){
+    private UploadNotificationStatusConfig buildNotificationStatusConfig(String title) {
         Activity mainActivity = cordova.getActivity();
         Resources activityRes = mainActivity.getResources();
         int iconId = activityRes.getIdentifier("ic_upload", "drawable", mainActivity.getPackageName());
@@ -355,6 +357,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 true
         );
     }
+
     private UploadNotificationConfig getNotificationConfiguration(String title) {
         UploadNotificationConfig config = new UploadNotificationConfig(
                 "com.spoon.backgroundfileupload.channel",
