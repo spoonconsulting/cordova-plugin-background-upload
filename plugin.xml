@@ -7,7 +7,7 @@
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
         <clobbers target="FileTransferManager" />
     </js-module>
-     <engines> 
+     <engines>
         <engine name="cordova" version=">=8.0.0" />
         <engine name="cordova-android" version=">=8.0.0" />
     </engines>
