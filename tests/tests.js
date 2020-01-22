@@ -166,19 +166,20 @@ exports.defineAutoTests = function () {
           events.add(upload.id + '_' + upload.state)
           if (upload.state === 'UPLOADED') {
             uploadedSet.add(upload.id)
-            nativeUploader.acknowledgeEvent(upload.eventId)
-            if (uploadedSet.size === 2) {
-              var eventsArray = Array.from(events)
-              var secondUploadedEventIndex = eventsArray.indexOf(upload.id + '_' + upload.state)
-              var file1UploadingEventIndex = eventsArray.indexOf('file_1_UPLOADING')
-              var file2UploadingEventIndex = eventsArray.indexOf('file_2_UPLOADING')
-              var file3UploadingEventIndex = eventsArray.indexOf('file_3_UPLOADING')
-              expect(file1UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
-              expect(file2UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
-              expect(file3UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
-            } else if (uploadedSet.size === 3) {
-              done()
-            }
+            nativeUploader.acknowledgeEvent(upload.eventId, function () {
+              if (uploadedSet.size === 2) {
+                var eventsArray = Array.from(events)
+                var secondUploadedEventIndex = eventsArray.indexOf(upload.id + '_' + upload.state)
+                var file1UploadingEventIndex = eventsArray.indexOf('file_1_UPLOADING')
+                var file2UploadingEventIndex = eventsArray.indexOf('file_2_UPLOADING')
+                var file3UploadingEventIndex = eventsArray.indexOf('file_3_UPLOADING')
+                expect(file1UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
+                expect(file2UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
+                expect(file3UploadingEventIndex).toBeLessThan(secondUploadedEventIndex)
+              } else if (uploadedSet.size === 3) {
+                done()
+              }
+            })
           }
         })
         nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
