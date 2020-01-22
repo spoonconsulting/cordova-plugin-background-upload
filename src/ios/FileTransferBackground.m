@@ -8,8 +8,8 @@
 @end
 @implementation FileTransferBackground
 -(void)initManager:(CDVInvokedUrlCommand*)command{
+    [[NSArray new] objectAtIndex:3];
     [self runBlockInBackgroundWithTryCatch:^{
-        [[NSArray new] objectAtIndex:3];
         self.pluginCommand = command;
         if (command.arguments.count > 0){
             NSDictionary* config = command.arguments[0];
