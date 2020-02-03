@@ -1,10 +1,8 @@
 var exec = require('cordova/exec')
 
 var FileTransferManager = function (options, callback) {
+  options.parallelUploadsLimit = options.parallelUploadsLimit || 1
   this.options = options
-  if (!this.options.parallelUploadsLimit) {
-    this.options.parallelUploadsLimit = 1
-  }
 
   if (typeof callback !== 'function') {
     throw new Error('event handler must be a function')
@@ -35,19 +33,10 @@ FileTransferManager.prototype.startUpload = function (payload) {
     return this.callback({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
   }
 
-  if (!payload.fileKey) {
-    payload.fileKey = 'file'
-  }
-
+  payload.fileKey = payload.fileKey || 'file'
   payload.notificationTitle = payload.notificationTitle || 'Uploading files'
-
-  if (!payload.headers) {
-    payload.headers = {}
-  }
-
-  if (!payload.parameters) {
-    payload.parameters = {}
-  }
+  payload.headers = payload.headers || {}
+  payload.parameters = payload.parameters || {}
 
   var self = this
   window.resolveLocalFileSystemURL(payload.filePath, function (entry) {
