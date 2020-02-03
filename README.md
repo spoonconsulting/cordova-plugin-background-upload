@@ -109,7 +109,11 @@ FileTransferManager.init({}, function (event) {
 To prevent any event loss while transitioning between native code and javascript side, the plugin stores success/failure events on disk. Once you have received the event, you will need to acknowledge it else it will be broadcasted again when the plugin is initialised. Progress events do not have eventId and are not persisted.
 ```javascript
 if (event.eventId) {
-    uploader.acknowledgeEvent(event.eventId);
+    uploader.acknowledgeEvent(event.eventId, function(){
+        //success
+    }, function (error){
+        //error
+    });
 }
 ```
 An event has the following attributes:
