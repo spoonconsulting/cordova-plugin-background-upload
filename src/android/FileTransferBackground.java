@@ -51,12 +51,11 @@ public class FileTransferBackground extends CordovaPlugin {
             Long currentTimestamp = System.currentTimeMillis() / 1000;
             if (currentTimestamp - lastProgressTimestamp >= 1) {
                 lastProgressTimestamp = currentTimestamp;
-                JSONObject objResult = new JSONObject(new HashMap() {{
+                sendCallback(new JSONObject(new HashMap() {{
                     put("id", uploadInfo.getUploadId());
                     put("progress", uploadInfo.getProgressPercent());
                     put("state", "UPLOADING");
-                }});
-                sendCallback(objResult);
+                }}));
             }
         }
 
