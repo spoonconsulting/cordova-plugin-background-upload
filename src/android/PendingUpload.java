@@ -26,7 +26,6 @@ public class PendingUpload extends SugarRecord {
         }
     }
 
-
     public static PendingUpload create(JSONObject payload) {
         PendingUpload pendingUpload = new PendingUpload(payload);
         pendingUpload.save();
