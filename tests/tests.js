@@ -285,7 +285,6 @@ exports.defineAutoTests = function () {
       it('persist event id until it is acknowledged', function (done) {
         nativeUploader = FileTransferManager.init({}, function (event1) {
           if (event1.state === 'UPLOADED') {
-            expect(event1.eventId).toBe('unsub')
             nativeUploader.destroy()
             nativeUploader = FileTransferManager.init({}, function (event2) {
               expect(event2.id).toBe('unsub')
