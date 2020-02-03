@@ -144,7 +144,7 @@ On android Oreo and above, there are strict limits on background services and it
     });
     ```
 - Events need to be acknowledged to be removed. Failure to do so will always broadcasts the list of saved events on `init`.
--`showNotification` parameter has been removed (A notification will always be shown on android during upload)
+-`showNotification` parameter has been removed (A notification will always be shown on Android during upload)
 
 
 ## License
