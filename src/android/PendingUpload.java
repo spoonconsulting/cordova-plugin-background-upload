@@ -1,0 +1,46 @@
+package com.spoon.backgroundfileupload;
+
+import android.util.Log;
+
+import com.orm.SugarRecord;
+import com.orm.dsl.Unique;
+import com.orm.query.Condition;
+import com.orm.query.Select;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+import java.util.List;
+
+public class PendingUpload extends SugarRecord {
+    String uploadId;
+    String data;
+
+    public PendingUpload() {}
+
+    public PendingUpload(JSONObject payload) {
+        try {
+            uploadId = payload.getString("id");
+            data = payload.toString();
+        } catch (JSONException e) {
+            Log.d("CordovaBackgroundUpload", "eventLabel='error reading id during PendingUpload creation'");
+        }
+    }
+
+    public static PendingUpload create(JSONObject payload) {
+        PendingUpload pendingUpload = new PendingUpload(payload);
+        pendingUpload.save();
+        return pendingUpload;
+    }
+
+    public static void remove(String uploadId) {
+        List<PendingUpload> results = Select.from(PendingUpload.class)
+                .where(Condition.prop("upload_id").eq(uploadId))
+                .list();
+        if (results.size() > 0)
+            results.get(0).delete();
+    }
+
+    public static List<PendingUpload> all() {
+        return PendingUpload.listAll(PendingUpload.class);
+    }
+}

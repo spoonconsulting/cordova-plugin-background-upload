@@ -68,12 +68,11 @@ export class HomePage {
                   this.allMedia.push(media);
 
                   var options: any = {
-                    serverUrl: "http://requestbin.net/r/tbwd8itb",
+                    serverUrl: "http://requestbin.net/r/qz0li0qz",
                     filePath: file_uris[i],
                     fileKey: "file",
                     id: media.id,
                     notificationTitle: "Uploading image (Job 0)",
-                    showNotification: 1,
                     headers: {},
                     parameters: {
                       colors: 1,

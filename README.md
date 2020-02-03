@@ -29,15 +29,15 @@ The plugin needs to be initialised before any upload. Ideally this should be cal
 ```javascript
 declare var FileTransferManager: any;
 var config = {};
-var uploader = FileTransferManager.init(config);
+var uploader = FileTransferManager.init(config, callback);
 ```
 
 **Methods** 
 
-### uploader.init(config)
-Initialises the uploader with provided configuration. To control the number of parallel uploads, pass `parallelUploadsLimit` in config
-
-`var uploader = FileTransferManager.init({parallelUploadsLimit: 2});`
+### uploader.init(config, callback)
+Initialises the uploader with provided configuration. To control the number of parallel uploads, pass `parallelUploadsLimit` in config.
+The callback is used to track progress of the uploads
+`var uploader = FileTransferManager.init({parallelUploadsLimit: 2}, event => {});`
 
 ### uploader.startUpload(payload)
 Adds an upload. In case the plugin was not able to enqueue the upload, an error will be emitted in the global event listener.
@@ -47,7 +47,6 @@ var payload = {
     filePath: "/storage/emulated/0/Download/Heli.divx",
     fileKey: "file",
     serverUrl: "http://requestb.in/14cizzj1",
-    showNotification: true,
     notificationTitle: "Uploading images",
     headers: {
         api_key: "asdasdwere123sad"
@@ -67,9 +66,7 @@ fileKey | the name of the key to use for the file
 serverUrl | remote server url
 headers | custom http headers
 parameters | custom parameters for multipart data
-showNotification | show progress notification on Android (true by default)
 notificationTitle | Notification title when file is being uploaded (Android only)
-
 
 
 ### uploader.removeUpload(uploadId, successCallback, errorCallback)
@@ -92,7 +89,7 @@ uploader.acknowledgeEvent(eventId);
 
 The uploader will provide global events which can be used to check the status of the uploads.
 ```javascript
-uploader.on('event', function (event) {
+FileTransferManager.init({}, function (event) {
     if (event.state == 'UPLOADED') {
         console.log("upload: " + event.id + " has been completed successfully");
         console.log(event.statusCode, event.serverResponse);
@@ -111,11 +108,13 @@ uploader.on('event', function (event) {
 
 To prevent any event loss while transitioning between native code and javascript side, the plugin stores success/failure events on disk. Once you have received the event, you will need to acknowledge it else it will be broadcasted again when the plugin is initialised. Progress events do not have eventId and are not persisted.
 ```javascript
-uploader.on('event', function(event) {
-    if (event.eventId) {
-        uploader.acknowledgeEvent(event.eventId);
-    }
-});
+if (event.eventId) {
+    uploader.acknowledgeEvent(event.eventId, function(){
+        //success
+    }, function (error){
+        //error
+    });
+}
 ```
 An event has the following attributes:
 
@@ -149,6 +148,7 @@ On android Oreo and above, there are strict limits on background services and it
     });
     ```
 - Events need to be acknowledged to be removed. Failure to do so will always broadcasts the list of saved events on `init`.
+-`showNotification` parameter has been removed (A notification will always be shown on Android during upload)
 
 
 ## License
