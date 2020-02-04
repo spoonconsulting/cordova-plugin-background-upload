@@ -320,7 +320,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void upload(JSONObject jsonPayload) {
-          cordova.getThreadPool().execute(new Runnable() {
+        cordova.getThreadPool().execute(new Runnable() {
             public void run() {
                 uploadRun(jsonPayload);
             }
