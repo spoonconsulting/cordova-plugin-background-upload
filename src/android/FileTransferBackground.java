@@ -259,7 +259,7 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private vois uploadRun(JSONObject jsonPayload) {
+    private void uploadRun(JSONObject jsonPayload) {
         HashMap payload = null;
         try {
             payload = convertToHashMap(jsonPayload);
