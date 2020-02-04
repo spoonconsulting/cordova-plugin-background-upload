@@ -31,25 +31,29 @@
 }
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
-    NSDictionary* payload = command.arguments[0];
-    __weak FileTransferBackground *weakSelf = self;
-    [[FileUploader sharedInstance] addUpload:payload
-                           completionHandler:^(NSError* error) {
-        if (error){
-            [weakSelf sendCallback:@{
-                @"error" : error.localizedDescription,
-                @"id" : payload[@"id"],
-                @"errorCode" : @(error.code)
-            }];
-        }
+    [self.commandDelegate runInBackground:^{
+        NSDictionary* payload = command.arguments[0];
+        __weak FileTransferBackground *weakSelf = self;
+        [[FileUploader sharedInstance] addUpload:payload
+                               completionHandler:^(NSError* error) {
+            if (error){
+                [weakSelf sendCallback:@{
+                    @"error" : error.localizedDescription,
+                    @"id" : payload[@"id"],
+                    @"errorCode" : @(error.code)
+                }];
+            }
+        }];
     }];
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
-    [[FileUploader sharedInstance] removeUpload:command.arguments[0]];
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [pluginResult setKeepCallback:@YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    [self.commandDelegate runInBackground:^{
+        [[FileUploader sharedInstance] removeUpload:command.arguments[0]];
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [pluginResult setKeepCallback:@YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 -(void)uploadManagerDidReceiveCallback:(NSDictionary*)info{
@@ -63,10 +67,12 @@
 }
 
 -(void)acknowledgeEvent:(CDVInvokedUrlCommand*)command{
-    [[FileUploader sharedInstance] acknowledgeEventReceived:command.arguments[0]];
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [pluginResult setKeepCallback:@YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    [self.commandDelegate runInBackground:^{
+        [[FileUploader sharedInstance] acknowledgeEventReceived:command.arguments[0]];
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [pluginResult setKeepCallback:@YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 -(void)destroy:(CDVInvokedUrlCommand*)command{
