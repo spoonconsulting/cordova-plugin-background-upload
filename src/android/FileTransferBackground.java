@@ -259,8 +259,7 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-
-    private void upload(JSONObject jsonPayload) {
+    private void uploadRun(JSONObject jsonPayload) {
         HashMap payload = null;
         try {
             payload = convertToHashMap(jsonPayload);
@@ -318,6 +317,14 @@ public class FileTransferBackground extends CordovaPlugin {
         } else {
             logMessage("eventLabel='No network available, upload has been queued' uploadId='" + id + "'");
         }
+    }
+
+    private void upload(JSONObject jsonPayload) {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                uploadRun(jsonPayload);
+            }
+        });
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {
