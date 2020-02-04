@@ -7,7 +7,7 @@
 @implementation FileUploader
 static NSInteger _parallelUploadsLimit = 1;
 static FileUploader *singletonObject = nil;
-static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-upload.UUID";
+static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-background-upload.UUID";
 + (instancetype)sharedInstance{
     if (!singletonObject)
         singletonObject = [[FileUploader alloc] init];
