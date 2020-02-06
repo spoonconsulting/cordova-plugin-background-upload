@@ -132,8 +132,8 @@ public class FileTransferBackground extends CordovaPlugin {
         if (action.equalsIgnoreCase("destroy")) {
             this.destroy();
         }
-        cordova.getThreadPool().execute(new Runnable() {
-            public void run() {
+        //cordova.getThreadPool().execute(new Runnable() {
+            //public void run() {
                 Object arg;
                 try {
                     arg = args.get(0);
@@ -148,8 +148,8 @@ public class FileTransferBackground extends CordovaPlugin {
               } else if (action.equalsIgnoreCase("startUpload")) {
                   addUpload((JSONObject) arg);
               }
-            }
-        });
+            //}
+        //});
         return true;
     }
 
