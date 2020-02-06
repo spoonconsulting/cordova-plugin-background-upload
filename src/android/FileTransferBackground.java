@@ -200,8 +200,8 @@ public class FileTransferBackground extends CordovaPlugin {
         UploadServiceConfig.setThreadPool((AbstractExecutorService) threadPoolExecutor);
         this.createNotificationChannel();
         FileTransferBackground manager = this;
-        cordova.getThreadPool().execute(new Runnable() {
-            public void run() {
+        //cordova.getThreadPool().execute(new Runnable() {
+            //public void run() {
                 logMessage("Uploader background running ?");
                 //mark v1 uploads as failed
                 migrateOldUploads();
@@ -223,8 +223,8 @@ public class FileTransferBackground extends CordovaPlugin {
                                 uploadPendingList();
                             }
                         });
-            }
-        });
+            //}
+        //});
     }
 
     private void migrateOldUploads() {
