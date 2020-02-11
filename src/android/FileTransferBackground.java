@@ -136,7 +136,7 @@ public class FileTransferBackground extends CordovaPlugin {
                     } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
                         self.acknowledgeEvent(args.getString(0), callbackContext);
                     } else if (action.equalsIgnoreCase("startUpload")) {
-                        self.upload((JSONObject) args.get(0));
+                        self.addUpload((JSONObject) args.get(0));
                     } else if (action.equalsIgnoreCase("destroy")) {
                         self.destroy();
                     }
