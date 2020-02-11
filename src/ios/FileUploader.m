@@ -7,7 +7,7 @@
 @implementation FileUploader
 static NSInteger _parallelUploadsLimit = 1;
 static FileUploader *singletonObject = nil;
-static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-upload.UUID";
+static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-background-upload.UUID";
 + (instancetype)sharedInstance{
     if (!singletonObject)
         singletonObject = [[FileUploader alloc] init];
@@ -27,7 +27,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoon.plugin-background-uplo
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
         NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
-        NSLog(@"[BackgroundUpload] Task %@ did complete with error %@", uploadId, error);
+        NSLog(@"[BackgroundUpload] Task %@ completed with error %@", uploadId, error);
         if (!error){
             NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
             NSString* serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";

@@ -1,6 +1,6 @@
 
 # cordova-plugin-background-upload
-This plugin provides a file upload functionality that can continue to run while in background. It also includes progress updates which is suitable for long-term transfer operations for large files.
+This plugin provides a file upload functionality that can continue to run even while the app is in background. It includes progress updates suitable for long-term transfer operations of large files.
 
 [![npm version](https://badge.fury.io/js/cordova-plugin-background-upload.svg)](https://badge.fury.io/js/cordova-plugin-background-upload)
 [![Build Status](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload.svg?branch=master)](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload)
@@ -25,7 +25,7 @@ cordova plugin rm cordova-plugin-background-upload
 
 **Sample usage**
 
-The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads. By default the maximum allowed number of parallel uploads is set to 1. You can overide it by changing the configuration on init.
+The plugin needs to be initialised before any upload. Ideally this should be called on application start. The uploader will provide global events which can be used to check the progress of the uploads. By default, the maximum number of parallel uploads allowed is set to 1. You can override it by changing the configuration on init.
 ```javascript
 declare var FileTransferManager: any;
 var config = {};
@@ -70,12 +70,12 @@ notificationTitle | Notification title when file is being uploaded (Android only
 
 
 ### uploader.removeUpload(uploadId, successCallback, errorCallback)
-Cancel and removes an upload
+Cancels and removes an upload
 ```javascript
 uploader.removeUpload(uploadId, function () {
     //upload aborted
 }, function (err) {
-    //could abort the upload
+    //could not abort the upload
 });
 ```
 
@@ -106,7 +106,7 @@ FileTransferManager.init({}, function (event) {
 
 ```
 
-To prevent any event loss while transitioning between native code and javascript side, the plugin stores success/failure events on disk. Once you have received the event, you will need to acknowledge it else it will be broadcasted again when the plugin is initialised. Progress events do not have eventId and are not persisted.
+To prevent any event loss while transitioning between native and Javascript side, the plugin stores success/failure events on disk. Once you have received the event, you will need to acknowledge it else it will be broadcast again when the plugin is initialised. Progress events do not have eventId and are not persisted.
 ```javascript
 if (event.eventId) {
     uploader.acknowledgeEvent(event.eventId, function(){
@@ -121,7 +121,7 @@ An event has the following attributes:
 Property | Comment
 -------- | -------
 id | id of the upload
-state | state of the upload (either UPLOADED, FAILED, UPLOADING)
+state | state of the upload (either `UPLOADING`, `UPLOADED` or `FAILED`)
 statusCode | response code returned by server after upload is completed
 serverResponse | server response received after upload is completed
 errror | error message in case of failure
@@ -131,12 +131,12 @@ eventId | id of the event
 
 
  ## iOS
-The plugin runs on ios 10.0 and above and internally uses [AFNetworking](https://github.com/AFNetworking/AFNetworking). AFNetworking uses [NSURLSession](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/URLLoadingSystem/Articles/UsingNSURLSession.html#//apple_ref/doc/uid/TP40013509-SW44) under the hood to perform the upload in a background session. When an upload is initiated, it will continue until it has been completed successfully or if the user kills the application. If the application is terminated by the OS, the uploads will still continue. When the user relaunches the application, after calling the init method, events will be emitted with the ids of these uploads. If the user kills the application by swiping it up from the multitasking pane, the uploads will not be continued. Upload tasks in background sessions are automatically retried by the URL loading system after network errors as decided by the OS.
+The plugin runs on ios 10.0 and above and internally uses [AFNetworking](https://github.com/AFNetworking/AFNetworking). AFNetworking uses [NSURLSession](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/URLLoadingSystem/Articles/UsingNSURLSession.html#//apple_ref/doc/uid/TP40013509-SW44) under the hood to perform the upload in a background session. When an upload is initiated, it will continue until it has been completed successfully or until the user kills the application. If the application is terminated by the OS, the uploads will still continue. When the user relaunches the application, after calling the init method, events will be emitted with the ids of these uploads. If the user kills the application by swiping it up from the multitasking pane, the uploads will not be continued. Upload tasks in background sessions are automatically retried by the URL loading system after network errors as decided by the OS.
 
 ## Android
-The minimum api level require is 21 and the background file upload is handled by the [android-upload-service](https://github.com/gotev/android-upload-service) library. If you have configured a notification to appear in the notifications area, the uploads will continue even if the user kills the app manually. If an upload is added when there is no network connection, it will be retried as soon as the network becomes reachable unless the app is already killed.
+The minimum API level required is 21 and the background file upload is handled by the [android-upload-service](https://github.com/gotev/android-upload-service) library. If you have configured a notification to appear in the notifications area, the uploads will continue even if the user kills the app manually. If an upload is added when there is no network connection, it will be retried as soon as the network becomes reachable unless the app has already been killed.
 
-On android Oreo and above, there are strict limits on background services and it's recommended to use a foreground service with an ongoing notification to get more time for service execution: https://developer.android.com/about/versions/oreo/background. Hence to prevent the service from being killed, a progress notification is needed on Android 8+.
+On Android Oreo and above, there are strict limitations on background services and it's recommended to use a foreground service with an ongoing notification to get more OS time for service execution: https://developer.android.com/about/versions/oreo/background. Hence to prevent the service from being killed, a progress notification is needed on Android 8+.
 
 ## Migration notes for v2.0
 - When v2 of the plugin is launched on an app containing uploads still in progress from v1 version, it will mark all of them as `FAILED` with `errorCode` 500 so that they can be retried.
@@ -147,7 +147,7 @@ On android Oreo and above, there are strict limits on background services and it
         //use event.state to handle different scenarios
     });
     ```
-- Events need to be acknowledged to be removed. Failure to do so will always broadcasts the list of saved events on `init`.
+- Events need to be acknowledged to be removed. Failure to do so will result in all saved events being broadcast on `init`.
 -`showNotification` parameter has been removed (A notification will always be shown on Android during upload)
 
 
