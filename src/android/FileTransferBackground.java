@@ -298,13 +298,6 @@ public class FileTransferBackground extends CordovaPlugin {
 
         PendingUpload.create(jsonPayload);
         startUpload(payload);
-
-
-        if (UploadService.getTaskList().contains(uploadId)) {
-            logMessage("eventLabel='Uploader upload is already being uploaded. ignoring re-upload request' uploadId='" + uploadId + "'");
-            return;
-        }
-
     }
 
     private void startUpload(HashMap<String,Object> payload) {
