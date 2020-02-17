@@ -159,7 +159,7 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
       })
 
-      it('can upload in parallel', function (done) {
+      xit('can upload in parallel', function (done) {
         var uploadedSet = new Set()
         var events = new Set()
         nativeUploader = FileTransferManager.init({ parallelUploadsLimit: 3 }, function (upload) {
