@@ -12,10 +12,10 @@ var FileTransferManager = function (options, callback, ready) {
   }
 
   this.callback = callback
-  exec(function(event) {
-    if(event.ready == true) {
-      ready();
-      return;
+  exec(function (event) {
+    if (event.ready === true) {
+      ready()
+      return
     }
     callback(event)
   }, null, 'FileTransferBackground', 'initManager', [this.options])
