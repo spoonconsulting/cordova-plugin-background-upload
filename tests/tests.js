@@ -28,13 +28,15 @@ exports.defineAutoTests = function () {
         expect(FileTransferManager).toBeDefined()
       })
 
-      it('should have init function', function () {
+      it('should init function', function () {
         expect(FileTransferManager.init).toBeDefined()
       })
 
-      it('should have startUpload function', function () {
-        nativeUploader = FileTransferManager.init({}, function () {}, function (result) {})
-        expect(nativeUploader.startUpload).toBeDefined()
+      it('should have startUpload function', function (done) {
+        nativeUploader = FileTransferManager.init({}, function () {}, function (result) {
+          expect(nativeUploader.startUpload).toBeDefined()
+          done()
+        })
       })
 
       it('returns an error if no argument is given', function (done) {
