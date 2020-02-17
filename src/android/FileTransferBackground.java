@@ -127,11 +127,11 @@ public class FileTransferBackground extends CordovaPlugin {
         FileTransferBackground self = this;
         if (action.equalsIgnoreCase("destroy")) {
             this.destroy();
-            return;
+            return true;
         }
         if (action.equalsIgnoreCase("initManager")) {
-            self.initManager(args.get(0).toString());
-            return;
+            self.initManager(args.get(0).toString(), callbackContext);
+            return true;
         }
         cordova.getThreadPool().execute(new Runnable() {
             public void run() {
@@ -172,7 +172,7 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void initManager(String options) throws IllegalStateException {
+    private void initManager(String options, final CallbackContext callbackContext) throws IllegalStateException {
         if (this.ready) {
             throw new IllegalStateException("initManager was called twice");
         }
