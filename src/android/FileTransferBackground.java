@@ -321,6 +321,29 @@ public class FileTransferBackground extends CordovaPlugin {
             sendAddingUploadError(uploadId, error);
             return;
         }
+
+        try {
+            HashMap<String, Object> headers = convertToHashMap((JSONObject) payload.get("headers"));
+            for (String key : headers.keySet()) {
+                request.addHeader(key, headers.get(key).toString());
+            }
+        } catch (JSONException exception) {
+            logMessage("eventLabel='could not parse request headers' uploadId='" + uploadId + "' error='" + exception.getMessage() + "'");
+            sendAddingUploadError(uploadId, exception);
+            return;
+        }
+
+        try {
+            HashMap<String, Object> parameters = convertToHashMap((JSONObject) payload.get("parameters"));
+            for (String key : parameters.keySet()) {
+                request.addParameter(key, parameters.get(key).toString());
+            }
+        } catch (JSONException exception) {
+            logMessage("eventLabel='could not parse request parameters' uploadId='" + uploadId + "' error='" + exception.getMessage() + "'");
+            sendAddingUploadError(uploadId, exception);
+            return;
+        }
+
         String title = payload.get("notificationTitle").toString();
         request.setNotificationConfig((context, id) -> getNotificationConfiguration(title));
         request.startUpload();
