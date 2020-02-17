@@ -33,7 +33,7 @@ exports.defineAutoTests = function () {
       })
 
       it('should have startUpload function', function () {
-        nativeUploader = FileTransferManager.init({}, function (result) {})
+        nativeUploader = FileTransferManager.init({}, function(){}, function (result) {})
         expect(nativeUploader.startUpload).toBeDefined()
       })
 
@@ -41,16 +41,18 @@ exports.defineAutoTests = function () {
         nativeUploader = FileTransferManager.init({}, function (result) {
           expect(result.error).toBe('upload settings object is missing or invalid argument')
           done()
+        }, function() {
+          nativeUploader.startUpload(null)
         })
-        nativeUploader.startUpload(null)
       })
 
       it('returns an error if upload id is missing', function (done) {
         nativeUploader = FileTransferManager.init({}, function (result) {
           expect(result.error).toBe('upload id is required')
           done()
+        }, function() {
+          nativeUploader.startUpload({ })
         })
-        nativeUploader.startUpload({ })
       })
 
       it('returns an error if serverUrl is missing', function (done) {
@@ -58,8 +60,9 @@ exports.defineAutoTests = function () {
           expect(result.id).toBe('test_id')
           expect(result.error).toBe('server url is required')
           done()
+        }, function() {
+          nativeUploader.startUpload({ id: 'test_id', filePath: path })
         })
-        nativeUploader.startUpload({ id: 'test_id', filePath: path })
       })
 
       it('returns an error if serverUrl is invalid', function (done) {
@@ -68,8 +71,9 @@ exports.defineAutoTests = function () {
           expect(result.id).toBe('123_456')
           expect(result.error).toBe('invalid server url')
           done()
+        }, function() {
+          nativeUploader.startUpload({ id: '123_456', serverUrl: '  ' })
         })
-        nativeUploader.startUpload({ id: '123_456', serverUrl: '  ' })
       })
 
       it('returns an error if filePath is missing', function (done) {
@@ -77,8 +81,9 @@ exports.defineAutoTests = function () {
           expect(result.id).toBe('some_id')
           expect(result.error).toBe('filePath is required')
           done()
+        }, function() {
+          nativeUploader.startUpload({ id: 'some_id', serverUrl: serverUrl })
         })
-        nativeUploader.startUpload({ id: 'some_id', serverUrl: serverUrl })
       })
 
       it('sends upload progress events', function (done) {
@@ -92,8 +97,9 @@ exports.defineAutoTests = function () {
             expect(upload.eventId).toBeUndefined()
             expect(upload.error).toBeUndefined()
           }
+        }, function() {
+          nativeUploader.startUpload({ id: 'a_file_id', serverUrl: serverUrl, filePath: path })
         })
-        nativeUploader.startUpload({ id: 'a_file_id', serverUrl: serverUrl, filePath: path })
       })
 
       it('sends success callback when upload is completed', function (done) {
@@ -114,8 +120,9 @@ exports.defineAutoTests = function () {
             })
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
+        }, function() {
+          nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path })
         })
-        nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path })
       })
 
       it('returns server status code in event', function (done) {
@@ -125,8 +132,9 @@ exports.defineAutoTests = function () {
             expect(upload.statusCode).toBe(210)
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
+        }, function() {
+          nativeUploader.startUpload({ id: 'pkl', serverUrl: serverUrl, filePath: path })
         })
-        nativeUploader.startUpload({ id: 'pkl', serverUrl: serverUrl, filePath: path })
       })
 
       it('sends headers during upload', function (done) {
@@ -139,8 +147,9 @@ exports.defineAutoTests = function () {
             expect(response.receivedInfo.headers.source).toBe('test')
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
+        }, function() {
+          nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers })
         })
-        nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers })
       })
 
       it('sends parameters during upload', function (done) {
@@ -155,8 +164,9 @@ exports.defineAutoTests = function () {
             expect(response.receivedInfo.parameters).toEqual(params)
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
+        }, function() {
+          nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
         })
-        nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
       })
 
       it('can upload in parallel', function (done) {
@@ -181,10 +191,11 @@ exports.defineAutoTests = function () {
               }
             })
           }
+        }, function() {
+          nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
+          nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
+          nativeUploader.startUpload({ id: 'file_3', serverUrl: serverUrl, filePath: path })
         })
-        nativeUploader.startUpload({ id: 'file_1', serverUrl: serverUrl, filePath: path })
-        nativeUploader.startUpload({ id: 'file_2', serverUrl: serverUrl, filePath: path })
-        nativeUploader.startUpload({ id: 'file_3', serverUrl: serverUrl, filePath: path })
       })
 
       it('sends a FAILED event if upload fails', function (done) {
@@ -195,8 +206,9 @@ exports.defineAutoTests = function () {
             expect(upload.errorCode).toBeDefined()
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
+        }, function(){
+          nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })
         })
-        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })
       })
 
       it('sends a FAILED callback if file does not exist', function (done) {
@@ -207,8 +219,9 @@ exports.defineAutoTests = function () {
             expect(upload.error).toContain('File not found')
             done()
           }
+        }, function() {
+          nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' })
         })
-        nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' })
       })
     })
 
@@ -219,24 +232,27 @@ exports.defineAutoTests = function () {
       })
 
       it('returns an error if no uploadId is given', function (done) {
-        nativeUploader = FileTransferManager.init({}, function (result) {})
-        nativeUploader.removeUpload(null, null, function (result) {
-          expect(result.error).toBe('upload id is required')
-          done()
+        nativeUploader = FileTransferManager.init({}, function (result) {}, function() {
+          nativeUploader.removeUpload(null, null, function (result) {
+            expect(result.error).toBe('upload id is required')
+            done()
+          })
         })
       })
 
       it('returns an error if undefined uploadId is given', function (done) {
-        nativeUploader = FileTransferManager.init({}, function (result) {})
-        nativeUploader.removeUpload(undefined, null, function (result) {
-          expect(result.error).toBe('upload id is required')
-          done()
+        nativeUploader = FileTransferManager.init({}, function (result) {}, function(){
+          nativeUploader.removeUpload(undefined, null, function (result) {
+            expect(result.error).toBe('upload id is required')
+            done()
+          })
         })
       })
 
       it('does not return error if uploadId is given', function (done) {
-        nativeUploader = FileTransferManager.init({}, function (result) {})
-        nativeUploader.removeUpload('blob', done, null)
+        nativeUploader = FileTransferManager.init({}, function (result) {}, function() {
+          nativeUploader.removeUpload('blob', done, null)
+        })
       })
 
       it('sends a FAILED callback when upload is removed', function (done) {
@@ -250,8 +266,9 @@ exports.defineAutoTests = function () {
           } else if (upload.state === 'UPLOADING') {
             nativeUploader.removeUpload('xyz', null, null)
           }
+        }, function() {
+          nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path })
         })
-        nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path })
       })
     })
 
@@ -262,24 +279,27 @@ exports.defineAutoTests = function () {
       })
 
       it('returns an error if no eventId is given', function (done) {
-        nativeUploader = FileTransferManager.init({}, function (result) {})
-        nativeUploader.acknowledgeEvent(null, null, function (result) {
-          expect(result.error).toBe('event id is required')
-          done()
+        nativeUploader = FileTransferManager.init({}, function (result) {}, function() {
+          nativeUploader.acknowledgeEvent(null, null, function (result) {
+            expect(result.error).toBe('event id is required')
+            done()
+          })
         })
       })
 
       it('returns an error if undefined eventId is given', function (done) {
-        nativeUploader = FileTransferManager.init({}, function (result) {})
-        nativeUploader.acknowledgeEvent(undefined, null, function (result) {
-          expect(result.error).toBe('event id is required')
-          done()
+        nativeUploader = FileTransferManager.init({}, function (result) {}, function() {
+           nativeUploader.acknowledgeEvent(undefined, null, function (result) {
+              expect(result.error).toBe('event id is required')
+              done()
+           })
         })
       })
 
       it('does not return error if eventId is given', function (done) {
-        nativeUploader = FileTransferManager.init({}, function (result) {})
-        nativeUploader.acknowledgeEvent('x-coredata://123/UploadEvent/p1', done, null)
+        nativeUploader = FileTransferManager.init({}, function (result) {}, function() {
+          nativeUploader.acknowledgeEvent('x-coredata://123/UploadEvent/p1', done, null)
+        })
       })
 
       it('persist event id until it is acknowledged', function (done) {
@@ -292,8 +312,9 @@ exports.defineAutoTests = function () {
               nativeUploader.acknowledgeEvent(event2.eventId, done)
             })
           }
+        }, function() {
+          nativeUploader.startUpload({ id: 'unsub', serverUrl: serverUrl, filePath: path })
         })
-        nativeUploader.startUpload({ id: 'unsub', serverUrl: serverUrl, filePath: path })
       })
     })
   })

@@ -1,15 +1,24 @@
 var exec = require('cordova/exec')
 
-var FileTransferManager = function (options, callback) {
+var FileTransferManager = function (options, callback, ready) {
   options.parallelUploadsLimit = options.parallelUploadsLimit || 1
   this.options = options
 
   if (typeof callback !== 'function') {
     throw new Error('event handler must be a function')
   }
+  if (typeof ready !== 'function') {
+    throw new Error('ready handler must be a function')
+  }
 
   this.callback = callback
-  exec(this.callback, null, 'FileTransferBackground', 'initManager', [this.options])
+  exec(function(event) {
+    if(event.ready == true) {
+      ready();
+      return;
+    }
+    callback(event)
+  }, null, 'FileTransferBackground', 'initManager', [this.options])
 }
 
 FileTransferManager.prototype.startUpload = function (payload) {
@@ -73,8 +82,8 @@ FileTransferManager.prototype.destroy = function (successCb, errorCb) {
 }
 
 module.exports = {
-  init: function (options, cb) {
-    return new FileTransferManager(options || {}, cb)
+  init: function (options, cb, ready) {
+    return new FileTransferManager(options || {}, cb, ready)
   },
   FileTransferManager: FileTransferManager
 }
