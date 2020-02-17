@@ -127,13 +127,16 @@ public class FileTransferBackground extends CordovaPlugin {
         FileTransferBackground self = this;
         if (action.equalsIgnoreCase("destroy")) {
             this.destroy();
+            return;
+        }
+        if (action.equalsIgnoreCase("initManager")) {
+            self.initManager(args.get(0).toString());
+            return;
         }
         cordova.getThreadPool().execute(new Runnable() {
             public void run() {
                 try {
-                    if (action.equalsIgnoreCase("initManager")) {
-                        self.initManager(args.get(0).toString(), callbackContext);
-                    } else if (action.equalsIgnoreCase("removeUpload")) {
+                    if (action.equalsIgnoreCase("removeUpload")) {
                         self.removeUpload(args.get(0).toString(), callbackContext);
                     } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
                         self.acknowledgeEvent(args.getString(0), callbackContext);
@@ -169,7 +172,7 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void initManager(String options, final CallbackContext callbackContext) throws IllegalStateException {
+    private void initManager(String options) throws IllegalStateException {
         if (this.ready) {
             throw new IllegalStateException("initManager was called twice");
         }
@@ -222,9 +225,6 @@ public class FileTransferBackground extends CordovaPlugin {
                         uploadPendingList();
                     }
                 });
-        sendCallback(new JSONObject(new HashMap() {{
-            put("ready", true);
-        }}));
     }
 
     private void migrateOldUploads() {

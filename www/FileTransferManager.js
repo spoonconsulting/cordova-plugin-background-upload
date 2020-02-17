@@ -1,24 +1,17 @@
 var exec = require('cordova/exec')
 
-var FileTransferManager = function (options, callback, ready) {
-  options.parallelUploadsLimit = options.parallelUploadsLimit || 1
+var FileTransferManager = function (options, callback) {
   this.options = options
+  if (!this.options.parallelUploadsLimit) {
+    this.options.parallelUploadsLimit = 1
+  }
 
   if (typeof callback !== 'function') {
     throw new Error('event handler must be a function')
   }
-  if (typeof ready !== 'function') {
-    throw new Error('ready handler must be a function')
-  }
 
   this.callback = callback
-  exec(function (event) {
-    if (event.ready === true) {
-      ready()
-      return
-    }
-    callback(event)
-  }, null, 'FileTransferBackground', 'initManager', [this.options])
+  exec(this.callback, null, 'FileTransferBackground', 'initManager', [this.options])
 }
 
 FileTransferManager.prototype.startUpload = function (payload) {
@@ -42,10 +35,19 @@ FileTransferManager.prototype.startUpload = function (payload) {
     return this.callback({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
   }
 
-  payload.fileKey = payload.fileKey || 'file'
+  if (!payload.fileKey) {
+    payload.fileKey = 'file'
+  }
+
   payload.notificationTitle = payload.notificationTitle || 'Uploading files'
-  payload.headers = payload.headers || {}
-  payload.parameters = payload.parameters || {}
+
+  if (!payload.headers) {
+    payload.headers = {}
+  }
+
+  if (!payload.parameters) {
+    payload.parameters = {}
+  }
 
   var self = this
   window.resolveLocalFileSystemURL(payload.filePath, function (entry) {
@@ -82,8 +84,8 @@ FileTransferManager.prototype.destroy = function (successCb, errorCb) {
 }
 
 module.exports = {
-  init: function (options, cb, ready) {
-    return new FileTransferManager(options || {}, cb, ready)
+  init: function (options, cb) {
+    return new FileTransferManager(options || {}, cb)
   },
   FileTransferManager: FileTransferManager
 }
