@@ -427,8 +427,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void acknowledgeEvent(String eventId, CallbackContext context) {
-        String onlyNumbers = eventId.replaceAll("\\D+", "");
-        UploadEvent.destroy(Long.valueOf(onlyNumbers).longValue());
+        UploadEvent.destroy(Long.valueOf(eventId.replaceAll("\\D+", "")).longValue());
         PluginResult result = new PluginResult(PluginResult.Status.OK);
         result.setKeepCallback(true);
         context.sendPluginResult(result);
