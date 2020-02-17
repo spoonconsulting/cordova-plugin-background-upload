@@ -342,7 +342,7 @@ public class FileTransferBackground extends CordovaPlugin {
         } catch (JSONException error) {
             logMessage("eventLabel='Uploader could not delete pending upload' error='" + error.getMessage() + "'");
         }
-        logMessage("eventLabel='Uploader delete pending upload' uploadId='" + obj.getString("id") + "'");
+        logMessage("eventLabel='Uploader delete pending upload' uploadId='" + id + "'");
         PendingUpload.remove(id);
         createAndSendEvent(obj);
     }
