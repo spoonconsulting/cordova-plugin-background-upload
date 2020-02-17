@@ -228,9 +228,11 @@ exports.defineAutoTests = function () {
     })
 
     describe('Remove upload', function () {
-      it('should have removeUpload function', function () {
-        nativeUploader = FileTransferManager.init({}, function (result) {})
-        expect(nativeUploader.removeUpload).toBeDefined()
+      it('should have removeUpload function', function (done) {
+        nativeUploader = FileTransferManager.init({}, function (result) {}, function () {
+          expect(nativeUploader.removeUpload).toBeDefined()
+          done()
+        })
       })
 
       it('returns an error if no uploadId is given', function (done) {
@@ -275,9 +277,11 @@ exports.defineAutoTests = function () {
     })
 
     describe('Acknowledge event', function () {
-      it('should have acknowledgeEvent function', function () {
-        nativeUploader = FileTransferManager.init({}, function (result) {})
-        expect(nativeUploader.acknowledgeEvent).toBeDefined()
+      it('should have acknowledgeEvent function', function (done) {
+        nativeUploader = FileTransferManager.init({}, function (result) {}, function () {
+          expect(nativeUploader.acknowledgeEvent).toBeDefined()
+          done()
+        })
       })
 
       it('returns an error if no eventId is given', function (done) {
