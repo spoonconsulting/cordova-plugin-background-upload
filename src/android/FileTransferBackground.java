@@ -124,11 +124,6 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
-        if (action.equalsIgnoreCase("initManager")) {
-            uploadCallback = callbackContext;
-            this.initManager(args.get(0).toString());
-            return true;
-        }
         if (action.equalsIgnoreCase("destroy")) {
             this.destroy();
         }
@@ -141,13 +136,15 @@ public class FileTransferBackground extends CordovaPlugin {
                     logMessage("eventLabel='Uploader could not decode parameter' error='" + error.getMessage() + "'");
                     return;
                 }
-              if (action.equalsIgnoreCase("removeUpload")) {
-                  removeUpload(arg.toString(), callbackContext);
-              } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
-                  acknowledgeEvent(arg.toString(), callbackContext);
-              } else if (action.equalsIgnoreCase("startUpload")) {
-                  addUpload((JSONObject) arg);
-              }
+                if (action.equalsIgnoreCase("initManager")) {
+                    this.initManager(args.get(0).toString(), callbackContext);
+                } else if (action.equalsIgnoreCase("removeUpload")) {
+                    removeUpload(arg.toString(), callbackContext);
+                } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
+                    acknowledgeEvent(arg.toString(), callbackContext);
+                } else if (action.equalsIgnoreCase("startUpload")) {
+                    addUpload((JSONObject) arg);
+                }
             }
         });
         return true;
@@ -168,10 +165,11 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void initManager(String options) throws IllegalStateException {
+    private void initManager(String options, final CallbackContext callbackContext) throws IllegalStateException {
         if (this.ready) {
             throw new IllegalStateException("initManager was called twice");
         }
+        this.uploadCallback = callbackContext;
         this.ready = true;
         String notificationChannelID = "com.spoon.backgroundfileupload.channel";
         UploadServiceConfig.initialize(
@@ -200,31 +198,27 @@ public class FileTransferBackground extends CordovaPlugin {
         UploadServiceConfig.setThreadPool((AbstractExecutorService) threadPoolExecutor);
         this.createNotificationChannel();
         FileTransferBackground manager = this;
-        //cordova.getThreadPool().execute(new Runnable() {
-            //public void run() {
-                logMessage("Uploader background running ?");
-                //mark v1 uploads as failed
-                migrateOldUploads();
+        //mark v1 uploads as failed
+        migrateOldUploads();
 
-                //broadcast all completed upload events
-                for (UploadEvent event : UploadEvent.all()) {
-                    logMessage("Uploader send event missing on Start - " + event.getId());
-                    sendCallback(event.dataRepresentation());
-                }
+        //broadcast all completed upload events
+        for (UploadEvent event : UploadEvent.all()) {
+            logMessage("Uploader send event missing on Start - " + event.getId());
+            sendCallback(event.dataRepresentation());
+        }
 
-                networkObservable = ReactiveNetwork
-                        .observeNetworkConnectivity(cordova.getContext())
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(connectivity -> {
-                            logMessage("eventLabel='Uploader Network connectivity changed' connectivity_state='"+connectivity.state()+"'");
-                            manager.isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
-                            if (manager.isNetworkAvailable) {
-                                uploadPendingList();
-                            }
-                        });
-            //}
-        //});
+        networkObservable = ReactiveNetwork
+                .observeNetworkConnectivity(cordova.getContext())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(connectivity -> {
+                    logMessage("eventLabel='Uploader Network connectivity changed' connectivity_state='" + connectivity.state() + "'");
+                    manager.isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
+                    if (manager.isNetworkAvailable) {
+                        uploadPendingList();
+                    }
+                });
+        sendCallback(new JSONObject(new HashMap() {{ put("ready", true); }}));
     }
 
     private void migrateOldUploads() {
@@ -290,9 +284,8 @@ public class FileTransferBackground extends CordovaPlugin {
         if (payload == null) return;
         String uploadId = payload.get("id").toString();
 
-
-        if(PendingUpload.count(PendingUpload.class, "upload_id = ?", new String[]{uploadId}) > 0) {
-            logMessage("eventLabel='Uploader an upload is already pending with this id' uploadId='"+uploadId+"'");
+        if (PendingUpload.count(PendingUpload.class, "upload_id = ?", new String[]{uploadId}) > 0) {
+            logMessage("eventLabel='Uploader an upload is already pending with this id' uploadId='" + uploadId + "'");
             return;
         }
 
@@ -300,56 +293,31 @@ public class FileTransferBackground extends CordovaPlugin {
         startUpload(payload);
     }
 
-    private void startUpload(HashMap<String,Object> payload) {
+    private void startUpload(HashMap<String, Object> payload) {
         String uploadId = payload.get("id").toString();
         if (UploadService.getTaskList().contains(uploadId)) {
             logMessage("eventLabel='Uploader upload is already being uploaded. ignoring re-upload start' uploadId='" + uploadId + "'");
             return;
         }
         logMessage("eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
-        if (isNetworkAvailable) {
-            MultipartUploadRequest request = null;
-            try {
-
-                request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.get("serverUrl").toString())
-                        .setUploadID(uploadId)
-                        .setMethod("POST")
-                        .addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString())
-                        .setMaxRetries(0);
-            } catch (IllegalArgumentException error) {
-                sendAddingUploadError(uploadId, error);
-                return;
-            } catch (FileNotFoundException error) {
-                sendAddingUploadError(uploadId, error);
-                return;
-            }
-            String title = payload.get("notificationTitle").toString();
-            request.setNotificationConfig((context, id) -> getNotificationConfiguration(title));
-
-            try {
-                HashMap<String, Object> headers = FileTransferBackground.convertToHashMap((JSONObject) payload.get("headers"));
-                for (String key : headers.keySet()) {
-                    request.addHeader(key, headers.get(key).toString());
-                }
-            } catch (JSONException exception) {
-                logMessage("eventLabel='Uploader could not parse request headers' uploadId='" + uploadId + "' error='" + exception.getMessage() + "'");
-                sendAddingUploadError(uploadId, exception);
-                return;
-            }
-            try {
-                HashMap<String, Object> parameters = FileTransferBackground.convertToHashMap((JSONObject) payload.get("parameters"));
-                for (String key : parameters.keySet()) {
-                    request.addParameter(key, parameters.get(key).toString());
-                }
-            } catch (JSONException exception) {
-                logMessage("eventLabel='Uploader could not parse request parameters' uploadId='" + uploadId + "' error='" + exception.getMessage() + "'");
-                sendAddingUploadError(uploadId, exception);
-                return;
-            }
-            request.startUpload();
-        } else {
+        if (!isNetworkAvailable) {
             logMessage("eventLabel='Uploader no network available, upload has been queued' uploadId='" + uploadId + "'");
+            return;
         }
+        MultipartUploadRequest request = null;
+        try {
+            request = new MultipartUploadRequest(this.cordova.getActivity().getApplicationContext(), payload.get("serverUrl").toString())
+                    .setUploadID(uploadId)
+                    .setMethod("POST")
+                    .addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString())
+                    .setMaxRetries(0);
+        } catch (IllegalArgumentException | FileNotFoundException error) {
+            sendAddingUploadError(uploadId, error);
+            return;
+        }
+        String title = payload.get("notificationTitle").toString();
+        request.setNotificationConfig((context, id) -> getNotificationConfiguration(title));
+        request.startUpload();
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {
@@ -362,8 +330,8 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void deletePendingUploadAndSendEvent(JSONObject obj) {
+        logMessage("eventLabel='Uploader delete pending upload' uploadId='" + obj.getString("id") + "'");
         try {
-            logMessage("eventLabel='Uploader delete pending upload' uploadId='"+obj.getString("id")+"'");
             PendingUpload.remove(obj.getString("id"));
         } catch (JSONException error) {
             logMessage("eventLabel='Uploader could not delete pending upload' error='" + error.getMessage() + "'");
