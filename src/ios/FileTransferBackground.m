@@ -8,30 +8,32 @@
 @end
 @implementation FileTransferBackground
 -(void)initManager:(CDVInvokedUrlCommand*)command{
-    self.pluginCommand = command;
-    if (command.arguments.count > 0){
-        NSDictionary* config = command.arguments[0];
-        FileUploader.parallelUploadsLimit = ((NSNumber*)config[@"parallelUploadsLimit"]).integerValue;
-    }
-    
-    [FileUploader sharedInstance].delegate = self;
-    //mark all old uploads as failed to be retried
-    for (NSString* uploadId in [self getV1Uploads]){
-        [self sendCallback:@{
-            @"state" : @"FAILED",
-            @"id" : uploadId,
-            @"error": @"upload failed",
-            @"errorCode" : @500
-        }];
-    }
-
-    for (UploadEvent* event in [UploadEvent allEvents]){
-        [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
-    }
+    [self runBlockInBackgroundWithTryCatch:^{
+        self.pluginCommand = command;
+        if (command.arguments.count > 0){
+            NSDictionary* config = command.arguments[0];
+            FileUploader.parallelUploadsLimit = ((NSNumber*)config[@"parallelUploadsLimit"]).integerValue;
+        }
+        
+        [FileUploader sharedInstance].delegate = self;
+        //mark all old uploads as failed to be retried
+        for (NSString* uploadId in [self getV1Uploads]){
+            [self sendCallback:@{
+                @"state" : @"FAILED",
+                @"id" : uploadId,
+                @"error": @"upload failed",
+                @"errorCode" : @500
+            }];
+        }
+        
+        for (UploadEvent* event in [UploadEvent allEvents]){
+            [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
+        }
+    } forCommand:command];
 }
 
 - (void)startUpload:(CDVInvokedUrlCommand*)command{
-    [self.commandDelegate runInBackground:^{
+    [self runBlockInBackgroundWithTryCatch:^{
         NSDictionary* payload = command.arguments[0];
         __weak FileTransferBackground *weakSelf = self;
         [[FileUploader sharedInstance] addUpload:payload
@@ -44,16 +46,16 @@
                 }];
             }
         }];
-    }];
+    } forCommand:command];
 }
 
 - (void)removeUpload:(CDVInvokedUrlCommand*)command{
-    [self.commandDelegate runInBackground:^{
+    [self runBlockInBackgroundWithTryCatch:^{
         [[FileUploader sharedInstance] removeUpload:command.arguments[0]];
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    }];
+    } forCommand:command];
 }
 
 -(void)uploadManagerDidReceiveCallback:(NSDictionary*)info{
@@ -66,13 +68,23 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
--(void)acknowledgeEvent:(CDVInvokedUrlCommand*)command{
+- (void)runBlockInBackgroundWithTryCatch:(void (^)(void))block forCommand:(CDVInvokedUrlCommand*)command{
     [self.commandDelegate runInBackground:^{
+        @try {
+            block();
+        } @catch (NSException *exception) {
+            [self sendErrorCallback:command forException:exception];
+        }
+    }];
+}
+
+-(void)acknowledgeEvent:(CDVInvokedUrlCommand*)command{
+    [self runBlockInBackgroundWithTryCatch:^{
         [[FileUploader sharedInstance] acknowledgeEventReceived:command.arguments[0]];
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [pluginResult setKeepCallback:@YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    }];
+    } forCommand:command];
 }
 
 -(void)destroy:(CDVInvokedUrlCommand*)command{
@@ -99,5 +111,10 @@
     //remove the old uploads directory
     [[NSFileManager defaultManager] removeItemAtURL:workDirectoryURL error:nil];
     return oldUploadIds;
+}
+
+-(void)sendErrorCallback:(CDVInvokedUrlCommand*)command forException:(NSException*)exception{
+    NSString* message = [NSString stringWithFormat:@"(%@) - %@", exception.name, exception.reason];
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsString:message] callbackId:command.callbackId];
 }
 @end
