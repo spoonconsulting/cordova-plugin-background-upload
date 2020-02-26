@@ -226,7 +226,7 @@ public class FileTransferBackground extends CordovaPlugin {
         String uploadDirectoryName = "FileTransferBackground";
         if (storage.isDirectoryExists(uploadDirectoryName)) {
             for (String uploadId : getOldUploadIds()) {
-                createAndSendEvent(new JSONObject(new HashMap() {{
+                UploadEvent event = UploadEvent.create(new JSONObject(new HashMap() {{
                     put("id", uploadId);
                     put("state", "FAILED");
                     put("errorCode", 0);
