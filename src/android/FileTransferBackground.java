@@ -124,26 +124,33 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
+        FileTransferBackground self = this;
         if (action.equalsIgnoreCase("destroy")) {
             this.destroy();
+            return true;
+        }
+        if (action.equalsIgnoreCase("initManager")) {
+            self.initManager(args.get(0).toString(), callbackContext);
+            return true;
         }
         cordova.getThreadPool().execute(new Runnable() {
             public void run() {
-                Object arg;
                 try {
-                    arg = args.get(0);
-                } catch (JSONException error) {
-                    logMessage("eventLabel='Uploader could not decode parameter' error='" + error.getMessage() + "'");
-                    return;
-                }
-                if (action.equalsIgnoreCase("initManager")) {
-                    this.initManager(args.get(0).toString(), callbackContext);
-                } else if (action.equalsIgnoreCase("removeUpload")) {
-                    removeUpload(arg.toString(), callbackContext);
-                } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
-                    acknowledgeEvent(arg.toString(), callbackContext);
-                } else if (action.equalsIgnoreCase("startUpload")) {
-                    addUpload((JSONObject) arg);
+                    if (action.equalsIgnoreCase("removeUpload")) {
+                        self.removeUpload(args.get(0).toString(), callbackContext);
+                    } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
+                        self.acknowledgeEvent(args.getString(0), callbackContext);
+                    } else if (action.equalsIgnoreCase("startUpload")) {
+                        self.addUpload((JSONObject) args.get(0));
+                    } else if (action.equalsIgnoreCase("destroy")) {
+                        self.destroy();
+                    }
+                } catch (Exception exception) {
+                    String message = "(" + exception.getClass().getSimpleName() + ") - " + exception.getMessage();
+                    PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
+                    result.setKeepCallback(true);
+                    callbackContext.sendPluginResult(result);
+                    exception.printStackTrace();
                 }
             }
         });
@@ -218,7 +225,6 @@ public class FileTransferBackground extends CordovaPlugin {
                         uploadPendingList();
                     }
                 });
-        sendCallback(new JSONObject(new HashMap() {{ put("ready", true); }}));
     }
 
     private void migrateOldUploads() {
@@ -315,6 +321,29 @@ public class FileTransferBackground extends CordovaPlugin {
             sendAddingUploadError(uploadId, error);
             return;
         }
+
+        try {
+            HashMap<String, Object> headers = convertToHashMap((JSONObject) payload.get("headers"));
+            for (String key : headers.keySet()) {
+                request.addHeader(key, headers.get(key).toString());
+            }
+        } catch (JSONException exception) {
+            logMessage("eventLabel='could not parse request headers' uploadId='" + uploadId + "' error='" + exception.getMessage() + "'");
+            sendAddingUploadError(uploadId, exception);
+            return;
+        }
+
+        try {
+            HashMap<String, Object> parameters = convertToHashMap((JSONObject) payload.get("parameters"));
+            for (String key : parameters.keySet()) {
+                request.addParameter(key, parameters.get(key).toString());
+            }
+        } catch (JSONException exception) {
+            logMessage("eventLabel='could not parse request parameters' uploadId='" + uploadId + "' error='" + exception.getMessage() + "'");
+            sendAddingUploadError(uploadId, exception);
+            return;
+        }
+
         String title = payload.get("notificationTitle").toString();
         request.setNotificationConfig((context, id) -> getNotificationConfiguration(title));
         request.startUpload();
@@ -330,12 +359,14 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void deletePendingUploadAndSendEvent(JSONObject obj) {
-        logMessage("eventLabel='Uploader delete pending upload' uploadId='" + obj.getString("id") + "'");
+        String id = null;
         try {
-            PendingUpload.remove(obj.getString("id"));
+            id = obj.getString("id");
         } catch (JSONException error) {
             logMessage("eventLabel='Uploader could not delete pending upload' error='" + error.getMessage() + "'");
         }
+        logMessage("eventLabel='Uploader delete pending upload' uploadId='" + id + "'");
+        PendingUpload.remove(id);
         createAndSendEvent(obj);
     }
 

@@ -18,8 +18,6 @@ export class HomePage {
             let self = this;
             self.uploader = FileTransferManager.init();
             self.uploader.on('event', function(event) {
-                if (event.eventId)
-                    self.uploader.acknowledgeEvent(event.eventId);
                 if (event.state == 'UPLOADED') {
                     console.log("upload: " + event.id + " has been completed successfully");
                     console.log(event.statusCode, event.serverResponse);
@@ -38,6 +36,8 @@ export class HomePage {
                     var correspondingMedia = self.getMediaWithId(event.id);
                     correspondingMedia.updateStatus("uploading: " + event.progress + "%");
                 }
+                if (event.eventId)
+                    self.uploader.acknowledgeEvent(event.eventId);
             });
         })
     }
