@@ -14,7 +14,7 @@
             NSDictionary* config = command.arguments[0];
             FileUploader.parallelUploadsLimit = ((NSNumber*)config[@"parallelUploadsLimit"]).integerValue;
         }
-        
+
         [FileUploader sharedInstance].delegate = self;
         //mark all old uploads as failed to be retried
         for (NSString* uploadId in [self getV1Uploads]){
@@ -25,14 +25,14 @@
                 @"errorCode" : @500
             }];
         }
-        
+
         for (UploadEvent* event in [UploadEvent allEvents]){
             [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
         }
     } forCommand:command];
 }
 
-- (void)startUpload:(CDVInvokedUrlCommand*)command{
+-(void)startUpload:(CDVInvokedUrlCommand*)command{
     [self runBlockInBackgroundWithTryCatch:^{
         NSDictionary* payload = command.arguments[0];
         __weak FileTransferBackground *weakSelf = self;
@@ -49,7 +49,7 @@
     } forCommand:command];
 }
 
-- (void)removeUpload:(CDVInvokedUrlCommand*)command{
+-(void)removeUpload:(CDVInvokedUrlCommand*)command{
     [self runBlockInBackgroundWithTryCatch:^{
         [[FileUploader sharedInstance] removeUpload:command.arguments[0]];
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -68,7 +68,7 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.pluginCommand.callbackId];
 }
 
-- (void)runBlockInBackgroundWithTryCatch:(void (^)(void))block forCommand:(CDVInvokedUrlCommand*)command{
+-(void)runBlockInBackgroundWithTryCatch:(void (^)(void))block forCommand:(CDVInvokedUrlCommand*)command{
     [self.commandDelegate runInBackground:^{
         @try {
             block();

@@ -9,7 +9,6 @@ declare var FileTransferManager: any;
     templateUrl: 'home.html'
 })
 export class HomePage {
-
     allMedia: Array < Media > = [];
     uploader: any;
 
@@ -44,9 +43,9 @@ export class HomePage {
 
     private getMediaWithId(mediaId) {
         for (var media of this.allMedia) {
-          if (media.id == mediaId) {
-            return media;
-          }
+            if (media.id == mediaId) {
+                return media;
+            }
         }
         return null;
     }
@@ -59,65 +58,59 @@ export class HomePage {
     }
 
     private openGallery(): void {
-      var self = this;
-      ImagePicker.getPictures({
-          maximumImagesCount: 3
-      }).then(file_uris => {
-              for (var i = 0; i < file_uris.length; i++) {
-                  var media = new Media(file_uris[i], this._ngZone);
-                  this.allMedia.push(media);
+        var self = this;
+        ImagePicker.getPictures({
+            maximumImagesCount: 3
+        }).then(fileUris => {
+            for (var i = 0; i < fileUris.length; i++) {
+                var media = new Media(fileUris[i], this._ngZone);
+                this.allMedia.push(media);
 
-                  var options: any = {
+                var options: any = {
                     serverUrl: "http://requestbin.net/r/qz0li0qz",
-                    filePath: file_uris[i],
+                    filePath: fileUris[i],
                     fileKey: "file",
                     id: media.id,
                     notificationTitle: "Uploading image (Job 0)",
                     headers: {},
                     parameters: {
-                      colors: 1,
-                      faces: 1,
-                      image_metadata: 1,
-                      phash: 1,
-                      signature: "924736486",
-                      tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
-                      timestamp: 1572858811,
-                      type: "authenticated"
-                    }
-                  };
-                  self.uploader.startUpload(options);
-              }
-          }, err => console.log('err: ' + err)
-      );
+                        colors: 1,
+                        faces: 1,
+                        image_metadata: 1,
+                        phash: 1,
+                        signature: "924736486",
+                        tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
+                        timestamp: 1572858811,
+                        type: "authenticated"
+                  }
+                };
+                self.uploader.startUpload(options);
+            }
+        }, err => console.log('err: ' + err));
     }
-
-
 }
 
-
 export class Media {
-
     uri: String;
     status: String;
     zone: NgZone;
     id: string;
 
     constructor(url: String, private _ngZone: NgZone) {
-      this.uri = url;
-      this.status = "uploading";
-      this.zone = _ngZone;
-      this.id = "" + Math.random().toString(36).substr(2, 5);
+        this.uri = url;
+        this.status = "uploading";
+        this.zone = _ngZone;
+        this.id = "" + Math.random().toString(36).substr(2, 5);
     }
 
     updateStatus(stat: String) {
-      //in order to updates to propagate, we need be in angular zone
-      //more info here:
-      //https://www.joshmorony.com/understanding-zones-and-change-detection-in-ionic-2-angular-2/
-      //example where updates are made in angular zone:
-      //https://www.joshmorony.com/adding-background-geolocation-to-an-ionic-2-application/
-      this.zone.run(() => {
-          this.status = stat;
-      });
+        // In order for updates to propagate, we need be in Angular zone
+        // More info here:
+        // https://www.joshmorony.com/understanding-zones-and-change-detection-in-ionic-2-angular-2/
+        // Example where updates are made in Angular zone:
+        // https://www.joshmorony.com/adding-background-geolocation-to-an-ionic-2-application/
+        this.zone.run(() => {
+            this.status = stat;
+        });
     }
-
 }

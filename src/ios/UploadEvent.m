@@ -6,11 +6,9 @@
 @synthesize data;
 static NSManagedObjectContext * managedObjectContext;
 static NSPersistentStoreCoordinator * persistentStoreCoordinator;
-- (id)init{
+-(id)init{
     NSEntityDescription *entity = [NSEntityDescription entityForName:@"UploadEvent" inManagedObjectContext:managedObjectContext];
     self = [super initWithEntity:entity insertIntoManagedObjectContext:managedObjectContext];
-    if (self == nil)
-        return nil;
     return self;
 }
 

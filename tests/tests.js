@@ -39,7 +39,7 @@ exports.defineAutoTests = function () {
 
       it('returns an error if no argument is given', function (done) {
         nativeUploader = FileTransferManager.init({}, function (result) {
-          expect(result.error).toBe('upload settings object is missing or invalid argument')
+          expect(result.error).toBe('Upload Settings object is missing or has invalid arguments')
           done()
         })
         nativeUploader.startUpload(null)
@@ -47,7 +47,7 @@ exports.defineAutoTests = function () {
 
       it('returns an error if upload id is missing', function (done) {
         nativeUploader = FileTransferManager.init({}, function (result) {
-          expect(result.error).toBe('upload id is required')
+          expect(result.error).toBe('Upload ID is required')
           done()
         })
         nativeUploader.startUpload({ })
@@ -56,7 +56,7 @@ exports.defineAutoTests = function () {
       it('returns an error if serverUrl is missing', function (done) {
         nativeUploader = FileTransferManager.init({}, function (result) {
           expect(result.id).toBe('test_id')
-          expect(result.error).toBe('server url is required')
+          expect(result.error).toBe('Server URL is required')
           done()
         })
         nativeUploader.startUpload({ id: 'test_id', filePath: path })
@@ -66,7 +66,7 @@ exports.defineAutoTests = function () {
         nativeUploader = FileTransferManager.init({}, function (result) {
           expect(result).toBeDefined()
           expect(result.id).toBe('123_456')
-          expect(result.error).toBe('invalid server url')
+          expect(result.error).toBe('Invalid server URL')
           done()
         })
         nativeUploader.startUpload({ id: '123_456', serverUrl: '  ' })
@@ -221,7 +221,7 @@ exports.defineAutoTests = function () {
       it('returns an error if no uploadId is given', function (done) {
         nativeUploader = FileTransferManager.init({}, function (result) {})
         nativeUploader.removeUpload(null, null, function (result) {
-          expect(result.error).toBe('upload id is required')
+          expect(result.error).toBe('Upload ID is required')
           done()
         })
       })
@@ -229,7 +229,7 @@ exports.defineAutoTests = function () {
       it('returns an error if undefined uploadId is given', function (done) {
         nativeUploader = FileTransferManager.init({}, function (result) {})
         nativeUploader.removeUpload(undefined, null, function (result) {
-          expect(result.error).toBe('upload id is required')
+          expect(result.error).toBe('Upload ID is required')
           done()
         })
       })
@@ -264,7 +264,7 @@ exports.defineAutoTests = function () {
       it('returns an error if no eventId is given', function (done) {
         nativeUploader = FileTransferManager.init({}, function (result) {})
         nativeUploader.acknowledgeEvent(null, null, function (result) {
-          expect(result.error).toBe('event id is required')
+          expect(result.error).toBe('Event ID is required')
           done()
         })
       })
@@ -272,7 +272,7 @@ exports.defineAutoTests = function () {
       it('returns an error if undefined eventId is given', function (done) {
         nativeUploader = FileTransferManager.init({}, function (result) {})
         nativeUploader.acknowledgeEvent(undefined, null, function (result) {
-          expect(result.error).toBe('event id is required')
+          expect(result.error).toBe('Event ID is required')
           done()
         })
       })

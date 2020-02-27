@@ -9,7 +9,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface FileUploader : NSObject
 @property (nonatomic, strong) id<FileUploaderDelegate> delegate;
-+ (instancetype)sharedInstance;
++(instancetype)sharedInstance;
 -(void)addUpload:(NSDictionary *)payload completionHandler:(void (^)(NSError* error))handler;
 -(void)removeUpload:(NSString*)uploadId;
 -(void)acknowledgeEventReceived:(NSString*)eventId;

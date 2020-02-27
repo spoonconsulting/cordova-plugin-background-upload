@@ -9,7 +9,7 @@ NS_ASSUME_NONNULL_BEGIN
 +(UploadEvent*)eventWithId:(NSString*)eventId;
 +(NSArray*)allEvents;
 +(void)setupStorage;
-+ (UploadEvent*)create:(NSDictionary*)info;
++(UploadEvent*)create:(NSDictionary*)info;
 -(NSDictionary*)dataRepresentation;
 @end
 

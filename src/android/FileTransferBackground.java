@@ -77,7 +77,7 @@ public class FileTransferBackground extends CordovaPlugin {
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
             String errorMsg = exception != null ? exception.getMessage() : "";
-            logMessage("eventLabel='Uploader upload failed' uploadId='" + uploadInfo.getUploadId() + "' error='" + errorMsg + "'");
+            logMessage("eventLabel='Uploader onError' uploadId='" + uploadInfo.getUploadId() + "' error='" + errorMsg + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
@@ -88,7 +88,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         @Override
         public void onSuccess(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-            logMessage("eventLabel='Uploader upload success' uploadId='" + uploadInfo.getUploadId() + "' response='" + serverResponse.getBodyString() + "'");
+            logMessage("eventLabel='Uploader onSuccess' uploadId='" + uploadInfo.getUploadId() + "' response='" + serverResponse.getBodyString() + "'");
             deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "UPLOADED");
@@ -433,7 +433,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void onDestroy() {
-        logMessage("eventLabel='plugin onDestroy'");
+        logMessage("eventLabel='Uploader plugin onDestroy'");
         destroy();
     }
 
