@@ -16,19 +16,19 @@ var FileTransferManager = function (options, callback) {
 
 FileTransferManager.prototype.startUpload = function (payload) {
   if (!payload) {
-    return this.callback({ state: 'FAILED', error: 'upload settings object is missing or invalid argument' })
+    return this.callback({ state: 'FAILED', error: 'Upload Settings object is missing or has invalid arguments' })
   }
 
   if (!payload.id) {
-    return this.callback({ state: 'FAILED', error: 'upload id is required' })
+    return this.callback({ state: 'FAILED', error: 'Upload ID is required' })
   }
 
   if (!payload.serverUrl) {
-    return this.callback({ id: payload.id, state: 'FAILED', error: 'server url is required' })
+    return this.callback({ id: payload.id, state: 'FAILED', error: 'Server URL is required' })
   }
 
   if (payload.serverUrl.trim() === '') {
-    return this.callback({ id: payload.id, state: 'FAILED', error: 'invalid server url' })
+    return this.callback({ id: payload.id, state: 'FAILED', error: 'Invalid server URL' })
   }
 
   if (!payload.filePath) {
@@ -61,7 +61,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
 FileTransferManager.prototype.removeUpload = function (id, successCb, errorCb) {
   if (!id) {
     if (errorCb) {
-      errorCb({ error: 'upload id is required' })
+      errorCb({ error: 'Upload ID is required' })
     }
   } else {
     exec(successCb, errorCb, 'FileTransferBackground', 'removeUpload', [id])
@@ -71,7 +71,7 @@ FileTransferManager.prototype.removeUpload = function (id, successCb, errorCb) {
 FileTransferManager.prototype.acknowledgeEvent = function (id, successCb, errorCb) {
   if (!id) {
     if (errorCb) {
-      errorCb({ error: 'event id is required' })
+      errorCb({ error: 'Event ID is required' })
     }
   } else {
     exec(successCb, errorCb, 'FileTransferBackground', 'acknowledgeEvent', [id])

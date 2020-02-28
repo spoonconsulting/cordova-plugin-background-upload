@@ -8,13 +8,13 @@
 static NSInteger _parallelUploadsLimit = 1;
 static FileUploader *singletonObject = nil;
 static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-background-upload.UUID";
-+ (instancetype)sharedInstance{
++(instancetype)sharedInstance{
     if (!singletonObject)
         singletonObject = [[FileUploader alloc] init];
     return singletonObject;
 }
 
-- (id)init{
+-(id)init{
     self = [super init];
     if (self == nil)
         return nil;
@@ -47,7 +47,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
             }];
         }
     }];
-    
+
     [self.manager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {
         NSMutableData *responseData = weakSelf.responsesData[@(dataTask.taskIdentifier)];
         if (!responseData) {
@@ -90,7 +90,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
         if (error)
             return handler(error);
         __block double lastProgressTimeStamp = 0;
-        
+
         [[weakSelf.manager uploadTaskWithRequest:request
                                         fromFile:tempFilePath
                                         progress:^(NSProgress * _Nonnull uploadProgress)

@@ -32,7 +32,7 @@ var config = {};
 var uploader = FileTransferManager.init(config, callback);
 ```
 
-**Methods** 
+**Methods**
 
 ### uploader.init(config, callback)
 Initialises the uploader with provided configuration. To control the number of parallel uploads, pass `parallelUploadsLimit` in config.
@@ -61,7 +61,7 @@ uploader.startUpload(payload);
 Param | Description
 -------- | -------
 id | a unique id of the file (UUID string)
-filePath | the absolute path for the file to upload 
+filePath | the absolute path for the file to upload
 fileKey | the name of the key to use for the file
 serverUrl | remote server url
 headers | custom http headers
@@ -124,7 +124,7 @@ id | id of the upload
 state | state of the upload (either `UPLOADING`, `UPLOADED` or `FAILED`)
 statusCode | response code returned by server after upload is completed
 serverResponse | server response received after upload is completed
-errror | error message in case of failure
+error | error message in case of failure
 errorCode | error code for any exception encountered
 progress | progress for ongoing upload
 eventId | id of the event
@@ -150,6 +150,8 @@ On Android Oreo and above, there are strict limitations on background services a
 - Events need to be acknowledged to be removed. Failure to do so will result in all saved events being broadcast on `init`.
 -`showNotification` parameter has been removed (A notification will always be shown on Android during upload)
 
+## README for v1.0
+The README for the previous version can be found [here](https://github.com/spoonconsulting/cordova-plugin-background-upload/blob/eacce4385ae497188307a9944c2f353571a463a2/README.md).
 
 ## License
 Cordova-plugin-background-upload is licensed under the Apache v2 License.
