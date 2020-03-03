@@ -1,8 +1,8 @@
 {
-  "name": "upload_demo",
-  "app_id": "",
+  "name": "Bozaka",
   "integrations": {
+    "capacitor": {},
     "cordova": {}
   },
-  "type": "ionic-angular"
+  "type": "angular"
 }
