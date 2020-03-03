@@ -21,7 +21,7 @@ export class HomePage {
       let self = this;
 
       self.uploader = FileTransferManager.init({
-        parallelUploadsLimit: 2
+        parallelUploadsLimit: 1
       }, event => {
         console.log('EVENT');
         if (event.state == 'UPLOADED') {
