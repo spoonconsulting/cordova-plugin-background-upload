@@ -1,4 +1,4 @@
-import { Component, NgZone } from '@angular/core';
+import { Component, NgZone} from '@angular/core';
 import { ImagePicker } from '@ionic-native/image-picker/ngx';
 import { Platform } from '@ionic/angular';
 
@@ -12,39 +12,39 @@ declare var FileTransferManager: any;
 
 export class HomePage {
 
-  allMedia: Array <Media> = [];
+  allMedia: Array < Media > = [];
   uploader: any;
   win: any = window;
 
   constructor(private platform: Platform, private _ngZone: NgZone, private imgPicker: ImagePicker) {
     this.platform.ready().then(() => {
-        let self = this;
+      let self = this;
 
-        self.uploader = FileTransferManager.init();
-        
-        self.uploader.on('event', function(event) {
-          console.log('EVENT');
-            if (event.state == 'UPLOADED') {
-                console.log("upload: " + event.id + " has been completed successfully");
-                console.log(event.statusCode, event.serverResponse);
-                var correspondingMedia = self.getMediaWithId(event.id);
-                correspondingMedia.updateStatus("uploaded successfully");
-            } else if (event.state == 'FAILED') {
-                if (event.id) {
-                    console.log("upload: " + event.id + " has failed");
-                    var correspondingMedia = self.getMediaWithId(event.id);
-                    correspondingMedia.updateStatus("Error while uploading");
-                } else {
-                    console.error("uploader caught an error: " + event.error);
-                }
-            } else if (event.state == 'UPLOADING') {
-                console.log("uploading: " + event.id + " progress: " + event.progress + "%");
-                var correspondingMedia = self.getMediaWithId(event.id);
-                correspondingMedia.updateStatus("uploading: " + event.progress + "%");
-            }
-            if (event.eventId)
-                self.uploader.acknowledgeEvent(event.eventId);
-        });
+      self.uploader = FileTransferManager.init({
+        parallelUploadsLimit: 2
+      }, event => {
+        console.log('EVENT');
+        if (event.state == 'UPLOADED') {
+          console.log("upload: " + event.id + " has been completed successfully");
+          console.log(event.statusCode, event.serverResponse);
+          var correspondingMedia = self.getMediaWithId(event.id);
+          correspondingMedia.updateStatus("uploaded successfully");
+        } else if (event.state == 'FAILED') {
+          if (event.id) {
+            console.log("upload: " + event.id + " has failed");
+            var correspondingMedia = self.getMediaWithId(event.id);
+            correspondingMedia.updateStatus("Error while uploading");
+          } else {
+            console.error("uploader caught an error: " + event.error);
+          }
+        } else if (event.state == 'UPLOADING') {
+          console.log("uploading: " + event.id + " progress: " + event.progress + "%");
+          var correspondingMedia = self.getMediaWithId(event.id);
+          correspondingMedia.updateStatus("uploading: " + event.progress + "%");
+        }
+        if (event.eventId)
+          self.uploader.acknowledgeEvent(event.eventId);
+      });
     })
   }
 
@@ -58,50 +58,49 @@ export class HomePage {
   }
 
   cancelUpload(media: Media): void {
-      this.uploader.removeUpload(media.id, res => {
-          console.log('removeUpload result: ', res);
-          media.updateStatus("Aborted");
-      }, err => alert('Error removing upload'));
+    this.uploader.removeUpload(media.id, res => {
+      console.log('removeUpload result: ', res);
+      media.updateStatus("Aborted");
+    }, err => alert('Error removing upload'));
   }
 
   openGallery(): void {
     var self = this;
 
     var options = {
-        width: 200,
-        quality: 25
+      width: 200,
+      quality: 25
     };
 
     self.imgPicker.getPictures({
-        maximumImagesCount: 3
+      maximumImagesCount: 3
     }).then(file_uris => {
-            for (var i = 0; i < file_uris.length; i++) {
-                let path = this.win.Ionic.WebView.convertFileSrc(file_uris[i]);
-                var media = new Media(path, this._ngZone);
-                this.allMedia.push(media);
+      for (var i = 0; i < file_uris.length; i++) {
+        let path = this.win.Ionic.WebView.convertFileSrc(file_uris[i]);
+        var media = new Media(path, this._ngZone);
+        this.allMedia.push(media);
 
-                var options: any = {
-                  serverUrl: "http://requestbin.net/r/1me11dr1",
-                  filePath: file_uris[i],
-                  fileKey: "file",
-                  id: media.id,
-                  notificationTitle: "Uploading image (Job 0)",
-                  headers: {},
-                  parameters: {
-                    colors: 1,
-                    faces: 1,
-                    image_metadata: 1,
-                    phash: 1,
-                    signature: "924736486",
-                    tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
-                    timestamp: 1572858811,
-                    type: "authenticated"
-                  }
-                };
-                self.uploader.startUpload(options);
-            }
-        }, err => console.log('err: ' + err)
-    );
+        var options: any = {
+          serverUrl: "http://requestbin.net/r/1me11dr1",
+          filePath: file_uris[i],
+          fileKey: "file",
+          id: media.id,
+          notificationTitle: "Uploading image (Job 0)",
+          headers: {},
+          parameters: {
+            colors: 1,
+            faces: 1,
+            image_metadata: 1,
+            phash: 1,
+            signature: "924736486",
+            tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
+            timestamp: 1572858811,
+            type: "authenticated"
+          }
+        };
+        self.uploader.startUpload(options);
+      }
+    }, err => console.log('err: ' + err));
   }
 }
 
@@ -126,7 +125,7 @@ export class Media {
     //example where updates are made in angular zone:
     //https://www.joshmorony.com/adding-background-geolocation-to-an-ionic-2-application/
     this.zone.run(() => {
-        this.status = stat;
+      this.status = stat;
     });
   }
 }
