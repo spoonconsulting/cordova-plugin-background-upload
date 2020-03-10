@@ -24,22 +24,22 @@ export class HomePage {
         parallelUploadsLimit: 1
       }, event => {
         console.log('EVENT');
+        var correspondingMedia = self.getMediaWithId(event.id);
+        if (!correspondingMedia)
+          return;
         if (event.state == 'UPLOADED') {
           console.log("upload: " + event.id + " has been completed successfully");
           console.log(event.statusCode, event.serverResponse);
-          var correspondingMedia = self.getMediaWithId(event.id);
           correspondingMedia.updateStatus("uploaded successfully");
         } else if (event.state == 'FAILED') {
           if (event.id) {
             console.log("upload: " + event.id + " has failed");
-            var correspondingMedia = self.getMediaWithId(event.id);
             correspondingMedia.updateStatus("Error while uploading");
           } else {
             console.error("uploader caught an error: " + event.error);
           }
         } else if (event.state == 'UPLOADING') {
           console.log("uploading: " + event.id + " progress: " + event.progress + "%");
-          var correspondingMedia = self.getMediaWithId(event.id);
           correspondingMedia.updateStatus("uploading: " + event.progress + "%");
         }
         if (event.eventId)
