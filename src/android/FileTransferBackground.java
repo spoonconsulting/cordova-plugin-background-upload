@@ -12,9 +12,6 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.util.Log;
 
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-
 import com.github.pwittchen.reactivenetwork.library.rx2.ReactiveNetwork;
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
@@ -51,7 +48,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import io.ionic.starter.R;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -459,34 +455,4 @@ public class FileTransferBackground extends CordovaPlugin {
         this.networkObservable = null;
         this.globalObserver = null;
     }
-
-    // test
-    private void createNotification() {
-        Context ctx = cordova.getActivity().getApplicationContext();
-
-        /*RemoteViews notificationLayout = new RemoteViews(
-                cordova.getActivity().getPackageName(),
-                R.layout.notification
-        );*/
-
-        int progress_max = 100;
-        int progress_current = 0;
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(ctx);
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx, "com.spoon.backgroundfileupload.channel");
-        builder.setContentTitle(String.format("Uploading image %d/%d", 1, 100))
-                .setContentText("0%")
-                .setSmallIcon(R.drawable.ic_upload)
-                .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW);
-
-        builder.setProgress(progress_max, progress_current, false);
-        notificationManager.notify(1, builder.build());
-
-        /*builder.setContentText("Download complete")
-                .setContentTitle(String.format("%s images uploaded", 100))
-                .setProgress(0, 0, false);
-        notificationManager.notify(1, builder.build());*/
-    }
-    //end
 }
