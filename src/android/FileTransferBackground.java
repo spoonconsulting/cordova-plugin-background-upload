@@ -195,7 +195,7 @@ public class FileTransferBackground extends CordovaPlugin {
             logMessage("eventLabel='Uploader could not read parallelUploadsLimit from config' error='" + error.getMessage() + "'");
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, totalUploads));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(cordova.getActivity(), uploadService, notificationChannelID));
 
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =

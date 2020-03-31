@@ -1,95 +1,122 @@
 package com.spoon.backgroundfileupload;
 
-import android.app.Notification;
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.NotificationManager;
-import android.content.Context;
-import android.os.Build;
+import android.content.res.Resources;
+import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
 
 import net.gotev.uploadservice.UploadService;
-import net.gotev.uploadservice.data.UploadInfo;
-import net.gotev.uploadservice.data.UploadNotificationConfig;
-import net.gotev.uploadservice.network.ServerResponse;
-import net.gotev.uploadservice.observer.task.UploadTaskObserver;
 
-import org.jetbrains.annotations.NotNull;
+import java.util.Map;
 
-public class NotificationHandler implements UploadTaskObserver {
-    NotificationCompat.Builder notification;
+/**
+ * Created by Nick Adna on 3/28/2020.
+ */
 
-    private int mCurrent;
-    private UploadService mService;
-    private NotificationManager mNotificationManager;
+public class NotificationHandler extends AbstractSingleNotificationHandler {
 
-    private int uploaded = 0;
+    private Activity mContext;
 
-    public NotificationHandler(UploadService service, int current) {
-        this.mService = service;
-        this.mCurrent = current;
-        this.mNotificationManager = (NotificationManager) mService.getSystemService(Context.NOTIFICATION_SERVICE);
+    public NotificationHandler(Activity context, UploadService mService, String mNotificationChannelId) {
+        super(mService, mNotificationChannelId);
+        this.mContext = context;
     }
 
-    private void notify(String uploadId, int notificationId, Notification notificatior) {
-        if (mService.holdForegroundNotification(uploadId, notificatior)) {
-            mNotificationManager.cancel(notificationId);
-        } else {
-            mNotificationManager.notify(notificationId, notificatior);
-        }
-    }
-
+    @SuppressLint("DefaultLocale")
     @Override
-    public void onCompleted(@NotNull UploadInfo uploadInfo, int i, @NotNull UploadNotificationConfig uploadNotificationConfig) {
-    }
+    public NotificationCompat.Builder updateNotification(NotificationManager notificationManager, NotificationCompat.Builder notificationBuilder, Map<String, TaskData> tasks) {
+        int speed = 0;
+        int inProgress = 0;
+        int failed = 0;
 
-    @Override
-    public void onError(@NotNull UploadInfo uploadInfo, int i, @NotNull UploadNotificationConfig uploadNotificationConfig, @NotNull Throwable throwable) {
-        notification.setContentText("Uploads failed");
-        notification.setProgress(0, 0, false);
+        for (Map.Entry<String, TaskData> entry : tasks.entrySet()) {
+            String uploadId = entry.getValue().getInfo().getUploadId();
 
-        notify(uploadInfo.getUploadId(), 1, notification.build());
-    }
+            if (entry.getValue().getStatus() == TaskStatus.InProgress) {
+                inProgress++;
 
-    @Override
-    public void onProgress(@NotNull UploadInfo uploadInfo, int i, @NotNull UploadNotificationConfig uploadNotificationConfig) {
-        notification.setContentText(uploadInfo.getProgressPercent() + "%");
-        notification.setProgress(100, uploadInfo.getProgressPercent(), false);
-        notify(uploadInfo.getUploadId(), 1, notification.build());
-    }
+                speed += convertUnit(
+                        entry.getValue().getInfo().getUploadRate().getUnit().name(),
+                        entry.getValue().getInfo().getUploadRate().getValue()
+                );
+            }
 
-    @Override
-    public void onStart(@NotNull UploadInfo uploadInfo, int i, @NotNull UploadNotificationConfig uploadNotificationConfig) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                mNotificationManager.getNotificationChannel(uploadNotificationConfig.getNotificationChannelId());
-            } catch (IllegalArgumentException e) {
-                throw e;
+            if (entry.getValue().getStatus() == TaskStatus.Failed) {
+                failed++;
+            }
+
+            if (entry.getValue().getStatus() != TaskStatus.InProgress) {
+                removeTask(uploadId);
             }
         }
 
-        notification = new NotificationCompat.Builder(mService, uploadNotificationConfig.getNotificationChannelId())
-                .setContentTitle(String.format("%s/%s file(s) uploaded", uploaded, mCurrent))
-                .setContentText(String.format("Upload of %s", uploadInfo.getUploadId().toUpperCase()))
-                .setProgress(100, 100 / mCurrent, false)
-                .setSmallIcon(android.R.drawable.ic_menu_view)
-                .setOngoing(false);
 
-        notify(uploadInfo.getUploadId(), 1, notification.build());
+        String pkg = mContext.getApplication().getPackageName();
+        String layoutDef = "layout";
+        String idDef = "id";
+
+        Resources resources = mContext.getResources();
+
+        RemoteViews notificationLayout = new RemoteViews(mContext.getPackageName(),
+                resources.getIdentifier("notification_small", layoutDef, pkg));
+
+        notificationLayout.setTextViewText(
+                resources.getIdentifier("notification_title", idDef, pkg),
+                String.format("%s uploads remaining", PendingUpload.all().size())
+        );
+
+        notificationLayout.setTextViewText(
+                resources.getIdentifier("notification_content_left", idDef, pkg),
+                String.format("%d in progress - %d failed", inProgress, failed)
+        );
+
+        notificationLayout.setTextViewText(
+                resources.getIdentifier("notification_content_right", idDef, pkg),
+                getUploadRate(speed / inProgress)
+        );
+
+        return notificationBuilder
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(notificationLayout)
+                .setSmallIcon(android.R.drawable.ic_menu_upload);
     }
 
-    @Override
-    public void onSuccess(@NotNull UploadInfo uploadInfo, int i, @NotNull UploadNotificationConfig uploadNotificationConfig, @NotNull ServerResponse serverResponse) {
-        mNotificationManager.cancel(i);
+    private float convertUnit(String unit, int speed) {
+        final String KPS = "KilobitPerSecond";
+        final String MPS = "MegabitPerSecond";
 
-        notification.setContentTitle(String.format("%s/%s file(s) uploaded", ++uploaded, mCurrent));
+        int value = 0;
 
-        if (uploaded == mCurrent) {
-            notification.setContentText("Done");
-            notification.setProgress(0, 0, false);
-            mNotificationManager.notify(1, notification.build());
-        } else {
-            notification.setProgress(0, 0, false);
-            mNotificationManager.notify(1, notification.build());
+        if (unit == KPS) {
+            value = speed;
         }
+
+        if (unit == MPS) {
+            value = speed * 1000;
+        }
+
+        return value;
+    }
+
+    private String getUploadRate(int speed) {
+        final String KPS = "Ko/s";
+        final String MPS = "Mo/s";
+
+        String value = "Init uploads";
+
+        int length = (int) (Math.log10(speed) + 1);
+
+        if (length >= 4) {
+            value = (speed / 1000) + MPS;
+        } else {
+            if (speed != 0) {
+                value = speed + KPS;
+            }
+        }
+
+        return value;
     }
 }

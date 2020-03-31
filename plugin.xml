@@ -37,6 +37,12 @@
             <feature name="NotificationHandler">
                 <param name="android-package" value="com.spoon.backgroundfileupload.NotificationHandler" />
             </feature>
+            <feature name="TaskData">
+                <param name="android-package" value="com.spoon.backgroundfileupload.TaskData" />
+            </feature>
+            <feature name="AbstractSingleNotificationHandler">
+                <param name="android-package" value="com.spoon.backgroundfileupload.AbstractSingleNotificationHandler" />
+            </feature>
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -54,7 +60,10 @@
         <source-file src="src/android/PendingUpload.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEvent.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/NotificationHandler.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/TaskData.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/AbstractSingleNotificationHandler.java" target-dir="src/com/spoon/backgroundfileupload" />
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
+        <resource-file src="src/android/res/notification_small.xml" target="res/layout/notification_small.xml" />
     </platform>
     <platform name="ios">
         <framework src="AFNetworking" type="podspec" spec="~> 3.2.1" />
