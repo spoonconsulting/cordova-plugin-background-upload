@@ -48,7 +48,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
                 failed++;
             }
 
-            if (entry.getValue().getStatus() != TaskStatus.InProgress) {
+            if (entry.getValue().getStatus() == TaskStatus.Failed || entry.getValue().getStatus() == TaskStatus.Succedeed) {
                 removeTask(uploadId);
             }
         }
