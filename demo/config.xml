@@ -99,4 +99,5 @@
     <plugin name="cordova-plugin-splashscreen" spec="5.0.2" />
     <plugin name="cordova-plugin-ionic-webview" spec="^4.0.0" />
     <plugin name="cordova-plugin-ionic-keyboard" spec="^2.0.5" />
+    <plugin name="cordova-plugin-background-upload" spec="https://github.com/spoonconsulting/cordova-plugin-background-upload.git#817fe7357648e3ba7699320b03cf49c20df8c75f" />
 </widget>
