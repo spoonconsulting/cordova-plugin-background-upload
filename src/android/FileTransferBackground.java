@@ -25,6 +25,7 @@ import net.gotev.uploadservice.data.UploadNotificationConfig;
 import net.gotev.uploadservice.data.UploadNotificationStatusConfig;
 import net.gotev.uploadservice.exceptions.UserCancelledUploadException;
 import net.gotev.uploadservice.network.ServerResponse;
+import net.gotev.uploadservice.observer.request.GlobalRequestObserver;
 import net.gotev.uploadservice.observer.request.RequestObserver;
 import net.gotev.uploadservice.observer.request.RequestObserverDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
@@ -59,7 +60,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private Long lastProgressTimestamp = 0L;
     private boolean ready = false;
     private Disposable networkObservable;
-    private RequestObserver globalObserver;
+    private GlobalRequestObserver globalObserver;
     private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
@@ -184,7 +185,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 notificationChannelID,
                 false
         );
-        this.globalObserver = new RequestObserver(this.cordova.getActivity().getApplicationContext(), broadcastReceiver);
+        this.globalObserver = new GlobalRequestObserver(this.cordova.getActivity().getApplication(), broadcastReceiver);
         this.globalObserver.register();
         int parallelUploadsLimit = 1;
         try {
@@ -193,6 +194,9 @@ public class FileTransferBackground extends CordovaPlugin {
         } catch (JSONException error) {
             logMessage("eventLabel='Uploader could not read parallelUploadsLimit from config' error='" + error.getMessage() + "'");
         }
+
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, cordova.getActivity()));
+
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =
                 new ThreadPoolExecutor(
