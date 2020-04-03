@@ -5,23 +5,39 @@ import android.app.NotificationManager;
 import android.content.res.Resources;
 import android.widget.RemoteViews;
 
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import net.gotev.uploadservice.UploadService;
+import net.gotev.uploadservice.data.UploadInfo;
+import net.gotev.uploadservice.data.UploadNotificationConfig;
 import net.gotev.uploadservice.observer.task.AbstractSingleNotificationHandler;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
 public class NotificationHandler extends AbstractSingleNotificationHandler {
 
     private Activity mContext;
+    private long uploadCount = 0;
 
     public NotificationHandler(@NotNull UploadService service, Activity context) {
         super(service);
         this.mContext = context;
+    }
+
+    @Override
+    public void onStart(@NotNull UploadInfo info, int notificationId, @NotNull UploadNotificationConfig notificationConfig) {
+        super.onStart(info, notificationId, notificationConfig);
+        this.uploadCount = PendingUpload.count(PendingUpload.class);
+    }
+
+    @Override
+    public void onCompleted(@NotNull UploadInfo info, int notificationId, @NotNull UploadNotificationConfig notificationConfig) {
+        super.onCompleted(info, notificationId, notificationConfig);
+        removeTask(info.getUploadId());
+        this.uploadCount = PendingUpload.count(PendingUpload.class);
     }
 
     @Nullable
@@ -31,8 +47,6 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         int inProgress = 0;
 
         for (Map.Entry<String, TaskData> entry : map.entrySet()) {
-            String uploadId = entry.getValue().getInfo().getUploadId();
-
             if (entry.getValue().getStatus() == TaskStatus.InProgress) {
                 inProgress++;
 
@@ -40,10 +54,6 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
                         entry.getValue().getInfo().getUploadRate().getUnit().name(),
                         entry.getValue().getInfo().getUploadRate().getValue()
                 );
-            }
-
-            if (entry.getValue().getStatus() == TaskStatus.Failed || entry.getValue().getStatus() == TaskStatus.Succeeded) {
-                removeTask(uploadId);
             }
         }
 
@@ -58,7 +68,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_title", idDef, pkg),
-                String.format("%s uploads remaining", PendingUpload.all().size())
+                String.format("%s uploads remaining", uploadCount)
         );
 
         notificationLayout.setTextViewText(
@@ -68,7 +78,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_content_right", idDef, pkg),
-                getUploadRate(speed / inProgress)
+                getUploadRate(speed)
         );
 
         return builder
