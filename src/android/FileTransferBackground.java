@@ -444,8 +444,6 @@ public class FileTransferBackground extends CordovaPlugin {
     public void destroy() {
         this.ready = false;
         this.networkObservable.dispose();
-        this.globalObserver.unregister();
         this.networkObservable = null;
-        this.globalObserver = null;
     }
 }
