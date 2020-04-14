@@ -188,11 +188,15 @@ public class FileTransferBackground extends CordovaPlugin {
         if (!isServiceRunning(ManagerService.class)) {
             Intent intent = new Intent(cordova.getContext(), ManagerService.class);
             cordova.getActivity().startService(intent);
+        } else {
+            logMessage("Service already started");
         }
 
         //this.globalObserver = new GlobalRequestObserver(this.cordova.getActivity().getApplication(), broadcastReceiver);
         //this.globalObserver.register();
+
         int parallelUploadsLimit = 1;
+
         try {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
