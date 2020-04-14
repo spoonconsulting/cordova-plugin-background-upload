@@ -50,10 +50,14 @@
             <meta-data android:name="QUERY_LOG" android:value="false" />
             <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
         </config-file>
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <service android:name="com.spoon.backgroundfileupload.ManagerService" />
+        </config-file>
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/PendingUpload.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEvent.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/NotificationHandler.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <resource-file src="src/android/ManagerService.java" target-dir="src/com/spoon/backgroundfileupload" />
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
         <resource-file src="src/android/res/notification_small.xml" target="res/layout/notification_small.xml" />
     </platform>

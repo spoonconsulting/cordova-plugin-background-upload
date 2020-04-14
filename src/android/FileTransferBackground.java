@@ -1,6 +1,8 @@
 package com.spoon.backgroundfileupload;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -16,8 +18,6 @@ import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
 
-import android.app.NotificationChannel;
-
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadServiceConfig;
 import net.gotev.uploadservice.data.UploadInfo;
@@ -26,7 +26,6 @@ import net.gotev.uploadservice.data.UploadNotificationStatusConfig;
 import net.gotev.uploadservice.exceptions.UserCancelledUploadException;
 import net.gotev.uploadservice.network.ServerResponse;
 import net.gotev.uploadservice.observer.request.GlobalRequestObserver;
-import net.gotev.uploadservice.observer.request.RequestObserver;
 import net.gotev.uploadservice.observer.request.RequestObserverDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
 import net.gotev.uploadservice.protocols.multipart.MultipartUploadRequest;
@@ -185,8 +184,14 @@ public class FileTransferBackground extends CordovaPlugin {
                 notificationChannelID,
                 false
         );
-        this.globalObserver = new GlobalRequestObserver(this.cordova.getActivity().getApplication(), broadcastReceiver);
-        this.globalObserver.register();
+
+        if (!isServiceRunning(ManagerService.class)) {
+            Intent intent = new Intent(cordova.getContext(), ManagerService.class);
+            cordova.getActivity().startService(intent);
+        }
+
+        //this.globalObserver = new GlobalRequestObserver(this.cordova.getActivity().getApplication(), broadcastReceiver);
+        //this.globalObserver.register();
         int parallelUploadsLimit = 1;
         try {
             JSONObject settings = new JSONObject(options);
@@ -444,8 +449,18 @@ public class FileTransferBackground extends CordovaPlugin {
     public void destroy() {
         this.ready = false;
         this.networkObservable.dispose();
-        this.globalObserver.unregister();
         this.networkObservable = null;
-        this.globalObserver = null;
+    }
+
+    private boolean isServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) cordova.getActivity().getSystemService(Context.ACTIVITY_SERVICE);
+
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
