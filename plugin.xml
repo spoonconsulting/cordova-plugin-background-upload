@@ -51,7 +51,7 @@
             <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service android:name="com.spoon.backgroundfileupload.ManagerService" />
+            <service android:name="ManagerService" />
         </config-file>
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/PendingUpload.java" target-dir="src/com/spoon/backgroundfileupload" />
