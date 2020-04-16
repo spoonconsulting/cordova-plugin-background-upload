@@ -5,12 +5,15 @@ import android.app.ActivityManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.net.NetworkInfo;
 import android.os.Build;
+import android.os.IBinder;
 import android.util.Log;
 
 import com.github.pwittchen.reactivenetwork.library.rx2.ReactiveNetwork;
@@ -20,13 +23,8 @@ import com.sromku.simple.storage.helpers.OrderType;
 
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadServiceConfig;
-import net.gotev.uploadservice.data.UploadInfo;
 import net.gotev.uploadservice.data.UploadNotificationConfig;
 import net.gotev.uploadservice.data.UploadNotificationStatusConfig;
-import net.gotev.uploadservice.exceptions.UserCancelledUploadException;
-import net.gotev.uploadservice.network.ServerResponse;
-import net.gotev.uploadservice.observer.request.GlobalRequestObserver;
-import net.gotev.uploadservice.observer.request.RequestObserverDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
 import net.gotev.uploadservice.protocols.multipart.MultipartUploadRequest;
 
@@ -53,60 +51,12 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
-public class FileTransferBackground extends CordovaPlugin {
+public class FileTransferBackground extends CordovaPlugin implements ServiceConnection, ManagerService.Callbacks {
     private CallbackContext uploadCallback;
     private boolean isNetworkAvailable = false;
-    private Long lastProgressTimestamp = 0L;
     private boolean ready = false;
     private Disposable networkObservable;
-    private GlobalRequestObserver globalObserver;
-    private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
-        @Override
-        public void onProgress(Context context, UploadInfo uploadInfo) {
-            Long currentTimestamp = System.currentTimeMillis() / 1000;
-            if (currentTimestamp - lastProgressTimestamp >= 1) {
-                lastProgressTimestamp = currentTimestamp;
-                sendCallback(new JSONObject(new HashMap() {{
-                    put("id", uploadInfo.getUploadId());
-                    put("progress", uploadInfo.getProgressPercent());
-                    put("state", "UPLOADING");
-                }}));
-            }
-        }
-
-        @Override
-        public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
-            String errorMsg = exception != null ? exception.getMessage() : "";
-            logMessage("eventLabel='Uploader onError' uploadId='" + uploadInfo.getUploadId() + "' error='" + errorMsg + "'");
-            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-                put("id", uploadInfo.getUploadId());
-                put("state", "FAILED");
-                put("error", "upload failed: " + errorMsg);
-                put("errorCode", exception instanceof UserCancelledUploadException ? -999 : 0);
-            }}));
-        }
-
-        @Override
-        public void onSuccess(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-            logMessage("eventLabel='Uploader onSuccess' uploadId='" + uploadInfo.getUploadId() + "' response='" + serverResponse.getBodyString() + "'");
-            deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
-                put("id", uploadInfo.getUploadId());
-                put("state", "UPLOADED");
-                put("serverResponse", serverResponse.getBodyString());
-                put("statusCode", serverResponse.getCode());
-            }}));
-        }
-
-        @Override
-        public void onCompleted(Context context, UploadInfo uploadInfo) {
-            logMessage("eventLabel='Uploader onCompleted' uploadId='" + uploadInfo.getUploadId() + "'");
-        }
-
-        @Override
-        public void onCompletedWhileNotObserving() {
-            logMessage("eventLabel='Uploader onCompletedWhileNotObserving'");
-        }
-    };
+    private ManagerService managerService;
 
     public void createAndSendEvent(JSONObject obj) {
         UploadEvent event = UploadEvent.create(obj);
@@ -188,12 +138,10 @@ public class FileTransferBackground extends CordovaPlugin {
         if (!isServiceRunning(ManagerService.class)) {
             Intent intent = new Intent(cordova.getContext(), ManagerService.class);
             cordova.getActivity().startService(intent);
+            cordova.getActivity().bindService(intent, this, Context.BIND_AUTO_CREATE);
         } else {
-            logMessage("Service already started");
+            logMessage("Service already created");
         }
-
-        //this.globalObserver = new GlobalRequestObserver(this.cordova.getActivity().getApplication(), broadcastReceiver);
-        //this.globalObserver.register();
 
         int parallelUploadsLimit = 1;
 
@@ -466,5 +414,36 @@ public class FileTransferBackground extends CordovaPlugin {
         }
 
         return false;
+    }
+
+    @Override
+    public void progressCallback(JSONObject data) {
+        logMessage("progressCallback: " + data);
+        sendCallback(data);
+    }
+
+    @Override
+    public void errorCallback(JSONObject data) {
+        logMessage("errorCallback: " + data);
+        deletePendingUploadAndSendEvent(data);
+    }
+
+    @Override
+    public void successCallback(JSONObject data) {
+        logMessage("successCallback: " + data);
+        deletePendingUploadAndSendEvent(data);
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        logMessage("Service connected");
+        ManagerService.LocalBinder binder = (ManagerService.LocalBinder) iBinder;
+        managerService = binder.getServiceInstance();
+        managerService.registerClient(this);
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        logMessage("Service disconnected");
     }
 }
