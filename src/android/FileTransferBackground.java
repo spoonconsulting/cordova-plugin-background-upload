@@ -399,7 +399,6 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
     }
 
     public void destroy() {
-        this.ready = false;
         this.networkObservable.dispose();
         this.networkObservable = null;
     }
@@ -445,5 +444,6 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
     @Override
     public void onServiceDisconnected(ComponentName componentName) {
         logMessage("Service disconnected");
+        this.ready = false;
     }
 }
