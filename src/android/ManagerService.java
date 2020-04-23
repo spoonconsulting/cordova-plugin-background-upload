@@ -91,7 +91,7 @@ public class ManagerService extends Service {
 
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
-            String errorMsg = exception != null ? exception.getMessage() : "";
+            String errorMsg = exception != null ? exception.getMessage() : "unknown exception";
 
             JSONObject data = new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
@@ -118,7 +118,7 @@ public class ManagerService extends Service {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
-            stopService();
+            stopServiceIfComplete();
         }
 
         @Override
@@ -126,7 +126,7 @@ public class ManagerService extends Service {
         }
     };
 
-    public void stopService() {
+    public void stopServiceIfComplete() {
         if (PendingUpload.count(PendingUpload.class) == 0) {
             if (!ready) {
                 Intent intent = new Intent(ManagerService.this, ManagerService.class);
@@ -138,7 +138,7 @@ public class ManagerService extends Service {
                 Intent intent = new Intent(ManagerService.this, ManagerService.class);
                 stopService(intent);
 
-                foregroundNotification(this.inputTitle, this.inputContent);
+                startForegroundNotification(this.inputTitle, this.inputContent);
             }
         }
     }
@@ -162,7 +162,7 @@ public class ManagerService extends Service {
                 error.getLocalizedMessage();
             }
 
-            foregroundNotification(inputTitle, inputContent);
+            startForegroundNotification(inputTitle, inputContent);
         }
 
         this.requestObserver = new GlobalRequestObserver(this.getApplication(), broadcastReceiver);
@@ -205,9 +205,11 @@ public class ManagerService extends Service {
         return START_NOT_STICKY;
     }
 
-    private void foregroundNotification(String inputTitle, String inputContent) {
+    private void startForegroundNotification(String inputTitle, String inputContent) {
         Intent notificationIntent = new Intent(this, FileTransferBackground.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+
+        createUploadChannel();
 
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(inputTitle)
@@ -244,7 +246,6 @@ public class ManagerService extends Service {
         this.mainActivity = activity;
         this.uploadCallback = uploadCallback;
 
-        createUploadChannel();
         migrateOldUploads();
 
         for (UploadEvent event : UploadEvent.all()) {
