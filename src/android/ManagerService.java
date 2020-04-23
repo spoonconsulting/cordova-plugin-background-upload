@@ -67,8 +67,8 @@ public class ManagerService extends Service {
     private Disposable networkObservable;
     private boolean isNetworkAvailable = false;
     private boolean ready = false;
-    private String inputTitle = "Default title";
-    private String inputContent = "Default content";
+    private String inputTitle = "Upload Service";
+    private String inputContent = "Background upload service running";
 
     private static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
 
