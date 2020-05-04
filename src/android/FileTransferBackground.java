@@ -8,6 +8,8 @@ import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.IBinder;
 
+import net.gotev.uploadservice.UploadServiceConfig;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
@@ -55,7 +57,7 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
     }
 
     private void initManager(String options, final CallbackContext callbackContext) throws IllegalStateException {
-        if (managerService != null && managerService.getReady()) {
+        if (managerService != null) {
             throw new IllegalStateException("initManager was called twice");
         }
 
@@ -75,7 +77,13 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
         } else {
             Intent intent = new Intent(cordova.getContext(), ManagerService.class);
             cordova.getActivity().bindService(intent, this, Context.BIND_AUTO_CREATE);
-            managerService.initUploadService();
+
+            UploadServiceConfig.initialize(
+                    cordova.getActivity().getApplication(),
+                    "com.spoon.backgroundfileupload.channel",
+                    false
+            );
+
             managerService.setReady(true);
 
             ManagerService.logMessage("Service running");

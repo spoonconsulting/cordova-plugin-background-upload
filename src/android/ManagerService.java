@@ -8,8 +8,6 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
-import android.graphics.Color;
 import android.net.NetworkInfo;
 import android.os.Binder;
 import android.os.Build;
@@ -27,8 +25,6 @@ import com.sromku.simple.storage.helpers.OrderType;
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadServiceConfig;
 import net.gotev.uploadservice.data.UploadInfo;
-import net.gotev.uploadservice.data.UploadNotificationConfig;
-import net.gotev.uploadservice.data.UploadNotificationStatusConfig;
 import net.gotev.uploadservice.exceptions.UserCancelledUploadException;
 import net.gotev.uploadservice.network.ServerResponse;
 import net.gotev.uploadservice.observer.request.GlobalRequestObserver;
@@ -67,8 +63,8 @@ public class ManagerService extends Service {
     private Disposable networkObservable;
     private boolean isNetworkAvailable = false;
     private boolean ready = false;
-    private String inputTitle = "Upload Service";
-    private String inputContent = "Background upload service running";
+    private String inputTitle = "Default title";
+    private String inputContent = "Default content";
 
     private static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
 
@@ -126,6 +122,33 @@ public class ManagerService extends Service {
         }
     };
 
+    public void sendCallback(JSONObject obj) {
+        if (ready) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
+            result.setKeepCallback(true);
+            uploadCallback.sendPluginResult(result);
+        }
+    }
+
+    public void deletePendingUploadAndSendEvent(JSONObject obj) {
+        String id = null;
+
+        try {
+            id = obj.getString("id");
+        } catch (JSONException error) {
+            logMessage(String.format("eventLabel='Uploader could not delete pending upload' error='%s'", error.getMessage()));
+        }
+
+        logMessage(String.format("eventLabel='Uploader delete pending upload' uploadId='%s'", id));
+        PendingUpload.remove(id);
+        createAndSendEvent(obj);
+    }
+
+    public void createAndSendEvent(JSONObject obj) {
+        UploadEvent event = UploadEvent.create(obj);
+        sendCallback(event.dataRepresentation());
+    }
+
     public void stopServiceIfComplete() {
         if (PendingUpload.count(PendingUpload.class) == 0) {
             if (!ready) {
@@ -143,16 +166,8 @@ public class ManagerService extends Service {
         }
     }
 
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return mBinder;
-    }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        initUploadService();
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
                 JSONObject settings = new JSONObject(intent.getStringExtra("options"));
@@ -165,30 +180,7 @@ public class ManagerService extends Service {
             startForegroundNotification(inputTitle, inputContent);
         }
 
-        this.requestObserver = new GlobalRequestObserver(this.getApplication(), broadcastReceiver);
-        this.requestObserver.register();
-
-        int parallelUploadsLimit = 1;
-
-        try {
-            JSONObject settings = new JSONObject(intent.getStringExtra("options"));
-            parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
-        } catch (JSONException error) {
-            ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
-        }
-
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity));
-
-        UploadServiceConfig.setHttpStack(new OkHttpStack());
-        ExecutorService threadPoolExecutor =
-                new ThreadPoolExecutor(
-                        parallelUploadsLimit,
-                        parallelUploadsLimit,
-                        5000,
-                        TimeUnit.MILLISECONDS,
-                        new LinkedBlockingQueue<Runnable>()
-                );
-        UploadServiceConfig.setThreadPool((AbstractExecutorService) threadPoolExecutor);
+        initUploadService(intent.getStringExtra("options"));
 
         networkObservable = ReactiveNetwork
                 .observeNetworkConnectivity(this)
@@ -220,67 +212,6 @@ public class ManagerService extends Service {
         startForeground(1234, notification);
     }
 
-    public void initUploadService() {
-        UploadServiceConfig.initialize(
-                getApplication(),
-                CHANNEL_ID,
-                false
-        );
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-
-        this.networkObservable.dispose();
-        this.networkObservable = null;
-    }
-
-    public class LocalBinder extends Binder {
-        public ManagerService getServiceInstance() {
-            return ManagerService.this;
-        }
-    }
-
-    public void sendMissingEvents(Activity activity, CallbackContext uploadCallback) {
-        this.mainActivity = activity;
-        this.uploadCallback = uploadCallback;
-
-        migrateOldUploads();
-
-        for (UploadEvent event : UploadEvent.all()) {
-            logMessage("Uploader send event missing on Start - " + event.getId());
-            sendCallback(event.dataRepresentation());
-        }
-    }
-
-    public void sendCallback(JSONObject obj) {
-        if (ready) {
-            PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
-            result.setKeepCallback(true);
-            uploadCallback.sendPluginResult(result);
-        }
-    }
-
-    public void deletePendingUploadAndSendEvent(JSONObject obj) {
-        String id = null;
-
-        try {
-            id = obj.getString("id");
-        } catch (JSONException error) {
-            logMessage(String.format("eventLabel='Uploader could not delete pending upload' error='%s'", error.getMessage()));
-        }
-
-        logMessage(String.format("eventLabel='Uploader delete pending upload' uploadId='%s'", id));
-        PendingUpload.remove(id);
-        createAndSendEvent(obj);
-    }
-
-    public void createAndSendEvent(JSONObject obj) {
-        UploadEvent event = UploadEvent.create(obj);
-        sendCallback(event.dataRepresentation());
-    }
-
     public void createUploadChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -296,41 +227,37 @@ public class ManagerService extends Service {
         }
     }
 
-    public void migrateOldUploads() {
-        Storage storage = SimpleStorage.getInternalStorage(this);
-        String uploadDirectoryName = "FileTransferBackground";
-        if (storage.isDirectoryExists(uploadDirectoryName)) {
-            for (String uploadId : getOldUploadIds()) {
-                UploadEvent event = UploadEvent.create(new JSONObject(new HashMap() {{
-                    put("id", uploadId);
-                    put("state", "FAILED");
-                    put("errorCode", 0);
-                    put("error", "upload failed");
-                }}));
-            }
-            // remove all old uploads
-            storage.deleteDirectory(uploadDirectoryName);
-        }
-    }
+    public void initUploadService(String options) {
+        UploadServiceConfig.initialize(
+                getApplication(),
+                CHANNEL_ID,
+                false
+        );
 
-    private ArrayList<String> getOldUploadIds() {
-        Storage storage = SimpleStorage.getInternalStorage(this);
-        String uploadDirectoryName = "FileTransferBackground";
-        ArrayList<String> previousUploads = new ArrayList();
-        List<File> files = storage.getFiles(uploadDirectoryName, OrderType.DATE);
-        for (File file : files) {
-            if (file.getName().endsWith(".json")) {
-                String content = storage.readTextFile(uploadDirectoryName, file.getName());
-                if (content != null) {
-                    try {
-                        previousUploads.add(new JSONObject(content).getString("id"));
-                    } catch (JSONException exception) {
-                        logMessage(String.format("eventLabel='Uploader could not read old uploads' error='%s'", exception.getMessage()));
-                    }
-                }
-            }
+        this.requestObserver = new GlobalRequestObserver(this.getApplication(), broadcastReceiver);
+        this.requestObserver.register();
+
+        int parallelUploadsLimit = 1;
+
+        try {
+            JSONObject settings = new JSONObject(options);
+            parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
+        } catch (JSONException error) {
+            ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
-        return previousUploads;
+
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity));
+
+        UploadServiceConfig.setHttpStack(new OkHttpStack());
+        ExecutorService threadPoolExecutor =
+                new ThreadPoolExecutor(
+                        parallelUploadsLimit,
+                        parallelUploadsLimit,
+                        5000,
+                        TimeUnit.MILLISECONDS,
+                        new LinkedBlockingQueue<Runnable>()
+                );
+        UploadServiceConfig.setThreadPool((AbstractExecutorService) threadPoolExecutor);
     }
 
     private void uploadPendingList() {
@@ -400,8 +327,6 @@ public class ManagerService extends Service {
             return;
         }
 
-        String title = payload.get("notificationTitle").toString();
-        request.setNotificationConfig((context, id) -> getNotificationConfiguration(title));
         request.startUpload();
     }
 
@@ -427,34 +352,52 @@ public class ManagerService extends Service {
         return hashMap;
     }
 
-    private UploadNotificationConfig getNotificationConfiguration(String title) {
-        UploadNotificationConfig config = new UploadNotificationConfig(
-                CHANNEL_ID,
-                false,
-                buildNotificationStatusConfig(title),
-                buildNotificationStatusConfig(null),
-                buildNotificationStatusConfig(null),
-                buildNotificationStatusConfig(null));
-        return config;
+    public void sendMissingEvents(Activity activity, CallbackContext uploadCallback) {
+        this.mainActivity = activity;
+        this.uploadCallback = uploadCallback;
+
+        migrateOldUploads();
+
+        for (UploadEvent event : UploadEvent.all()) {
+            logMessage("Uploader send event missing on Start - " + event.getId());
+            sendCallback(event.dataRepresentation());
+        }
     }
 
-    private UploadNotificationStatusConfig buildNotificationStatusConfig(String title) {
-        Activity mainActivity = this.mainActivity;
-        Resources activityRes = mainActivity.getResources();
-        int iconId = activityRes.getIdentifier("ic_upload", "drawable", mainActivity.getPackageName());
-        Intent intent = new Intent(this, mainActivity.getClass());
-        PendingIntent clickIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        return new UploadNotificationStatusConfig(
-                title != null ? title : "",
-                "",
-                iconId,
-                Color.parseColor("#396496"),
-                null,
-                clickIntent,
-                new ArrayList<>(0),
-                true,
-                true
-        );
+    public void migrateOldUploads() {
+        Storage storage = SimpleStorage.getInternalStorage(this);
+        String uploadDirectoryName = "FileTransferBackground";
+        if (storage.isDirectoryExists(uploadDirectoryName)) {
+            for (String uploadId : getOldUploadIds()) {
+                UploadEvent event = UploadEvent.create(new JSONObject(new HashMap() {{
+                    put("id", uploadId);
+                    put("state", "FAILED");
+                    put("errorCode", 0);
+                    put("error", "upload failed");
+                }}));
+            }
+            storage.deleteDirectory(uploadDirectoryName);
+        }
+    }
+
+    private ArrayList<String> getOldUploadIds() {
+        Storage storage = SimpleStorage.getInternalStorage(this);
+        String uploadDirectoryName = "FileTransferBackground";
+        ArrayList<String> previousUploads = new ArrayList();
+        List<File> files = storage.getFiles(uploadDirectoryName, OrderType.DATE);
+        for (File file : files) {
+            if (file.getName().endsWith(".json")) {
+                String content = storage.readTextFile(uploadDirectoryName, file.getName());
+                if (content != null) {
+                    try {
+                        previousUploads.add(new JSONObject(content).getString("id"));
+                    } catch (JSONException exception) {
+                        logMessage(String.format("eventLabel='Uploader could not read old uploads' error='%s'", exception.getMessage()));
+                    }
+                }
+            }
+        }
+        return previousUploads;
     }
 
     public void addUpload(JSONObject jsonPayload) {
@@ -495,11 +438,27 @@ public class ManagerService extends Service {
         this.ready = state;
     }
 
-    public boolean getReady() {
-        return this.ready;
-    }
-
     public static void logMessage(String message) {
         Log.d("CordovaBackgroundUpload", message);
+    }
+
+    public class LocalBinder extends Binder {
+        public ManagerService getServiceInstance() {
+            return ManagerService.this;
+        }
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return mBinder;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        this.networkObservable.dispose();
+        this.networkObservable = null;
     }
 }
