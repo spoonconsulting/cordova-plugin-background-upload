@@ -59,12 +59,12 @@ public class ManagerService extends Service {
     private GlobalRequestObserver requestObserver;
     private Long lastProgressTimestamp = 0L;
     private Activity mainActivity;
-    private CallbackContext uploadCallback;
+    private ICallback callback;
     private Disposable networkObservable;
     private boolean isNetworkAvailable = false;
     private boolean ready = false;
-    private String inputTitle = "Default title";
-    private String inputContent = "Default content";
+    private String inputTitle = "Upload Service";
+    private String inputContent = "Background upload service running";
 
     private static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
 
@@ -126,7 +126,10 @@ public class ManagerService extends Service {
         if (ready) {
             PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
             result.setKeepCallback(true);
-            uploadCallback.sendPluginResult(result);
+
+            if (this.callback != null) {
+                this.callback.sendPluginResult(result);
+            }
         }
     }
 
@@ -352,9 +355,8 @@ public class ManagerService extends Service {
         return hashMap;
     }
 
-    public void sendMissingEvents(Activity activity, CallbackContext uploadCallback) {
+    public void sendMissingEvents(Activity activity) {
         this.mainActivity = activity;
-        this.uploadCallback = uploadCallback;
 
         migrateOldUploads();
 
@@ -401,41 +403,63 @@ public class ManagerService extends Service {
     }
 
     public void addUpload(JSONObject jsonPayload) {
-        HashMap payload = null;
         try {
-            payload = convertToHashMap(jsonPayload);
-        } catch (JSONException error) {
-            logMessage(String.format("eventLabel='Uploader could not read id from payload' error:'%s'", error.getMessage()));
-        }
-        if (payload == null) return;
-        String uploadId = payload.get("id").toString();
+            HashMap payload = null;
+            try {
+                payload = convertToHashMap(jsonPayload);
+            } catch (JSONException error) {
+                logMessage(String.format("eventLabel='Uploader could not read id from payload' error:'%s'", error.getMessage()));
+            }
+            if (payload == null) return;
+            String uploadId = payload.get("id").toString();
 
-        if (PendingUpload.count(PendingUpload.class, "upload_id = ?", new String[]{uploadId}) > 0) {
-            logMessage(String.format("eventLabel='Uploader an upload is already pending with this id' uploadId='%s'", uploadId));
-            return;
-        }
+            if (PendingUpload.count(PendingUpload.class, "upload_id = ?", new String[]{uploadId}) > 0) {
+                logMessage(String.format("eventLabel='Uploader an upload is already pending with this id' uploadId='%s'", uploadId));
+                return;
+            }
 
-        PendingUpload.create(jsonPayload);
-        startUpload(payload);
+            PendingUpload.create(jsonPayload);
+            startUpload(payload);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void removeUpload(String uploadId, CallbackContext context) {
-        PendingUpload.remove(uploadId);
-        UploadService.stopUpload(uploadId);
-        PluginResult result = new PluginResult(PluginResult.Status.OK);
-        result.setKeepCallback(true);
-        context.sendPluginResult(result);
+        try {
+            PendingUpload.remove(uploadId);
+            UploadService.stopUpload(uploadId);
+            PluginResult result = new PluginResult(PluginResult.Status.OK);
+            result.setKeepCallback(true);
+            context.sendPluginResult(result);
+        } catch (Exception e) {
+            String message = "(" + e.getClass().getSimpleName() + ") - " + e.getMessage();
+            PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
+            result.setKeepCallback(true);
+            context.sendPluginResult(result);
+        }
     }
 
     public void acknowledgeEvent(String eventId, CallbackContext context) {
-        UploadEvent.destroy(Long.valueOf(eventId.replaceAll("\\D+", "")).longValue());
-        PluginResult result = new PluginResult(PluginResult.Status.OK);
-        result.setKeepCallback(true);
-        context.sendPluginResult(result);
+        try {
+            UploadEvent.destroy(Long.valueOf(eventId.replaceAll("\\D+", "")).longValue());
+            PluginResult result = new PluginResult(PluginResult.Status.OK);
+            result.setKeepCallback(true);
+            context.sendPluginResult(result);
+        } catch (NumberFormatException e) {
+            String message = "(" + e.getClass().getSimpleName() + ") - " + e.getMessage();
+            PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
+            result.setKeepCallback(true);
+            context.sendPluginResult(result);
+        }
     }
 
     public void setReady(boolean state) {
         this.ready = state;
+    }
+
+    public void setCallback(ICallback cb) {
+        this.callback = cb;
     }
 
     public static void logMessage(String message) {
@@ -446,6 +470,10 @@ public class ManagerService extends Service {
         public ManagerService getServiceInstance() {
             return ManagerService.this;
         }
+    }
+
+    public interface ICallback {
+        void sendPluginResult(PluginResult result);
     }
 
     @Nullable

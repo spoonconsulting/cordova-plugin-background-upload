@@ -17,7 +17,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class FileTransferBackground extends CordovaPlugin implements ServiceConnection {
+public class FileTransferBackground extends CordovaPlugin implements ServiceConnection, ManagerService.ICallback {
     private CallbackContext uploadCallback;
     private ManagerService managerService;
 
@@ -84,7 +84,7 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
                     false
             );
 
-            managerService.setReady(true);
+            this.managerService.setReady(true);
 
             ManagerService.logMessage("Service running");
         }
@@ -96,8 +96,8 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
     }
 
     public void destroy() {
-        managerService.setReady(false);
-        managerService.stopServiceIfComplete();
+        this.managerService.setReady(false);
+        this.managerService.stopServiceIfComplete();
         cordova.getActivity().unbindService(this);
     }
 
@@ -116,15 +116,21 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
         ManagerService.LocalBinder binder = (ManagerService.LocalBinder) iBinder;
-        managerService = binder.getServiceInstance();
-        managerService.setReady(true);
+        this.managerService = binder.getServiceInstance();
+        this.managerService.setReady(true);
+        this.managerService.setCallback(this);
 
-        managerService.sendMissingEvents(cordova.getActivity(), this.uploadCallback);
+        this.managerService.sendMissingEvents(cordova.getActivity());
     }
 
     @Override
     public void onServiceDisconnected(ComponentName componentName) {
         ManagerService.logMessage("Service disconnected");
-        managerService.setReady(false);
+        this.managerService.setReady(false);
+    }
+
+    @Override
+    public void sendPluginResult(PluginResult result) {
+        this.uploadCallback.sendPluginResult(result);
     }
 }
