@@ -59,7 +59,7 @@ public class ManagerService extends Service {
     private GlobalRequestObserver requestObserver;
     private Long lastProgressTimestamp = 0L;
     private Activity mainActivity;
-    private ICallback callback;
+    private IPlugin plugin;
     private Disposable networkObservable;
     private boolean isNetworkAvailable = false;
     private boolean ready = false;
@@ -123,14 +123,10 @@ public class ManagerService extends Service {
     };
 
     public void sendCallback(JSONObject obj) {
-        if (ready) {
-            PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
-            result.setKeepCallback(true);
 
             if (this.callback != null) {
-                this.callback.sendPluginResult(result);
+                this.callback.serviceCallback(obj);
             }
-        }
     }
 
     public void deletePendingUploadAndSendEvent(JSONObject obj) {
@@ -154,16 +150,13 @@ public class ManagerService extends Service {
 
     public void stopServiceIfComplete() {
         if (PendingUpload.count(PendingUpload.class) == 0) {
+            Intent intent = new Intent(ManagerService.this, ManagerService.class);
+            stopService(intent);
+            
             if (!ready) {
-                Intent intent = new Intent(ManagerService.this, ManagerService.class);
-                stopService(intent);
-
                 requestObserver.unregister();
                 requestObserver = null;
             } else {
-                Intent intent = new Intent(ManagerService.this, ManagerService.class);
-                stopService(intent);
-
                 startForegroundNotification(this.inputTitle, this.inputContent);
             }
         }
@@ -196,7 +189,6 @@ public class ManagerService extends Service {
                         uploadPendingList();
                     }
                 });
-
         return START_NOT_STICKY;
     }
 
@@ -355,14 +347,12 @@ public class ManagerService extends Service {
         return hashMap;
     }
 
-    public void sendMissingEvents(Activity activity) {
-        this.mainActivity = activity;
-
+    public void sendMissingEvents() {
         migrateOldUploads();
 
         for (UploadEvent event : UploadEvent.all()) {
             logMessage("Uploader send event missing on Start - " + event.getId());
-            sendCallback(event.dataRepresentation());
+            this.plugin.send(event.dataRepresentation());
         }
     }
 
@@ -403,6 +393,7 @@ public class ManagerService extends Service {
     }
 
     public void addUpload(JSONObject jsonPayload) {
+        throw 'This is amazing !'
         try {
             HashMap payload = null;
             try {
@@ -447,6 +438,7 @@ public class ManagerService extends Service {
             result.setKeepCallback(true);
             context.sendPluginResult(result);
         } catch (NumberFormatException e) {
+            sendError("eventId asdasdasd");
             String message = "(" + e.getClass().getSimpleName() + ") - " + e.getMessage();
             PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
             result.setKeepCallback(true);
@@ -458,8 +450,9 @@ public class ManagerService extends Service {
         this.ready = state;
     }
 
-    public void setCallback(ICallback cb) {
-        this.callback = cb;
+    public void setPlugin(IPlugin plugin) {
+        this.plugin = plugin;
+        this.sendMissingEvents();
     }
 
     public static void logMessage(String message) {
@@ -472,8 +465,8 @@ public class ManagerService extends Service {
         }
     }
 
-    public interface ICallback {
-        void sendPluginResult(PluginResult result);
+    public interface PluginInterface {
+        void serviceCallback(JSONObject obj);
     }
 
     @Nullable
