@@ -36,9 +36,9 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
             public void run() {
                 try {
                     if (action.equalsIgnoreCase("removeUpload")) {
-                        managerService.removeUpload(args.get(0).toString(), callbackContext);
+                        managerService.removeUpload(args.get(0).toString());
                     } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
-                        managerService.acknowledgeEvent(args.getString(0), callbackContext);
+                        managerService.acknowledgeEvent(args.getString(0));
                     } else if (action.equalsIgnoreCase("startUpload")) {
                         managerService.addUpload((JSONObject) args.get(0));
                     } else if (action.equalsIgnoreCase("destroy")) {
@@ -47,10 +47,11 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
                 } catch (Exception exception) {
                     String message = "(" + exception.getClass().getSimpleName() + ") - " + exception.getMessage();
                     PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
-                    result.setKeepCallback(true);
                     callbackContext.sendPluginResult(result);
                     exception.printStackTrace();
                 }
+                PluginResult result = new PluginResult(PluginResult.Status.OK);
+                callbackContext.sendPluginResult(result);
             }
         });
         return true;
@@ -117,10 +118,7 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
         ManagerService.LocalBinder binder = (ManagerService.LocalBinder) iBinder;
         this.managerService = binder.getServiceInstance();
-        this.managerService.setReady(true);
-        this.managerService.setCallback(this);
-
-        this.managerService.sendMissingEvents(cordova.getActivity());
+        this.managerService.setPlugin(this);
     }
 
     @Override
@@ -128,9 +126,19 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
         ManagerService.logMessage("Service disconnected");
         this.managerService.setReady(false);
     }
-
+    
     @Override
-    public void sendPluginResult(PluginResult result) {
+    public void serviceError(obj) {
+        PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
+        result.setKeepCallback(true);
+
+        this.uploadCallback.sendPluginResult(result);
+    }
+    @Override
+    public void sendEvent(obj) {
+        PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
+        result.setKeepCallback(true);
+
         this.uploadCallback.sendPluginResult(result);
     }
 }
