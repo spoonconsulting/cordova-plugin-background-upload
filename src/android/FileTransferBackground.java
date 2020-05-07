@@ -8,8 +8,6 @@ import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.IBinder;
 
-import net.gotev.uploadservice.UploadServiceConfig;
-
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
@@ -23,13 +21,13 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
-        FileTransferBackground self = this;
-        if (action.equalsIgnoreCase("destroy")) {
-            this.destroy();
+        if (action.equalsIgnoreCase("initManager")) {
+            this.initManager(args.get(0).toString(), callbackContext);
             return true;
         }
-        if (action.equalsIgnoreCase("initManager")) {
-            self.initManager(args.get(0).toString(), callbackContext);
+        if (action.equalsIgnoreCase("destroy")) {
+            this.destroy();
+            callbackContext.success();
             return true;
         }
         cordova.getThreadPool().execute(new Runnable() {
@@ -41,77 +39,45 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
                         managerService.acknowledgeEvent(args.getString(0));
                     } else if (action.equalsIgnoreCase("startUpload")) {
                         managerService.addUpload((JSONObject) args.get(0));
-                    } else if (action.equalsIgnoreCase("destroy")) {
-                        self.destroy();
                     }
+                    callbackContext.success();
                 } catch (Exception exception) {
                     String message = "(" + exception.getClass().getSimpleName() + ") - " + exception.getMessage();
                     PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
                     callbackContext.sendPluginResult(result);
                     exception.printStackTrace();
                 }
-                PluginResult result = new PluginResult(PluginResult.Status.OK);
-                callbackContext.sendPluginResult(result);
             }
         });
         return true;
     }
 
     private void initManager(String options, final CallbackContext callbackContext) throws IllegalStateException {
-        if (managerService != null) {
+        if (managerService != null) { // a faire avec une autre variable !
             throw new IllegalStateException("initManager was called twice");
         }
 
         this.uploadCallback = callbackContext;
-
-        if (!isServiceRunning(ManagerService.class)) {
-            Intent intent = new Intent(cordova.getContext(), ManagerService.class);
-            intent.putExtra("options", options);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                cordova.getActivity().startForegroundService(intent);
-                cordova.getActivity().bindService(intent, this, Context.BIND_AUTO_CREATE);
-            } else {
-                cordova.getActivity().startService(intent);
-                cordova.getActivity().bindService(intent, this, Context.BIND_AUTO_CREATE);
-            }
+        Intent intent = new Intent(cordova.getContext(), ManagerService.class);
+        intent.putExtra("options", options);
+           
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            cordova.getActivity().startForegroundService(intent);
         } else {
-            Intent intent = new Intent(cordova.getContext(), ManagerService.class);
-            cordova.getActivity().bindService(intent, this, Context.BIND_AUTO_CREATE);
-
-            UploadServiceConfig.initialize(
-                    cordova.getActivity().getApplication(),
-                    "com.spoon.backgroundfileupload.channel",
-                    false
-            );
-
-            this.managerService.setReady(true);
-
-            ManagerService.logMessage("Service running");
+            cordova.getActivity().startService(intent);
         }
+        cordova.getActivity().bindService(intent, this, Context.BIND_AUTO_CREATE);
+        // ManagerService.logMessage("Service running"); pas sur manager service
     }
 
     public void onDestroy() {
-        ManagerService.logMessage("eventLabel='Uploader plugin onDestroy'");
+        //ManagerService.logMessage("eventLabel='Uploader plugin onDestroy'"); pas sur manager service
         destroy();
     }
 
     public void destroy() {
-        this.managerService.setReady(false);
-        this.managerService.stopServiceIfComplete();
+        his.managerService.setPlugin(null);
         cordova.getActivity().unbindService(this);
-    }
-
-    private boolean isServiceRunning(Class<?> serviceClass) {
-        ActivityManager manager = (ActivityManager) cordova.getActivity().getSystemService(Context.ACTIVITY_SERVICE);
-
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.getName().equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     @Override
@@ -123,8 +89,6 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
 
     @Override
     public void onServiceDisconnected(ComponentName componentName) {
-        ManagerService.logMessage("Service disconnected");
-        this.managerService.setReady(false);
     }
     
     @Override
@@ -134,6 +98,7 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
 
         this.uploadCallback.sendPluginResult(result);
     }
+    
     @Override
     public void sendEvent(obj) {
         PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
