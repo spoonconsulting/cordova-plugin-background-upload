@@ -1,6 +1,6 @@
 {
   "appId": "io.ionic.starter",
-  "appName": "Bozaka",
+  "appName": "Upload Demo",
   "bundledWebRuntime": false,
   "npmClient": "npm",
   "webDir": "www",

@@ -32,8 +32,6 @@ import net.gotev.uploadservice.observer.request.RequestObserverDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
 import net.gotev.uploadservice.protocols.multipart.MultipartUploadRequest;
 
-import org.apache.cordova.CallbackContext;
-import org.apache.cordova.PluginResult;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -59,14 +57,15 @@ public class ManagerService extends Service {
     private GlobalRequestObserver requestObserver;
     private Long lastProgressTimestamp = 0L;
     private Activity mainActivity;
-    private ICallback callback;
+    private IConnectedPlugin connectedPlugin;
     private Disposable networkObservable;
     private boolean isNetworkAvailable = false;
-    private boolean ready = false;
     private String inputTitle = "Upload Service";
     private String inputContent = "Background upload service running";
 
-    private static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
+    private boolean serviceIsRunning = false;
+
+    public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
 
     private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
@@ -119,17 +118,13 @@ public class ManagerService extends Service {
 
         @Override
         public void onCompletedWhileNotObserving() {
+            stopServiceIfComplete();
         }
     };
 
     public void sendCallback(JSONObject obj) {
-        if (ready) {
-            PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
-            result.setKeepCallback(true);
-
-            if (this.callback != null) {
-                this.callback.sendPluginResult(result);
-            }
+        if (this.connectedPlugin != null) {
+            this.connectedPlugin.callback(obj);
         }
     }
 
@@ -154,68 +149,65 @@ public class ManagerService extends Service {
 
     public void stopServiceIfComplete() {
         if (PendingUpload.count(PendingUpload.class) == 0) {
-            if (!ready) {
+            if (this.connectedPlugin == null) {
                 Intent intent = new Intent(ManagerService.this, ManagerService.class);
-                stopService(intent);
+                this.requestObserver.unregister();
+                this.requestObserver = null;
 
-                requestObserver.unregister();
-                requestObserver = null;
+                stopService(intent);
             } else {
                 Intent intent = new Intent(ManagerService.this, ManagerService.class);
                 stopService(intent);
 
-                startForegroundNotification(this.inputTitle, this.inputContent);
+                startForegroundNotification();
             }
         }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                JSONObject settings = new JSONObject(intent.getStringExtra("options"));
-                this.inputTitle = settings.getString("foregroundTitle");
-                this.inputContent = settings.getString("foregroundContent");
-            } catch (JSONException error) {
-                error.getLocalizedMessage();
+        if (!this.serviceIsRunning) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    JSONObject settings = new JSONObject(intent.getStringExtra("options"));
+                    this.inputTitle = settings.getString("foregroundTitle");
+                    this.inputContent = settings.getString("foregroundContent");
+                } catch (JSONException error) {
+                    error.printStackTrace();
+                }
+
+                startForegroundNotification();
             }
 
-            startForegroundNotification(inputTitle, inputContent);
+            initUploadService(intent.getStringExtra("options"));
+            this.serviceIsRunning = true;
+
+            networkObservable = ReactiveNetwork
+                    .observeNetworkConnectivity(this)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(connectivity -> {
+                        logMessage(String.format("eventLabel='Uploader Network connectivity changed' connectivity_state='%s'", connectivity.state()));
+                        isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
+                        if (isNetworkAvailable) {
+                            uploadPendingList();
+                        }
+                    });
+
         }
-
-        initUploadService(intent.getStringExtra("options"));
-
-        networkObservable = ReactiveNetwork
-                .observeNetworkConnectivity(this)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(connectivity -> {
-                    logMessage(String.format("eventLabel='Uploader Network connectivity changed' connectivity_state='%s'", connectivity.state()));
-                    isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
-                    if (isNetworkAvailable) {
-                        uploadPendingList();
-                    }
-                });
 
         return START_NOT_STICKY;
     }
 
-    private void startForegroundNotification(String inputTitle, String inputContent) {
+    private void startForegroundNotification() {
         Intent notificationIntent = new Intent(this, FileTransferBackground.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
 
-        createUploadChannel();
-
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(inputTitle)
-                .setContentText(inputContent)
-                .setSmallIcon(android.R.drawable.ic_menu_upload)
-                .setContentIntent(pendingIntent)
-                .build();
+        Notification notification = createNotification(pendingIntent);
         startForeground(1234, notification);
     }
 
-    public void createUploadChannel() {
+    public Notification createNotification(PendingIntent pendingIntent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
@@ -228,6 +220,15 @@ public class ManagerService extends Service {
                     .getSystemService(Context.NOTIFICATION_SERVICE);
             manager.createNotificationChannel(channel);
         }
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(this.inputTitle)
+                .setContentText(this.inputContent)
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setContentIntent(pendingIntent)
+                .build();
+
+        return notification;
     }
 
     public void initUploadService(String options) {
@@ -256,8 +257,8 @@ public class ManagerService extends Service {
                 new ThreadPoolExecutor(
                         parallelUploadsLimit,
                         parallelUploadsLimit,
-                        5000,
-                        TimeUnit.MILLISECONDS,
+                        5L,
+                        TimeUnit.SECONDS,
                         new LinkedBlockingQueue<Runnable>()
                 );
         UploadServiceConfig.setThreadPool((AbstractExecutorService) threadPoolExecutor);
@@ -272,6 +273,12 @@ public class ManagerService extends Service {
                 obj = new JSONObject(upload.data);
             } catch (JSONException exception) {
                 logMessage(String.format("eventLabel='Uploader could not parse pending upload' uploadId='%s' error='%s'", upload.uploadId, exception.getMessage()));
+                deletePendingUploadAndSendEvent(new JSONObject(new HashMap() {{
+                    put("id", upload.uploadId);
+                    put("state", "FAILED");
+                    put("errorCode", 0);
+                    put("error", exception.getMessage());
+                }}));
             }
             if (obj != null) {
                 logMessage(String.format("eventLabel='Uploader upload pending list' uploadId='%s'", upload.uploadId));
@@ -355,14 +362,12 @@ public class ManagerService extends Service {
         return hashMap;
     }
 
-    public void sendMissingEvents(Activity activity) {
-        this.mainActivity = activity;
-
+    private void sendMissingEvents() {
         migrateOldUploads();
 
         for (UploadEvent event : UploadEvent.all()) {
             logMessage("Uploader send event missing on Start - " + event.getId());
-            sendCallback(event.dataRepresentation());
+            this.connectedPlugin.callback(event.dataRepresentation());
         }
     }
 
@@ -403,63 +408,42 @@ public class ManagerService extends Service {
     }
 
     public void addUpload(JSONObject jsonPayload) {
+        HashMap payload = null;
         try {
-            HashMap payload = null;
-            try {
-                payload = convertToHashMap(jsonPayload);
-            } catch (JSONException error) {
-                logMessage(String.format("eventLabel='Uploader could not read id from payload' error:'%s'", error.getMessage()));
-            }
-            if (payload == null) return;
-            String uploadId = payload.get("id").toString();
+            payload = convertToHashMap(jsonPayload);
+        } catch (JSONException error) {
+            logMessage(String.format("eventLabel='Uploader could not read id from payload' error:'%s'", error.getMessage()));
+        }
+        if (payload == null) return;
+        String uploadId = payload.get("id").toString();
 
-            if (PendingUpload.count(PendingUpload.class, "upload_id = ?", new String[]{uploadId}) > 0) {
-                logMessage(String.format("eventLabel='Uploader an upload is already pending with this id' uploadId='%s'", uploadId));
-                return;
-            }
+        if (PendingUpload.count(PendingUpload.class, "upload_id = ?", new String[]{uploadId}) > 0) {
+            logMessage(String.format("eventLabel='Uploader an upload is already pending with this id' uploadId='%s'", uploadId));
+            return;
+        }
 
-            PendingUpload.create(jsonPayload);
-            startUpload(payload);
-        } catch (Exception e) {
-            e.printStackTrace();
+        PendingUpload.create(jsonPayload);
+        startUpload(payload);
+    }
+
+    public void removeUpload(String uploadId) {
+        PendingUpload.remove(uploadId);
+        UploadService.stopUpload(uploadId);
+    }
+
+    public void acknowledgeEvent(String eventId) {
+        UploadEvent.destroy(Long.valueOf(eventId.replaceAll("\\D+", "")).longValue());
+    }
+
+    public void setConnectedPlugin(IConnectedPlugin plugin) {
+        this.connectedPlugin = plugin;
+        if (this.connectedPlugin != null) {
+            this.sendMissingEvents();
         }
     }
 
-    public void removeUpload(String uploadId, CallbackContext context) {
-        try {
-            PendingUpload.remove(uploadId);
-            UploadService.stopUpload(uploadId);
-            PluginResult result = new PluginResult(PluginResult.Status.OK);
-            result.setKeepCallback(true);
-            context.sendPluginResult(result);
-        } catch (Exception e) {
-            String message = "(" + e.getClass().getSimpleName() + ") - " + e.getMessage();
-            PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
-            result.setKeepCallback(true);
-            context.sendPluginResult(result);
-        }
-    }
-
-    public void acknowledgeEvent(String eventId, CallbackContext context) {
-        try {
-            UploadEvent.destroy(Long.valueOf(eventId.replaceAll("\\D+", "")).longValue());
-            PluginResult result = new PluginResult(PluginResult.Status.OK);
-            result.setKeepCallback(true);
-            context.sendPluginResult(result);
-        } catch (NumberFormatException e) {
-            String message = "(" + e.getClass().getSimpleName() + ") - " + e.getMessage();
-            PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
-            result.setKeepCallback(true);
-            context.sendPluginResult(result);
-        }
-    }
-
-    public void setReady(boolean state) {
-        this.ready = state;
-    }
-
-    public void setCallback(ICallback cb) {
-        this.callback = cb;
+    public void setMainActivity(Activity activity) {
+        this.mainActivity = activity;
     }
 
     public static void logMessage(String message) {
@@ -472,8 +456,8 @@ public class ManagerService extends Service {
         }
     }
 
-    public interface ICallback {
-        void sendPluginResult(PluginResult result);
+    public interface IConnectedPlugin {
+        void callback(JSONObject obj);
     }
 
     @Nullable

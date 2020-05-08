@@ -21,7 +21,9 @@ export class HomePage {
       let self = this;
 
       self.uploader = FileTransferManager.init({
-        parallelUploadsLimit: 1
+        parallelUploadsLimit: 2,
+        foregroundTitle: 'Upload service',
+        foregroundContent: 'Background upload service running'
       }, event => {
         console.log('EVENT');
         var correspondingMedia = self.getMediaWithId(event.id);
@@ -81,7 +83,7 @@ export class HomePage {
         this.allMedia.push(media);
 
         var options: any = {
-          serverUrl: "http://requestbin.net/r/1me11dr1",
+          serverUrl: "https://en7paaa03bwd.x.pipedream.net/",
           filePath: file_uris[i],
           fileKey: "file",
           id: media.id,
