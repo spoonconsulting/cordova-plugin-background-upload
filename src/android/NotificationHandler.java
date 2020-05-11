@@ -93,7 +93,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         final String KPS = UploadRate.UploadRateUnit.KilobitPerSecond.name();
         final String MPS = UploadRate.UploadRateUnit.MegabitPerSecond.name();
 
-        int value = 0;
+        float value = 0;
 
         if (unit == BPS) {
             value = speed / 1000;
@@ -119,8 +119,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         int length = (int) (Math.log10(speed) + 1);
 
         if (length >= 4) {
-            float tmpSpeed = speed / 1000;
-            value = String.format("%.1f %s", tmpSpeed, MPS);
+            value = String.format("%.1f %s", speed / 1000, MPS);
         }
 
         if ((length >= 1 && length < 4) && speed != 0) {
@@ -128,7 +127,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         }
 
         if (speed > 0f && speed < 1f) {
-            value = String.format("%s %s", speed, KPS);
+            value = String.format("%.1f %s", speed, KPS);
         }
 
         return value;

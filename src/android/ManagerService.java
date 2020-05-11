@@ -129,12 +129,13 @@ public class ManagerService extends Service {
     }
 
     public void deletePendingUploadAndSendEvent(JSONObject obj) {
-        String id = null;
+        String id;
 
         try {
             id = obj.getString("id");
         } catch (JSONException error) {
             logMessage(String.format("eventLabel='Uploader could not delete pending upload' error='%s'", error.getMessage()));
+            return;
         }
 
         logMessage(String.format("eventLabel='Uploader delete pending upload' uploadId='%s'", id));
@@ -247,7 +248,7 @@ public class ManagerService extends Service {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
         } catch (JSONException error) {
-            ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
+            ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit/uploadsMethod from config' error='%s'", error.getMessage()));
         }
 
         UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity));
@@ -302,7 +303,7 @@ public class ManagerService extends Service {
             return;
         }
 
-        MultipartUploadRequest request = null;
+        MultipartUploadRequest request;
 
         try {
             request = new MultipartUploadRequest(this, payload.get("serverUrl").toString())

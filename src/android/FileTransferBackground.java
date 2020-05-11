@@ -42,8 +42,8 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
                         }
                         callbackContext.success();
                     } catch (Exception exception) {
-                        callbackContext.error(exception.getMessage());
                         exception.printStackTrace();
+                        callbackContext.error(exception.getMessage());
                     }
                 }
             });
