@@ -9,14 +9,16 @@ Install dependencies
 npm i
 ```
 
-Add platform
+Add platform and run on Android
 ```bash
 ionic cordova platform add android
+ionic cordova run android
 ```
-Run
+Add platform and run on iOS
 
 ```bash
-ionic cordova run android
+ionic cordova platform add ios
+ionic cordova run ios
 ```
 
 ## License
@@ -25,4 +27,4 @@ Upload Demo is licensed under the Apache v2 License.
 
 ## Credits
 
-Upload Demo is brought to you by Spoon Consulting.
+Upload Demo is brought to you by Spoon Consulting Ltd.
