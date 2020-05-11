@@ -248,7 +248,7 @@ public class ManagerService extends Service {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
         } catch (JSONException error) {
-            ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit/uploadsMethod from config' error='%s'", error.getMessage()));
+            ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
         UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity));
