@@ -22,10 +22,14 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
     private Activity mContext;
     private long uploadCount = 0;
+    private String defaultTitle;
+    private String defaultContent;
 
-    public NotificationHandler(@NotNull UploadService service, Activity context) {
+    public NotificationHandler(@NotNull UploadService service, Activity context, String defaultTitle, String defaultContent) {
         super(service);
         this.mContext = context;
+        this.defaultTitle = defaultTitle;
+        this.defaultContent = defaultContent;
     }
 
     @Override
@@ -69,17 +73,17 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_title", idDef, pkg),
-                String.format("%s uploads remaining", uploadCount)
+                uploadCount == 0 ? defaultTitle : String.format("%s uploads remaining", uploadCount)
         );
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_content_left", idDef, pkg),
-                String.format("%d in progress", inProgress)
+                uploadCount == 0 ? defaultContent : String.format("%d in progress", inProgress)
         );
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_content_right", idDef, pkg),
-                toReadable(speed)
+                toReadable(speed) // nothing here if uploadCount == 0
         );
 
         return builder
