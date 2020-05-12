@@ -83,7 +83,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_content_right", idDef, pkg),
-                toReadable(speed) // nothing here if uploadCount == 0
+                uploadCount == 0 ? "" : toReadable(speed)
         );
 
         return builder
