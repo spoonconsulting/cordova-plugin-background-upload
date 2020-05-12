@@ -149,14 +149,12 @@ public class ManagerService extends Service {
     }
 
     public void stopServiceIfComplete() {
-        if (PendingUpload.count(PendingUpload.class) == 0) {
-            if (this.connectedPlugin == null) {
-                Intent intent = new Intent(ManagerService.this, ManagerService.class);
-                this.requestObserver.unregister();
-                this.requestObserver = null;
+        if (PendingUpload.count(PendingUpload.class) == 0 && this.connectedPlugin == null) {
+            Intent intent = new Intent(ManagerService.this, ManagerService.class);
+            this.requestObserver.unregister();
+            this.requestObserver = null;
 
-                stopService(intent);
-            }
+            stopService(intent);
         }
     }
 

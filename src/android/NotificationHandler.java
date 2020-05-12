@@ -118,24 +118,10 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         final String KBPS = "Kbps";
         final String MBPS = "Mbps";
 
-        String value = "";
-
         if (speed >= 1000) {
-            value = String.format("%.2f %s", speed / 1000, MBPS);
+            return String.format("%.2f %s", speed / 1000, MBPS);
         }
 
-        if (speed >= 100 && speed < 1000) {
-            value = String.format("%.2f %s", speed, KBPS);
-        }
-
-        if (speed > 0 && speed < 1) {
-            value = String.format("%.2f %s", speed, KBPS);
-        }
-
-        if (speed == 0) {
-            return String.format("0 %s", KBPS);
-        }
-
-        return value;
+        return String.format("%.2f %s", speed, KBPS);
     }
 }
