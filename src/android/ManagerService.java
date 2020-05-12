@@ -156,11 +156,6 @@ public class ManagerService extends Service {
                 this.requestObserver = null;
 
                 stopService(intent);
-            } else {
-                Intent intent = new Intent(ManagerService.this, ManagerService.class);
-                stopService(intent);
-
-                startForegroundNotification();
             }
         }
     }
@@ -251,7 +246,7 @@ public class ManagerService extends Service {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, this.inputTitle, this.inputContent));
 
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =

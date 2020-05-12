@@ -22,10 +22,14 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
     private Activity mContext;
     private long uploadCount = 0;
+    private String defaultTitle;
+    private String defaultContent;
 
-    public NotificationHandler(@NotNull UploadService service, Activity context) {
+    public NotificationHandler(@NotNull UploadService service, Activity context, String defaultTitle, String defaultContent) {
         super(service);
         this.mContext = context;
+        this.defaultTitle = defaultTitle;
+        this.defaultContent = defaultContent;
     }
 
     @Override
@@ -69,17 +73,17 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_title", idDef, pkg),
-                String.format("%s uploads remaining", uploadCount)
+                inProgress == 0 ? defaultTitle : String.format("%s uploads remaining", uploadCount)
         );
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_content_left", idDef, pkg),
-                String.format("%d in progress", inProgress)
+                inProgress == 0 ? defaultContent : String.format("%d in progress", inProgress)
         );
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_content_right", idDef, pkg),
-                toReadable(speed)
+                inProgress == 0 ? "" : toReadable(speed)
         );
 
         return builder
@@ -111,23 +115,25 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
     }
 
     private String toReadable(float speed) {
-        final String KPS = "Kbps";
-        final String MPS = "Mbps";
+        final String KBPS = "Kbps";
+        final String MBPS = "Mbps";
 
         String value = "";
 
-        int length = (int) (Math.log10(speed) + 1);
-
-        if (length >= 4) {
-            value = String.format("%.1f %s", speed / 1000, MPS);
+        if (speed >= 1000) {
+            value = String.format("%.2f %s", speed / 1000, MBPS);
         }
 
-        if ((length >= 1 && length < 4) && speed != 0) {
-            value = String.format("%s %s", (int) speed, KPS);
+        if (speed >= 100 && speed < 1000) {
+            value = String.format("%.2f %s", speed, KBPS);
         }
 
-        if (speed > 0f && speed < 1f) {
-            value = String.format("%.1f %s", speed, KPS);
+        if (speed > 0 && speed < 1) {
+            value = String.format("%.2f %s", speed, KBPS);
+        }
+
+        if (speed == 0) {
+            return String.format("0 %s", KBPS);
         }
 
         return value;
