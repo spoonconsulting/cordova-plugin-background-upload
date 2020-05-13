@@ -101,6 +101,7 @@ export class HomePage {
           }
         };
         self.uploader.startUpload(options);
+        //test
       }
     }, err => console.log('err: ' + err));
   }
