@@ -13,6 +13,7 @@
         if (command.arguments.count > 0){
             NSDictionary* config = command.arguments[0];
             FileUploader.parallelUploadsLimit = ((NSNumber*)config[@"parallelUploadsLimit"]).integerValue;
+            FileUploader.uploadsMethod = config[@"uploadsMethod"];
         }
 
         [FileUploader sharedInstance].delegate = self;

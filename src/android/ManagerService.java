@@ -299,12 +299,11 @@ public class ManagerService extends Service {
         }
 
         MultipartUploadRequest request;
-        String method = this.uploadsMethod != null ? this.uploadsMethod : "POST";
 
         try {
             request = new MultipartUploadRequest(this, payload.get("serverUrl").toString())
                     .setUploadID(uploadId)
-                    .setMethod(method)
+                    .setMethod(this.uploadsMethod)
                     .addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString())
                     .setMaxRetries(0);
         } catch (IllegalArgumentException | FileNotFoundException error) {

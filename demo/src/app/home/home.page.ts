@@ -22,7 +22,6 @@ export class HomePage {
 
       self.uploader = FileTransferManager.init({
         parallelUploadsLimit: 2,
-        uploadsMethod: 'POST',
         foregroundTitle: 'Upload service',
         foregroundContent: 'Background upload service running'
       }, event => {
@@ -102,7 +101,6 @@ export class HomePage {
           }
         };
         self.uploader.startUpload(options);
-        //test
       }
     }, err => console.log('err: ' + err));
   }

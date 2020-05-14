@@ -210,6 +210,24 @@ exports.defineAutoTests = function () {
         })
         nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' })
       })
+
+      it('upload success with put method', function (done) {
+        nativeUploader = FileTransferManager.init({uploadsMethod: 'PUT'}, function (upload) {
+          if (upload.state === 'UPLOADED') {
+            expect(upload.id).toBe('file_id')
+            expect(upload.statusCode).toBe(200)
+            expect(upload.eventId).toBeDefined()
+            expect(upload.error).toBeUndefined()
+            var response = JSON.parse(upload.serverResponse)
+            delete response.receivedInfo.headers
+            expect(response.receivedInfo).toEqual({
+              success: true
+            })
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
+          }
+        })
+        nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path })
+      })
     })
 
     describe('Remove upload', function () {

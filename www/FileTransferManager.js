@@ -6,6 +6,10 @@ var FileTransferManager = function (options, callback) {
     this.options.parallelUploadsLimit = 1
   }
 
+  if(!this.options.uploadsMethod){
+    this.options.uploadsMethod = 'POST'
+  }
+
   if (typeof callback !== 'function') {
     throw new Error('event handler must be a function')
   }
