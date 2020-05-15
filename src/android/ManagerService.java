@@ -62,7 +62,7 @@ public class ManagerService extends Service {
     private boolean isNetworkAvailable = false;
     private String inputTitle = "Upload Service";
     private String inputContent = "Background upload service running";
-    private String uploadsMethod;
+    private String uploadMethod;
 
     private boolean serviceIsRunning = false;
 
@@ -241,7 +241,7 @@ public class ManagerService extends Service {
         try {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
-            this.uploadsMethod = settings.getString("uploadsMethod");
+            this.uploadMethod = settings.getString("uploadMethod");
         } catch (JSONException error) {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
@@ -303,7 +303,7 @@ public class ManagerService extends Service {
         try {
             request = new MultipartUploadRequest(this, payload.get("serverUrl").toString())
                     .setUploadID(uploadId)
-                    .setMethod(this.uploadsMethod)
+                    .setMethod(this.uploadMethod)
                     .addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString())
                     .setMaxRetries(0);
         } catch (IllegalArgumentException | FileNotFoundException error) {

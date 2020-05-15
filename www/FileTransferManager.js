@@ -6,8 +6,8 @@ var FileTransferManager = function (options, callback) {
     this.options.parallelUploadsLimit = 1
   }
 
-  if(!this.options.uploadsMethod){
-    this.options.uploadsMethod = 'POST'
+  if(!this.options.uploadMethod){
+    this.options.uploadMethod = 'POST'
   }
 
   if (typeof callback !== 'function') {

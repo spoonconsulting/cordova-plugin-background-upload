@@ -14,7 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 -(void)removeUpload:(NSString*)uploadId;
 -(void)acknowledgeEventReceived:(NSString*)eventId;
 @property (class, nonatomic, assign) NSInteger parallelUploadsLimit;
-@property (class, nonatomic, assign) NSString uploadsMethod;
+@property (class, nonatomic, assign) NSString uploadMethod;
 @end
 
 NS_ASSUME_NONNULL_END
