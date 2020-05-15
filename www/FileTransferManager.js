@@ -6,10 +6,6 @@ var FileTransferManager = function (options, callback) {
     this.options.parallelUploadsLimit = 1
   }
 
-  if(!this.options.uploadsMethod){
-    this.options.uploadsMethod = 'POST'
-  }
-
   if (typeof callback !== 'function') {
     throw new Error('event handler must be a function')
   }
@@ -55,6 +51,10 @@ FileTransferManager.prototype.startUpload = function (payload) {
 
   var self = this
   window.resolveLocalFileSystemURL(payload.filePath, function (entry) {
+    if (!payload.requestMethod) {
+      payload.requestMethod = 'POST'
+    }
+    
     payload.filePath = entry.toURL().replace('file://', '')
     exec(self.callback, null, 'FileTransferBackground', 'startUpload', [payload])
   }, function () {

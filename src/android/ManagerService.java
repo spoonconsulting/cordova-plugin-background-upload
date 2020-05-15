@@ -62,7 +62,6 @@ public class ManagerService extends Service {
     private boolean isNetworkAvailable = false;
     private String inputTitle = "Upload Service";
     private String inputContent = "Background upload service running";
-    private String uploadsMethod;
 
     private boolean serviceIsRunning = false;
 
@@ -241,7 +240,6 @@ public class ManagerService extends Service {
         try {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
-            this.uploadsMethod = settings.getString("uploadsMethod");
         } catch (JSONException error) {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
@@ -285,6 +283,7 @@ public class ManagerService extends Service {
 
     private void startUpload(HashMap<String, Object> payload) {
         String uploadId = payload.get("id").toString();
+        String requestMethod = payload.get("requestMethod").toString();
 
         if (UploadService.getTaskList().contains(uploadId)) {
             logMessage(String.format("eventLabel='Uploader upload is already being uploaded. ignoring re-upload start' uploadId='%s'", uploadId));
@@ -303,7 +302,7 @@ public class ManagerService extends Service {
         try {
             request = new MultipartUploadRequest(this, payload.get("serverUrl").toString())
                     .setUploadID(uploadId)
-                    .setMethod(this.uploadsMethod)
+                    .setMethod(requestMethod)
                     .addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString())
                     .setMaxRetries(0);
         } catch (IllegalArgumentException | FileNotFoundException error) {

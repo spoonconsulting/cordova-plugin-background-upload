@@ -212,7 +212,7 @@ exports.defineAutoTests = function () {
       })
 
       it('upload success with put method', function (done) {
-        nativeUploader = FileTransferManager.init({ uploadsMethod: 'PUT' }, function (upload) {
+        nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'UPLOADED') {
             expect(upload.id).toBe('file_id')
             expect(upload.statusCode).toBe(200)
@@ -226,7 +226,7 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
-        nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path })
+        nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path, requestMethod: 'PUT' })
       })
     })
 
