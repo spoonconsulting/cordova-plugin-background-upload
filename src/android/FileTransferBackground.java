@@ -73,17 +73,25 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
     }
 
     public void destroy() {
-        this.managerService.setConnectedPlugin(null);
-        this.managerService.stopServiceIfComplete();
-        cordova.getActivity().unbindService(this);
+        try {
+            this.managerService.setConnectedPlugin(null);
+            this.managerService.stopServiceIfInactive();
+            cordova.getActivity().unbindService(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-        ManagerService.LocalBinder binder = (ManagerService.LocalBinder) iBinder;
-        this.managerService = binder.getServiceInstance();
-        this.managerService.setMainActivity(cordova.getActivity());
-        this.managerService.setConnectedPlugin(this);
+        try {
+            ManagerService.LocalBinder binder = (ManagerService.LocalBinder) iBinder;
+            this.managerService = binder.getServiceInstance();
+            this.managerService.setMainActivity(cordova.getActivity());
+            this.managerService.setConnectedPlugin(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
