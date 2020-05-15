@@ -302,7 +302,7 @@ public class ManagerService extends Service {
         try {
             request = new MultipartUploadRequest(this, payload.get("serverUrl").toString())
                     .setUploadID(uploadId)
-                    .setMethod(requestMethod)
+                    .setMethod("POST")
                     .addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString())
                     .setMaxRetries(0);
         } catch (IllegalArgumentException | FileNotFoundException error) {
