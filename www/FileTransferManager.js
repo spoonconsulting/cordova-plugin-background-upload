@@ -54,7 +54,6 @@ FileTransferManager.prototype.startUpload = function (payload) {
     if (!payload.requestMethod) {
       payload.requestMethod = 'POST'
     }
-    
     payload.filePath = entry.toURL().replace('file://', '')
     exec(self.callback, null, 'FileTransferBackground', 'startUpload', [payload])
   }, function () {
