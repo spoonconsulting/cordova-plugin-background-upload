@@ -21,15 +21,17 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         try {
+            if (action.equalsIgnoreCase("initManager")) {
+                this.initManager(args.get(0).toString(), callbackContext);
+                return true;
+            }
+
             if (action.equalsIgnoreCase("destroy")) {
                 this.destroy();
                 callbackContext.success();
                 return true;
             }
-            if (action.equalsIgnoreCase("initManager")) {
-                this.initManager(args.get(0).toString(), callbackContext);
-                return true;
-            }
+            
             cordova.getThreadPool().execute(new Runnable() {
                 public void run() {
                     try {
