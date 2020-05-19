@@ -1,6 +1,9 @@
-import { Component, NgZone} from '@angular/core';
+import { Component, NgZone, ViewChild, ElementRef} from '@angular/core';
 import { ImagePicker } from '@ionic-native/image-picker/ngx';
+import { WebView } from '@ionic-native/ionic-webview/ngx';
 import { Platform } from '@ionic/angular';
+
+import { Media } from '../model/media';
 
 declare var FileTransferManager: any;
 
@@ -12,122 +15,147 @@ declare var FileTransferManager: any;
 
 export class HomePage {
 
-  allMedia: Array < Media > = [];
+  allMedia: Array<Media> = [];
+  remainsMediaToUpload: Array<Media> = [];
+  logs: Array<String> = [];
   uploader: any;
-  win: any = window;
 
-  constructor(private platform: Platform, private _ngZone: NgZone, private imgPicker: ImagePicker) {
+  @ViewChild('logs_container', {read: ElementRef, static: true }) logsContainer: ElementRef;
+
+  constructor(private platform: Platform, private _ngZone: NgZone, private imgPicker: ImagePicker, private webView: WebView) {
     this.platform.ready().then(() => {
-      let self = this;
 
-      self.uploader = FileTransferManager.init({
+      this.uploader = FileTransferManager.init({
         parallelUploadsLimit: 2,
         foregroundTitle: 'Upload service',
         foregroundContent: 'Background upload service running'
       }, event => {
         console.log('EVENT');
-        var correspondingMedia = self.getMediaWithId(event.id);
-        if (!correspondingMedia)
-          return;
+        const correspondingMedia = this.getMediaWithId(event.id);
+        if (!correspondingMedia) return;
+        let logMessage;
+
         if (event.state == 'UPLOADED') {
-          console.log("upload: " + event.id + " has been completed successfully");
+          logMessage = "Upload: " + event.id + " has been completed successfully";
           console.log(event.statusCode, event.serverResponse);
-          correspondingMedia.updateStatus("uploaded successfully");
+          correspondingMedia.updateStatus("Uploaded successfully");
         } else if (event.state == 'FAILED') {
           if (event.id) {
-            console.log("upload: " + event.id + " has failed");
+            logMessage = "Upload: " + event.id + " has failed";
             correspondingMedia.updateStatus("Error while uploading");
           } else {
             console.error("uploader caught an error: " + event.error);
           }
         } else if (event.state == 'UPLOADING') {
-          console.log("uploading: " + event.id + " progress: " + event.progress + "%");
-          correspondingMedia.updateStatus("uploading: " + event.progress + "%");
+          logMessage = "Uploading: " + event.id + " progress: " + event.progress + "%";
+          correspondingMedia.updateStatus("Uploading: " + event.progress + "%");
         }
+
+        if(logMessage) this.log(logMessage);
+          
         if (event.eventId)
-          self.uploader.acknowledgeEvent(event.eventId);
+          this.uploader.acknowledgeEvent(event.eventId);
       });
     })
   }
 
-  private getMediaWithId(mediaId) {
-    for (var media of this.allMedia) {
-      if (media.id == mediaId) {
-        return media;
-      }
-    }
-    return null;
-  }
-
   cancelUpload(media: Media): void {
     this.uploader.removeUpload(media.id, res => {
+      media.updateStatus("Aborting...");
       console.log('removeUpload result: ', res);
-      media.updateStatus("Aborted");
+      this.log("Upload: " + media.id + " aborting");
     }, err => alert('Error removing upload'));
   }
 
   openGallery(): void {
-    var self = this;
-
-    var options = {
-      width: 200,
-      quality: 25
-    };
-
-    self.imgPicker.getPictures({
-      maximumImagesCount: 3
+    this.imgPicker.getPictures({
+      maximumImagesCount: 30
     }).then(file_uris => {
-      for (var i = 0; i < file_uris.length; i++) {
-        let path = this.win.Ionic.WebView.convertFileSrc(file_uris[i]);
-        var media = new Media(path, this._ngZone);
+      file_uris.forEach(file_uri => {
+        const media = new Media(file_uri, this.webView.convertFileSrc(file_uri), this._ngZone);
         this.allMedia.push(media);
-
-        var options: any = {
-          serverUrl: "https://en7paaa03bwd.x.pipedream.net/",
-          filePath: file_uris[i],
-          fileKey: "file",
-          id: media.id,
-          notificationTitle: "Uploading image (Job 0)",
-          headers: {},
-          parameters: {
-            colors: 1,
-            faces: 1,
-            image_metadata: 1,
-            phash: 1,
-            signature: "924736486",
-            tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
-            timestamp: 1572858811,
-            type: "authenticated"
-          }
-        };
-        self.uploader.startUpload(options);
-      }
+        this.log("Upload: " + media.id + " added");
+      });
+      this.refreshRemainsMediaToUpload();
     }, err => console.log('err: ' + err));
   }
-}
 
-export class Media {
-
-  uri: String;
-  status: String;
-  zone: NgZone;
-  id: string;
-
-  constructor(url: String, private _ngZone: NgZone) {
-    this.uri = url;
-    this.status = "uploading";
-    this.zone = _ngZone;
-    this.id = "" + Math.random().toString(36).substr(2, 5);
+  startUpload(media: Media) {
+    const options: any = {
+      serverUrl: "https://en7paaa03bwd.x.pipedream.net/",
+      filePath: media.uri,
+      fileKey: "file",
+      id: media.id,
+      notificationTitle: "Uploading image (Job 0)",
+      headers: {},
+      parameters: {
+        colors: 1,
+        faces: 1,
+        image_metadata: 1,
+        phash: 1,
+        signature: "924736486",
+        tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
+        timestamp: 1572858811,
+        type: "authenticated"
+      }
+    };
+    this.uploader.startUpload(options);
+    media.updateStatus("Uploading...");
+    this.log("Upload: " + media.id + " start");
   }
 
-  updateStatus(stat: String) {
-    //in order to updates to propagate, we need be in angular zone
-    //more info here:
-    //https://www.joshmorony.com/understanding-zones-and-change-detection-in-ionic-2-angular-2/
-    //example where updates are made in angular zone:
-    //https://www.joshmorony.com/adding-background-geolocation-to-an-ionic-2-application/
-    this.zone.run(() => {
-      this.status = stat;
+  retryUpload(media: Media) {
+    media.updateStatus(null);
+    this.startUpload(media);
+  }
+
+  removeUpload(media: Media) {
+    this.allMedia = this.allMedia.filter(m => m.id != media.id);
+    this.refreshRemainsMediaToUpload();
+  }
+
+  async uploadAll() {
+    this.refreshRemainsMediaToUpload();
+    while(this.remainsMediaToUpload.length > 0) {
+      this.startUpload(this.remainsMediaToUpload.pop());
+      await this.sleep(400);
+    }
+  }
+
+  canActOnMedia(actionName: string, media:Media ):boolean {
+    switch(actionName) {
+      case 'startUpload':
+        return !media.status;
+      case 'retryUpload':
+        return media.status && media.status.indexOf('Aborting') < 0 && media.status.indexOf('Error') > -1;
+      case 'cancelUpload':
+        return media.status && media.status.indexOf('%') > -1;
+      case 'removelUpload':
+        return !media.status || (media.status && media.status.indexOf('%') < 0);  
+      default:
+        return true;
+    }
+  }
+
+  private getMediaWithId(mediaId) {
+    return this.allMedia.find(media => media.id == mediaId);
+  }
+
+  private refreshRemainsMediaToUpload() {
+    this.remainsMediaToUpload = this.allMedia.filter(media => !media.status);
+  }
+
+  private log(message: String) {
+    console.log(message);
+    this._ngZone.run(() => {
+      this.logs.push(message);
+      this.logsContainer.nativeElement.scrollTop = this.logsContainer.nativeElement.scrollHeight;
     });
+  }
+
+  private async sleep(time) {
+    return new Promise((resolve,reject) => {
+      setTimeout(() => { resolve(true)}, time);
+    })
   }
 }
