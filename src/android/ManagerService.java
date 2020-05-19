@@ -359,10 +359,21 @@ public class ManagerService extends Service {
     private void sendMissingEvents() {
         migrateOldUploads();
 
-        for (UploadEvent event : UploadEvent.all()) {
-            logMessage("Uploader send event missing on Start - " + event.getId());
-            this.connectedPlugin.callback(event.dataRepresentation());
-        }
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Iterator<UploadEvent> events = UploadEvent.findAll(UploadEvent.class);
+                    while (events.hasNext()) {
+                        UploadEvent event = events.next();
+                        sendCallback(event.dataRepresentation());
+                        sleep(250);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
     }
 
     public void migrateOldUploads() {
