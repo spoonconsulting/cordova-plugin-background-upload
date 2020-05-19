@@ -2,6 +2,7 @@ var exec = require('cordova/exec')
 
 var FileTransferManager = function (options, callback) {
   this.options = options
+  
   if (!this.options.parallelUploadsLimit) {
     this.options.parallelUploadsLimit = 1
   }
@@ -14,25 +15,25 @@ var FileTransferManager = function (options, callback) {
   exec(this.callback, null, 'FileTransferBackground', 'initManager', [this.options])
 }
 
-FileTransferManager.prototype.startUpload = function (payload) {
+FileTransferManager.prototype.startUpload = function (payload, successCb, errorCb) {
   if (!payload) {
-    return this.callback({ state: 'FAILED', error: 'Upload Settings object is missing or has invalid arguments' })
+    return errorCb({ state: 'FAILED', error: 'Upload Settings object is missing or has invalid arguments' })
   }
 
   if (!payload.id) {
-    return this.callback({ state: 'FAILED', error: 'Upload ID is required' })
+    return errorCb({ state: 'FAILED', error: 'Upload ID is required' })
   }
 
   if (!payload.serverUrl) {
-    return this.callback({ id: payload.id, state: 'FAILED', error: 'Server URL is required' })
+    return errorCb({ id: payload.id, state: 'FAILED', error: 'Server URL is required' })
   }
 
   if (payload.serverUrl.trim() === '') {
-    return this.callback({ id: payload.id, state: 'FAILED', error: 'Invalid server URL' })
+    return errorCb({ id: payload.id, state: 'FAILED', error: 'Invalid server URL' })
   }
 
   if (!payload.filePath) {
-    return this.callback({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
+    return errorCb({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
   }
 
   if (!payload.fileKey) {
@@ -52,9 +53,9 @@ FileTransferManager.prototype.startUpload = function (payload) {
   var self = this
   window.resolveLocalFileSystemURL(payload.filePath, function (entry) {
     payload.filePath = entry.toURL().replace('file://', '')
-    exec(self.callback, null, 'FileTransferBackground', 'startUpload', [payload])
+    exec(successCb, errorCb, 'FileTransferBackground', 'startUpload', [payload])
   }, function () {
-    self.callback({ id: payload.id, state: 'FAILED', error: 'File not found: ' + payload.filePath })
+    errorCb({ id: payload.id, state: 'FAILED', error: 'File not found: ' + payload.filePath })
   })
 }
 

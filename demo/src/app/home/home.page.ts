@@ -26,10 +26,13 @@ export class HomePage {
         foregroundContent: 'Background upload service running'
       }, event => {
         console.log('EVENT');
+
         var correspondingMedia = self.getMediaWithId(event.id);
+
         if (!correspondingMedia)
           return;
-        if (event.state == 'UPLOADED') {
+
+        if (event.state == 'UPLOADED') { 
           console.log("upload: " + event.id + " has been completed successfully");
           console.log(event.statusCode, event.serverResponse);
           correspondingMedia.updateStatus("uploaded successfully");
@@ -44,6 +47,7 @@ export class HomePage {
           console.log("uploading: " + event.id + " progress: " + event.progress + "%");
           correspondingMedia.updateStatus("uploading: " + event.progress + "%");
         }
+
         if (event.eventId)
           self.uploader.acknowledgeEvent(event.eventId);
       });
@@ -76,7 +80,7 @@ export class HomePage {
 
     self.imgPicker.getPictures({
       maximumImagesCount: 3
-    }).then(file_uris => {
+    }).then(async file_uris => {
       for (var i = 0; i < file_uris.length; i++) {
         let path = this.win.Ionic.WebView.convertFileSrc(file_uris[i]);
         var media = new Media(path, this._ngZone);
@@ -100,7 +104,14 @@ export class HomePage {
             type: "authenticated"
           }
         };
-        self.uploader.startUpload(options);
+        
+        await new Promise((resolve, reject) => {
+          self.uploader.startUpload(
+            options, 
+            (err) => { console.log('startUpload ok', err); resolve() }, 
+            () => { console.log('error'); reject() }
+          );
+        });
       }
     }, err => console.log('err: ' + err));
   }
