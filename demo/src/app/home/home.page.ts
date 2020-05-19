@@ -61,9 +61,9 @@ export class HomePage {
 
   cancelUpload(media: Media): void {
     this.uploader.removeUpload(media.id, res => {
-      media.updateStatus("Aborting...");
+      media.updateStatus("Aborted");
       console.log('removeUpload result: ', res);
-      this.log("Upload: " + media.id + " aborting");
+      this.log("Upload: " + media.id + " aborted");
     }, err => alert('Error removing upload'));
   }
 
@@ -127,7 +127,7 @@ export class HomePage {
       case 'startUpload':
         return !media.status;
       case 'retryUpload':
-        return media.status && media.status.indexOf('Aborting') < 0 && media.status.indexOf('Error') > -1;
+        return media.status && media.status.indexOf('Error') > -1;
       case 'cancelUpload':
         return media.status && media.status.indexOf('%') > -1;
       case 'removelUpload':
