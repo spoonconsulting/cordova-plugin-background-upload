@@ -24,28 +24,28 @@
             <span *ngIf="media.status">{{ media.status }}</span>
           </div>
           <div class="actions">
-            <ion-button 
+            <ion-button
               [disabled]="!canActOnMedia('startUpload',media)" 
               color="primary" 
               (click)="startUpload(media)"
             >
               Start
             </ion-button>
-            <ion-button 
+            <ion-button
               [disabled]="!canActOnMedia('retryUpload',media)" 
               color="warning" 
               (click)="retryUpload(media)"
             >
               Retry
             </ion-button>
-            <ion-button 
+            <ion-button
               [disabled]="!canActOnMedia('cancelUpload',media)" 
               color="danger" 
               (click)="cancelUpload(media)"
             >
               Cancel
             </ion-button>
-            <ion-button 
+            <ion-button
               [disabled]="!canActOnMedia('removelUpload',media)" 
               color="danger" 
               (click)="removeUpload(media)"
