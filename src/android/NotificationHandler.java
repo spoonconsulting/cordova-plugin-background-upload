@@ -73,7 +73,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_title", idDef, pkg),
-                inProgress == 0 ? defaultTitle : String.format("%s uploads remaining", uploadCount)
+                inProgress == 0 ? defaultTitle : String.format("%s upload(s) remaining", uploadCount)
         );
 
         notificationLayout.setTextViewText(
@@ -83,7 +83,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
         notificationLayout.setTextViewText(
                 resources.getIdentifier("notification_content_right", idDef, pkg),
-                inProgress == 0 ? "" : toReadable(speed)
+                inProgress == 0 ? "" : toReadable((int) speed)
         );
 
         return builder
@@ -114,14 +114,14 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         return value;
     }
 
-    private String toReadable(float speed) {
+    private String toReadable(int speed) {
         final String KBPS = "Kbps";
         final String MBPS = "Mbps";
 
         if (speed >= 1000) {
-            return String.format("%.2f %s", speed / 1000, MBPS);
+            return String.format("%d %s", speed / 1000, MBPS);
         }
 
-        return String.format("%.2f %s", speed, KBPS);
+        return String.format("%d %s", speed, KBPS);
     }
 }

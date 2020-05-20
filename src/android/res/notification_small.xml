@@ -10,25 +10,23 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent" />
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
+        android:layout_marginTop="5dp">
 
         <TextView
             android:id="@+id/notification_content_left"
             style="@style/TextAppearance.Compat.Notification"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_weight="0.75" />
+            android:layout_alignParentLeft="true" />
 
         <TextView
             android:id="@+id/notification_content_right"
             style="@style/TextAppearance.Compat.Notification.Info"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_weight="0.25" />
-    </LinearLayout>
+            android:layout_alignParentRight="true" />
+    </RelativeLayout>
 </LinearLayout>

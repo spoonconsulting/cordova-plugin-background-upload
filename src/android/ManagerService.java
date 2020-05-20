@@ -60,10 +60,10 @@ public class ManagerService extends Service {
     private IConnectedPlugin connectedPlugin;
     private Disposable networkObservable;
     private boolean isNetworkAvailable = false;
+    private boolean serviceIsRunning = false;
     private String inputTitle = "Upload Service";
     private String inputContent = "Background upload service running";
-
-    private boolean serviceIsRunning = false;
+    private NotificationManager manager;
 
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
 
@@ -150,12 +150,26 @@ public class ManagerService extends Service {
 
     public void stopServiceIfInactive() {
         if (PendingUpload.count(PendingUpload.class) == 0 && this.connectedPlugin == null) {
-            Intent intent = new Intent(ManagerService.this, ManagerService.class);
-            this.requestObserver.unregister();
-            this.requestObserver = null;
+            if (isNetworkAvailable) {
+                Intent intent = new Intent(ManagerService.this, ManagerService.class);
+                this.requestObserver.unregister();
+                this.requestObserver = null;
 
-            stopService(intent);
+                stopService(intent);
+            } else {
+                updateNotificationContent("Waiting for connection");
+            }
         }
+    }
+
+    private void updateNotificationContent(String content) {
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(this.inputTitle)
+                .setContentText(content)
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .build();
+
+        this.manager.notify(1234, notification);
     }
 
     @Override
@@ -185,6 +199,7 @@ public class ManagerService extends Service {
                         isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
                         if (isNetworkAvailable) {
                             uploadPendingList();
+                            updateNotificationContent(this.inputContent);
                         }
                     });
 
@@ -208,7 +223,7 @@ public class ManagerService extends Service {
                     "upload channel",
                     NotificationManager.IMPORTANCE_LOW
             );
-            NotificationManager manager = (NotificationManager) ManagerService.this
+            manager = (NotificationManager) ManagerService.this
                     .getApplication()
                     .getApplicationContext()
                     .getSystemService(Context.NOTIFICATION_SERVICE);
