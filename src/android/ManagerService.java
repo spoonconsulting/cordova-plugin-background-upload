@@ -63,6 +63,7 @@ public class ManagerService extends Service {
     private boolean serviceIsRunning = false;
     private String notificationTitle = "Upload Service";
     private String notificationContent = "Background upload service running";
+    private NotificationManager notificationManager;
 
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
 
@@ -138,7 +139,11 @@ public class ManagerService extends Service {
         }
 
         logMessage(String.format("eventLabel='Uploader delete pending upload' uploadId='%s'", id));
-        PendingUpload.remove(id);
+
+        if (isNetworkAvailable) {
+            PendingUpload.remove(id);
+        }
+
         createAndSendEvent(obj);
     }
 
@@ -148,6 +153,10 @@ public class ManagerService extends Service {
     }
 
     public void stopServiceIfInactive() {
+        if (PendingUpload.count(PendingUpload.class) > 0 && !isNetworkAvailable) {
+            updateNotificationContent("Waiting for connection");
+        }
+
         if (PendingUpload.count(PendingUpload.class) == 0 && this.connectedPlugin == null) {
             Intent intent = new Intent(ManagerService.this, ManagerService.class);
             this.requestObserver.unregister();
@@ -155,6 +164,16 @@ public class ManagerService extends Service {
 
             stopService(intent);
         }
+    }
+
+    private void updateNotificationContent(String content) {
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(this.notificationTitle)
+                .setContentText(content)
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .build();
+
+        this.notificationManager.notify(1234, notification);
     }
 
     @Override
@@ -207,7 +226,7 @@ public class ManagerService extends Service {
                     "upload channel",
                     NotificationManager.IMPORTANCE_LOW
             );
-            NotificationManager notificationManager = (NotificationManager) ManagerService.this
+            notificationManager = (NotificationManager) ManagerService.this
                     .getApplication()
                     .getApplicationContext()
                     .getSystemService(Context.NOTIFICATION_SERVICE);
