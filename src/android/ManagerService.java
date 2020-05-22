@@ -61,9 +61,8 @@ public class ManagerService extends Service {
     private Disposable networkObservable;
     private boolean isNetworkAvailable = false;
     private boolean serviceIsRunning = false;
-    private String inputTitle = "Upload Service";
-    private String inputContent = "Background upload service running";
-    private NotificationManager manager;
+    private String notificationTitle = "Upload Service";
+    private String notificationContent = "Background upload service running";
 
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
 
@@ -150,26 +149,12 @@ public class ManagerService extends Service {
 
     public void stopServiceIfInactive() {
         if (PendingUpload.count(PendingUpload.class) == 0 && this.connectedPlugin == null) {
-            if (isNetworkAvailable) {
-                Intent intent = new Intent(ManagerService.this, ManagerService.class);
-                this.requestObserver.unregister();
-                this.requestObserver = null;
+            Intent intent = new Intent(ManagerService.this, ManagerService.class);
+            this.requestObserver.unregister();
+            this.requestObserver = null;
 
-                stopService(intent);
-            } else {
-                updateNotificationContent("Waiting for connection");
-            }
+            stopService(intent);
         }
-    }
-
-    private void updateNotificationContent(String content) {
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(this.inputTitle)
-                .setContentText(content)
-                .setSmallIcon(android.R.drawable.ic_menu_upload)
-                .build();
-
-        this.manager.notify(1234, notification);
     }
 
     @Override
@@ -178,8 +163,8 @@ public class ManagerService extends Service {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 try {
                     JSONObject settings = new JSONObject(intent.getStringExtra("options"));
-                    this.inputTitle = settings.getString("foregroundTitle");
-                    this.inputContent = settings.getString("foregroundContent");
+                    this.notificationTitle = settings.getString("notificationTitle");
+                    this.notificationContent = settings.getString("notificationContent");
                 } catch (JSONException error) {
                     error.printStackTrace();
                 }
@@ -199,7 +184,6 @@ public class ManagerService extends Service {
                         isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
                         if (isNetworkAvailable) {
                             uploadPendingList();
-                            updateNotificationContent(this.inputContent);
                         }
                     });
 
@@ -223,16 +207,16 @@ public class ManagerService extends Service {
                     "upload channel",
                     NotificationManager.IMPORTANCE_LOW
             );
-            manager = (NotificationManager) ManagerService.this
+            NotificationManager notificationManager = (NotificationManager) ManagerService.this
                     .getApplication()
                     .getApplicationContext()
                     .getSystemService(Context.NOTIFICATION_SERVICE);
-            manager.createNotificationChannel(channel);
+            notificationManager.createNotificationChannel(channel);
         }
 
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(this.inputTitle)
-                .setContentText(this.inputContent)
+                .setContentTitle(this.notificationTitle)
+                .setContentText(this.notificationContent)
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
                 .setContentIntent(pendingIntent)
                 .build();
@@ -259,7 +243,7 @@ public class ManagerService extends Service {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, this.inputTitle, this.inputContent));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, this.notificationTitle, this.notificationContent));
 
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =

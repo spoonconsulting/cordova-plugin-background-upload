@@ -31,7 +31,7 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
                 callbackContext.success();
                 return true;
             }
-            
+
             cordova.getThreadPool().execute(new Runnable() {
                 public void run() {
                     try {
@@ -79,6 +79,7 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
             this.managerService.setConnectedPlugin(null);
             this.managerService.stopServiceIfInactive();
             cordova.getActivity().unbindService(this);
+            this.managerService = null;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -98,6 +99,7 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
 
     @Override
     public void onServiceDisconnected(ComponentName componentName) {
+        this.managerService = null;
     }
 
     @Override
