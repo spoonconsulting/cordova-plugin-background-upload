@@ -149,7 +149,9 @@ export class HomePage {
     console.log(message);
     this._ngZone.run(() => {
       this.logs.push(message);
-      this.logsContainer.nativeElement.scrollTop = this.logsContainer.nativeElement.scrollHeight + 32;
+      setTimeout(() => {
+        this.logsContainer.nativeElement.scrollTop = this.logsContainer.nativeElement.scrollHeight;
+      },200)
     });
   }
 
