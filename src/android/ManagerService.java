@@ -66,6 +66,7 @@ public class ManagerService extends Service {
     private NotificationManager notificationManager;
 
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
+    private static final int NOTIFICATION_ID = 1234;
 
     private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
@@ -86,6 +87,10 @@ public class ManagerService extends Service {
 
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
+            if (!isNetworkAvailable) {
+                return;
+            }
+
             String errorMsg = exception != null ? exception.getMessage() : "unknown exception";
 
             JSONObject data = new JSONObject(new HashMap() {{
@@ -140,10 +145,7 @@ public class ManagerService extends Service {
 
         logMessage(String.format("eventLabel='Uploader delete pending upload' uploadId='%s'", id));
 
-        if (isNetworkAvailable) {
-            PendingUpload.remove(id);
-        }
-
+        PendingUpload.remove(id);
         createAndSendEvent(obj);
     }
 
@@ -153,16 +155,14 @@ public class ManagerService extends Service {
     }
 
     public void stopServiceIfInactive() {
-        if (PendingUpload.count(PendingUpload.class) > 0 && !isNetworkAvailable) {
-            updateNotificationContent("Waiting for connection");
-        }
-
         if (PendingUpload.count(PendingUpload.class) == 0 && this.connectedPlugin == null) {
-            Intent intent = new Intent(ManagerService.this, ManagerService.class);
+            Intent intent = new Intent(this, ManagerService.class);
             this.requestObserver.unregister();
             this.requestObserver = null;
 
             stopService(intent);
+        } else if (!isNetworkAvailable) {
+            updateNotificationContent("Waiting for connection");
         }
     }
 
@@ -173,7 +173,7 @@ public class ManagerService extends Service {
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
                 .build();
 
-        this.notificationManager.notify(1234, notification);
+        this.notificationManager.notify(NOTIFICATION_ID, notification);
     }
 
     @Override
@@ -216,7 +216,7 @@ public class ManagerService extends Service {
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
 
         Notification notification = createNotification(pendingIntent);
-        startForeground(1234, notification);
+        startForeground(NOTIFICATION_ID, notification);
     }
 
     public Notification createNotification(PendingIntent pendingIntent) {
@@ -226,7 +226,7 @@ public class ManagerService extends Service {
                     "upload channel",
                     NotificationManager.IMPORTANCE_LOW
             );
-            notificationManager = (NotificationManager) ManagerService.this
+            notificationManager = (NotificationManager) this
                     .getApplication()
                     .getApplicationContext()
                     .getSystemService(Context.NOTIFICATION_SERVICE);
