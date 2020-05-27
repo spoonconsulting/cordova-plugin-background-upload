@@ -118,12 +118,12 @@ public class ManagerService extends Service {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
-            stopServiceIfInactive();
+            updateServiceState();
         }
 
         @Override
         public void onCompletedWhileNotObserving() {
-            stopServiceIfInactive();
+            updateServiceState();
         }
     };
 
@@ -154,19 +154,25 @@ public class ManagerService extends Service {
         sendCallback(event.dataRepresentation());
     }
 
-    public void stopServiceIfInactive() {
-        if (PendingUpload.count(PendingUpload.class) == 0 && this.connectedPlugin == null) {
+    public void updateServiceState() {
+        long pendingUploadCount = PendingUpload.count(PendingUpload.class);
+
+        if (pendingUploadCount == 0 && this.connectedPlugin == null) {
             Intent intent = new Intent(this, ManagerService.class);
             this.requestObserver.unregister();
             this.requestObserver = null;
 
             stopService(intent);
-        } else if (!isNetworkAvailable) {
-            updateNotificationContent("Waiting for connection");
+            return;
+        }
+
+        if (pendingUploadCount > 0 && !isNetworkAvailable) {
+            updateNotificationText(this.notificationTitle, "Waiting for connection");
+            return;
         }
     }
 
-    private void updateNotificationContent(String content) {
+    private void updateNotificationText(String title, String content) {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(this.notificationTitle)
                 .setContentText(content)
@@ -201,8 +207,19 @@ public class ManagerService extends Service {
                     .subscribe(connectivity -> {
                         logMessage(String.format("eventLabel='Uploader Network connectivity changed' connectivity_state='%s'", connectivity.state()));
                         isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
+                        long pendingUploadCount = PendingUpload.count(PendingUpload.class);
+
                         if (isNetworkAvailable) {
+                            if (pendingUploadCount == 0) {
+                                updateNotificationText(this.notificationTitle, this.notificationContent);
+                                return;
+                            }
+
                             uploadPendingList();
+                        } else {
+                            if (pendingUploadCount == 0) {
+                                updateNotificationText(this.notificationTitle, "Waiting for connection");
+                            }
                         }
                     });
 
