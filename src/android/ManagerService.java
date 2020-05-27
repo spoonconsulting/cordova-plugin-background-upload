@@ -153,22 +153,25 @@ public class ManagerService extends Service {
         UploadEvent event = UploadEvent.create(obj);
         sendCallback(event.dataRepresentation());
     }
-
+    
     public void stopServiceIfInactive() {
-        if (PendingUpload.count(PendingUpload.class) == 0 && this.connectedPlugin == null) {
+        int pendingUploadCount = PendingUpload.count(PendingUpload.class);
+        if (pendingUploadCount == 0 && this.connectedPlugin == null) {
             Intent intent = new Intent(this, ManagerService.class);
             this.requestObserver.unregister();
             this.requestObserver = null;
-
             stopService(intent);
-        } else if (!isNetworkAvailable) {
-            updateNotificationContent("Waiting for connection");
+            return;
+        }
+        if (pendingUploadCount > 0 && !isNetworkAvailable) {
+            updateNotificationText(this.notificationTitle, "Waiting for connection");
+            return;
         }
     }
 
-    private void updateNotificationContent(String content) {
+    private void updateNotificationText(String title, String content) {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(this.notificationTitle)
+                .setContentTitle(title)
                 .setContentText(content)
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
                 .build();
@@ -202,6 +205,7 @@ public class ManagerService extends Service {
                         logMessage(String.format("eventLabel='Uploader Network connectivity changed' connectivity_state='%s'", connectivity.state()));
                         isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
                         if (isNetworkAvailable) {
+                            updateNotificationText(this.notificationTitle, this.notificationContent);
                             uploadPendingList();
                         }
                     });
