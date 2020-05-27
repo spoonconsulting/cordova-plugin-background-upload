@@ -87,9 +87,7 @@ public class ManagerService extends Service {
 
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
-            if (!isNetworkAvailable) {
-                return;
-            }
+            if (!isNetworkAvailable) { return; }
 
             String errorMsg = exception != null ? exception.getMessage() : "unknown exception";
 
@@ -155,14 +153,12 @@ public class ManagerService extends Service {
     }
 
     public void stopServiceIfInactive() {
-        if (PendingUpload.count(PendingUpload.class) == 0 && this.connectedPlugin == null) {
+        if (this.connectedPlugin != null) { return; }
+        if (PendingUpload.count(PendingUpload.class) == 0) {
             Intent intent = new Intent(this, ManagerService.class);
             this.requestObserver.unregister();
             this.requestObserver = null;
-
             stopService(intent);
-        } else if (!isNetworkAvailable) {
-            updateNotificationContent("Waiting for connection");
         }
     }
 
@@ -203,6 +199,8 @@ public class ManagerService extends Service {
                         isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
                         if (isNetworkAvailable) {
                             uploadPendingList();
+                        } else {
+                            updateNotificationContent("Waiting for connection");
                         }
                     });
 
