@@ -153,7 +153,6 @@ public class ManagerService extends Service {
         UploadEvent event = UploadEvent.create(obj);
         sendCallback(event.dataRepresentation());
     }
-    
     public void stopServiceIfInactive() {
         int pendingUploadCount = PendingUpload.count(PendingUpload.class);
         if (pendingUploadCount == 0 && this.connectedPlugin == null) {
