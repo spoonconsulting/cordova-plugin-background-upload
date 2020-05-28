@@ -118,12 +118,14 @@ public class ManagerService extends Service {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
-            updateServiceState();
+            updateNotification();
+            stopServiceIfInactive();
         }
 
         @Override
         public void onCompletedWhileNotObserving() {
-            updateServiceState();
+            updateNotification();
+            stopServiceIfInactive();
         }
     };
 
@@ -154,7 +156,7 @@ public class ManagerService extends Service {
         sendCallback(event.dataRepresentation());
     }
 
-    public void updateServiceState() {
+    public void stopServiceIfInactive() {
         long pendingUploadCount = PendingUpload.count(PendingUpload.class);
 
         if (pendingUploadCount == 0 && this.connectedPlugin == null) {
@@ -166,13 +168,24 @@ public class ManagerService extends Service {
             return;
         }
 
-        if (pendingUploadCount > 0 && !isNetworkAvailable) {
-            updateNotificationText(this.notificationTitle, "Waiting for connection");
+        updateNotification();
+    }
+
+    private void updateNotification() {
+        long pendingUploadCount = PendingUpload.count(PendingUpload.class);
+
+        if ((pendingUploadCount == 0 || pendingUploadCount > 0) && !isNetworkAvailable) {
+            updateNotificationText("Waiting for connection");
+            return;
+        }
+
+        if (pendingUploadCount == 0) {
+            updateNotificationText(this.notificationContent);
             return;
         }
     }
 
-    private void updateNotificationText(String title, String content) {
+    private void updateNotificationText(String content) {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(this.notificationTitle)
                 .setContentText(content)
@@ -207,20 +220,12 @@ public class ManagerService extends Service {
                     .subscribe(connectivity -> {
                         logMessage(String.format("eventLabel='Uploader Network connectivity changed' connectivity_state='%s'", connectivity.state()));
                         isNetworkAvailable = connectivity.state() == NetworkInfo.State.CONNECTED;
-                        long pendingUploadCount = PendingUpload.count(PendingUpload.class);
 
                         if (isNetworkAvailable) {
-                            if (pendingUploadCount == 0) {
-                                updateNotificationText(this.notificationTitle, this.notificationContent);
-                                return;
-                            }
-
                             uploadPendingList();
-                        } else {
-                            if (pendingUploadCount == 0) {
-                                updateNotificationText(this.notificationTitle, "Waiting for connection");
-                            }
                         }
+
+                        updateNotification();
                     });
 
         }
@@ -479,6 +484,8 @@ public class ManagerService extends Service {
         this.connectedPlugin = plugin;
         if (this.connectedPlugin != null) {
             this.sendMissingEvents();
+        } else {
+            stopServiceIfInactive();
         }
     }
 
