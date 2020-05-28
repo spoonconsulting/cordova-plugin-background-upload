@@ -3,14 +3,14 @@ import { NgZone } from '@angular/core';
 export class Media {
 
   uri: String;
-  local_uri: String;
+  localUri: String;
   status: String;
   zone: NgZone;
   id: string;
 
-  constructor(uri: String, local_uri: String, private _ngZone: NgZone) {
+  constructor(uri: String, localUri: String, private _ngZone: NgZone) {
     this.uri = uri;
-    this.local_uri = local_uri;
+    this.localUri = localUri;
     this.zone = _ngZone;
     this.id = "" + Math.random().toString(36).substr(2, 5);
   }

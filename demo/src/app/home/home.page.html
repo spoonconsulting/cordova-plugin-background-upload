@@ -11,13 +11,13 @@
 
 <ion-content [fullscreen]="true">
   <div class="content-heading">
-    <ion-button [disabled]="remainsMediaToUpload.length < 1" color="primary" (click)="uploadAll()">Start all</ion-button>
+    <ion-button [disabled]="pendingMedia.length < 1" color="primary" (click)="uploadAll()">Start all</ion-button>
   </div>
   <ion-list>
     <ion-item *ngFor="let media of allMedia">
       <div class="media-card">
         <div class="thumbnail">
-          <img [src]="media.local_uri" />
+          <img [src]="media.localUri" />
         </div>
         <div class="metadata">
           <div class="status">
@@ -46,7 +46,7 @@
               Cancel
             </ion-button>
             <ion-button
-              [disabled]="!canActOnMedia('removelUpload',media)" 
+              [disabled]="!canActOnMedia('removeUpload',media)" 
               color="danger" 
               (click)="removeUpload(media)"
             >

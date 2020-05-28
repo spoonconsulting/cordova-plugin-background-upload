@@ -16,7 +16,7 @@ declare var FileTransferManager: any;
 export class HomePage {
 
   allMedia: Array<Media> = [];
-  remainsMediaToUpload: Array<Media> = [];
+  pendingMedia: Array<Media> = [];
   logs: Array<String> = [];
   uploader: any;
 
@@ -33,25 +33,22 @@ export class HomePage {
         console.log('EVENT');
         const correspondingMedia = this.getMediaWithId(event.id);
         if (!correspondingMedia) return;
-        let logMessage;
 
         if (event.state == 'UPLOADED') {
-          logMessage = "Upload: " + event.id + " has been completed successfully";
+          this.log("Upload: " + event.id + " has been completed successfully");
           console.log(event.statusCode, event.serverResponse);
           correspondingMedia.updateStatus("Uploaded successfully");
         } else if (event.state == 'FAILED') {
           if (event.id) {
-            logMessage = "Upload: " + event.id + " has failed";
+            this.log("Upload: " + event.id + " has failed");
             correspondingMedia.updateStatus("Error while uploading");
           } else {
             console.error("uploader caught an error: " + event.error);
           }
         } else if (event.state == 'UPLOADING') {
-          logMessage = "Uploading: " + event.id + " progress: " + event.progress + "%";
+          this.log("Uploading: " + event.id + " progress: " + event.progress + "%");
           correspondingMedia.updateStatus("Uploading: " + event.progress + "%");
         }
-
-        if(logMessage) this.log(logMessage);
           
         if (event.eventId)
           this.uploader.acknowledgeEvent(event.eventId);
@@ -116,8 +113,8 @@ export class HomePage {
 
   async uploadAll() {
     this.refreshRemainsMediaToUpload();
-    while(this.remainsMediaToUpload.length > 0) {
-      this.startUpload(this.remainsMediaToUpload.pop());
+    while(this.pendingMedia.length > 0) {
+      this.startUpload(this.pendingMedia.pop());
       await this.sleep(400);
     }
   }
@@ -130,7 +127,7 @@ export class HomePage {
         return media.status && media.status.indexOf('Error') > -1;
       case 'cancelUpload':
         return media.status && media.status.indexOf('%') > -1;
-      case 'removelUpload':
+      case 'removeUpload':
         return !media.status || (media.status && media.status.indexOf('%') < 0);  
       default:
         return true;
@@ -142,7 +139,7 @@ export class HomePage {
   }
 
   private refreshRemainsMediaToUpload() {
-    this.remainsMediaToUpload = this.allMedia.filter(media => !media.status);
+    this.pendingMedia = this.allMedia.filter(media => !media.status);
   }
 
   private log(message: String) {
@@ -156,8 +153,6 @@ export class HomePage {
   }
 
   private async sleep(time) {
-    return new Promise((resolve,reject) => {
-      setTimeout(() => { resolve(true)}, time);
-    })
+    return new Promise((resolve,reject) => setTimeout(resolve, time))
   }
 }
