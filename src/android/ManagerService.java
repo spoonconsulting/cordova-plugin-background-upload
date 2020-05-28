@@ -174,7 +174,7 @@ public class ManagerService extends Service {
     private void updateNotification() {
         long pendingUploadCount = PendingUpload.count(PendingUpload.class);
 
-        if ((pendingUploadCount == 0 || pendingUploadCount > 0) && !isNetworkAvailable) {
+        if (pendingUploadCount >= 0 && !isNetworkAvailable) {
             updateNotificationText("Waiting for connection");
             return;
         }
