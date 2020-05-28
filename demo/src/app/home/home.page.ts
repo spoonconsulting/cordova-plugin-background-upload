@@ -68,6 +68,7 @@ export class HomePage {
     this.imgPicker.getPictures({
       maximumImagesCount: 3
     }).then(file_uris => {
+      if(typeof file_uris == 'string') return;
       file_uris.forEach(file_uri => {
         const media = new Media(file_uri, this.webView.convertFileSrc(file_uri), this._ngZone);
         this.allMedia.push(media);
