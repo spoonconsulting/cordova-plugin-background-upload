@@ -33,9 +33,9 @@ app.post('/upload', fUpload, (req, res, next) => {
         receivedInfo: {
           originalFilename: fileName,
           accessMode: 'public',
-          height: 4032,
+          height: 1067,
           grayscale: false,
-          width: 3024,
+          width: 800,
           headers: req.headers,
           parameters: params
         }
