@@ -185,7 +185,7 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })
       })
 
-      it('sends a FAILED callback if file does not exist', function (done) {
+      xit('sends a FAILED callback if file does not exist', function (done) {
         nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'FAILED') {
             expect(upload.id).toBe('nox')
