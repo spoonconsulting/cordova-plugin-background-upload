@@ -2,7 +2,7 @@
 
 exports.defineAutoTests = function () {
   describe('Uploader', function () {
-    jasmine.DEFAULT_TIMEOUT_INTERVAL = 25000
+    var originalTimeout
     var sampleFile = 'tree.jpg'
     var path = ''
     var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
@@ -10,6 +10,8 @@ exports.defineAutoTests = function () {
     var nativeUploader
 
     beforeEach(function (done) {
+      originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL
+      jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000
       TestUtils.copyFileToDataDirectory(sampleFile).then(function (newPath) {
         path = newPath
         done()
@@ -17,6 +19,7 @@ exports.defineAutoTests = function () {
     })
 
     afterEach(function (done) {
+      jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout
       if (nativeUploader) {
         nativeUploader.destroy()
         nativeUploader = null
