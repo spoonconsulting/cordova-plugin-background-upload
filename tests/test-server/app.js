@@ -1,6 +1,8 @@
 const PORT = process.env.PORT || 3000
 var express = require('express')
 var multer = require('multer')
+var fs = require('fs')
+var path = require('path')
 var storage = multer.diskStorage({
   destination: function (req, file, next) {
     next(null, './uploads')
@@ -22,7 +24,7 @@ app.get('/', (req, res) => {
   res.send('Welcome to test server')
 })
 
-handlePostAndPut = (req, res, next) => {
+app.post('/upload', fUpload, (req, res, next) => {
   const params = req.body
   const fileName = req.files.file[0].originalname
   fUpload(req, res, (err) => {
@@ -43,9 +45,13 @@ handlePostAndPut = (req, res, next) => {
       res.status(210).send(JSON.stringify(toSend))
     }
   })
-}
+})
 
-app.post('/upload', fUpload, handlePostAndPut)
-app.put('/upload', fUpload, handlePostAndPut)
+
+app.put('/upload', (req, res, next) => {
+  req.pipe(fs.createWriteStream(path.join('./uploads', 'tree.jpg'))).on('finish', () => {
+    res.status(200).send(JSON.stringify({ success: true }))
+  })
+})
 
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))

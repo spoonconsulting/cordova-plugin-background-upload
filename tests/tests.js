@@ -119,6 +119,31 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path })
       })
 
+      xit('upload success with put method', function (done) {
+        nativeUploader = FileTransferManager.init({}, function (upload) {
+          if (upload.state === 'UPLOADED') {
+            expect(upload.id).toBe('file_id')
+            expect(upload.statusCode).toBe(200)
+            expect(upload.eventId).toBeDefined()
+            expect(upload.error).toBeUndefined()
+            var response = JSON.parse(upload.serverResponse)
+            delete response.receivedInfo.headers
+            expect(response.receivedInfo.parameters.requestMethod).toBe('PUT')
+            expect(response.receivedInfo).toEqual({
+              originalFilename: sampleFile,
+              accessMode: 'public',
+              height: 1067,
+              grayscale: false,
+              width: 800,
+              parameters: {}
+            })
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
+            done()
+          }
+        })
+        nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path, requestMethod: 'PUT' })
+      })
+
       it('sends headers during upload', function (done) {
         var headers = { signature: 'secret_hash', source: 'test' }
         nativeUploader = FileTransferManager.init({}, function (upload) {
@@ -208,26 +233,6 @@ exports.defineAutoTests = function () {
         nativeUploader.startUpload({ id: filesToUpload[0], serverUrl: serverUrl, filePath: path })
         nativeUploader.startUpload({ id: filesToUpload[1], serverUrl: serverUrl, filePath: path2 })
         nativeUploader.startUpload({ id: filesToUpload[2], serverUrl: serverUrl, filePath: path3 })
-      })
-
-      it('upload success with put method', function (done) {
-        nativeUploader = FileTransferManager.init({}, function (upload) {
-          if (upload.state === 'UPLOADED') {
-            expect(upload.id).toBe('file_id')
-            expect(upload.statusCode).toBe(200)
-            expect(upload.eventId).toBeDefined()
-            expect(upload.error).toBeUndefined()
-            var response = JSON.parse(upload.serverResponse)
-            delete response.receivedInfo.headers
-            expect(response.receivedInfo.parameters.requestMethod).toBe('PUT')
-            expect(response.receivedInfo).toEqual({
-              success: true
-            })
-            nativeUploader.acknowledgeEvent(upload.eventId, done)
-            done()
-          }
-        })
-        nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path, requestMethod: 'PUT' })
       })
     })
 
