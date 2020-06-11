@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
   res.send('Welcome to test server')
 })
 
-app.post('/upload', fUpload, (req, res, next) => {
+handlePostAndPut = (req, res, next) => {
   const params = req.body
   const fileName = req.files.file[0].originalname
   fUpload(req, res, (err) => {
@@ -43,6 +43,9 @@ app.post('/upload', fUpload, (req, res, next) => {
       res.status(210).send(JSON.stringify(toSend))
     }
   })
-})
+}
+
+app.post('/upload', fUpload, handlePostAndPut)
+app.put('/upload', fUpload, handlePostAndPut)
 
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))
