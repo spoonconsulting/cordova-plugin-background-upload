@@ -8,25 +8,25 @@
         android:id="@+id/notification_title"
         style="@style/TextAppearance.Compat.Notification.Title"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content" />
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="5dp">
+        android:layout_marginTop="3dp">
 
         <TextView
             android:id="@+id/notification_content_left"
             style="@style/TextAppearance.Compat.Notification"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_alignParentLeft="true" />
 
         <TextView
             android:id="@+id/notification_content_right"
             style="@style/TextAppearance.Compat.Notification.Info"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_alignParentRight="true" />
     </RelativeLayout>
 </LinearLayout>
