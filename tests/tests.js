@@ -8,7 +8,7 @@ exports.defineAutoTests = function () {
     var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
     var serverUrl = 'http://' + serverHost + ':3000/upload'
     var nativeUploader
-    var delay = function(call) { setTimeout(call, 250) }
+    var delay = function (call) { setTimeout(call, 250) }
 
     beforeEach(function (done) {
       originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL
@@ -152,7 +152,7 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
-        delay( function () { nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers }) })
+        delay(function () { nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers }) })
       })
 
       it('sends parameters during upload', function (done) {
@@ -168,7 +168,7 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
-        delay( function () { nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params }) })
+        delay(function () { nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params }) })
       })
 
       it('sends a FAILED event if upload fails', function (done) {
@@ -180,12 +180,12 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
-        delay( function () { nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })})
+        delay(function () { nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path }) })
       })
 
       it('sends a FAILED callback if file does not exist', function (done) {
         nativeUploader = FileTransferManager.init({}, function (upload) {})
-        delay( function () {
+        delay(function () {
           nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' }, function () {}, function (upload) {
             expect(upload.id).toBe('nox')
             expect(upload.eventId).toBeUndefined()
@@ -229,7 +229,7 @@ exports.defineAutoTests = function () {
             }
           }
         })
-        delay( function () {
+        delay(function () {
           nativeUploader.startUpload({ id: filesToUpload[0], serverUrl: serverUrl, filePath: path })
           nativeUploader.startUpload({ id: filesToUpload[1], serverUrl: serverUrl, filePath: path2 })
           nativeUploader.startUpload({ id: filesToUpload[2], serverUrl: serverUrl, filePath: path3 })
@@ -260,7 +260,7 @@ exports.defineAutoTests = function () {
 
       it('does not return error if uploadId is given', function (done) {
         nativeUploader = FileTransferManager.init({}, function () {})
-        delay( function () {
+        delay(function () {
           nativeUploader.removeUpload('blob', function () {
             expect(true).toBeTruthy()
             done()
@@ -280,7 +280,7 @@ exports.defineAutoTests = function () {
             nativeUploader.removeUpload('xyz', null, null)
           }
         })
-        delay( function () { nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path }) })
+        delay(function () { nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path }) })
       })
     })
 
@@ -306,7 +306,7 @@ exports.defineAutoTests = function () {
 
       it('does not return error if eventId is given', function (done) {
         nativeUploader = FileTransferManager.init({}, function () {})
-        delay( function () { 
+        delay(function () {
           nativeUploader.acknowledgeEvent('x-coredata://123/UploadEvent/p1', function () {
             expect(true).toBeTruthy()
             done()
@@ -325,7 +325,7 @@ exports.defineAutoTests = function () {
             })
           }
         })
-        delay( function () { nativeUploader.startUpload({ id: 'unsub', serverUrl: serverUrl, filePath: path }) })
+        delay(function () { nativeUploader.startUpload({ id: 'unsub', serverUrl: serverUrl, filePath: path }) })
       })
     })
   })
