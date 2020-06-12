@@ -2,6 +2,7 @@ package com.spoon.backgroundfileupload;
 
 import android.app.Activity;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.res.Resources;
 import android.widget.RemoteViews;
 
@@ -24,12 +25,14 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
     private long uploadCount = 0;
     private String defaultTitle;
     private String defaultContent;
+    private PendingIntent mPendingIntent;
 
-    public NotificationHandler(@NotNull UploadService service, Activity context, String defaultTitle, String defaultContent) {
+    public NotificationHandler(@NotNull UploadService service, Activity context, PendingIntent pendingIntent, String defaultTitle, String defaultContent) {
         super(service);
         this.mContext = context;
         this.defaultTitle = defaultTitle;
         this.defaultContent = defaultContent;
+        this.mPendingIntent = pendingIntent;
     }
 
     @Override
@@ -89,7 +92,8 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         return builder
                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomContentView(notificationLayout)
-                .setSmallIcon(android.R.drawable.ic_menu_upload);
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setContentIntent(mPendingIntent);
     }
 
     private float convertUnitToKbps(String unit, int speed) {
@@ -100,15 +104,15 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         float value = 0;
 
         if (unit == BPS) {
-            value = speed / 1000f;
+            value = speed / 8000f;
         }
 
         if (unit == KPS) {
-            value = speed;
+            value = speed / 8;
         }
 
         if (unit == MPS) {
-            value = speed * 1000;
+            value = speed * 125;
         }
 
         return value;
@@ -120,13 +124,13 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         final String MBPS = "Mbps";
 
         if (speed >= 1000) {
-            return String.format("%.0f %s", speed / 1000, MBPS);
+            return String.format("%d %s", (int) (speed / 1000), MBPS);
         }
 
         if (speed < 1) {
-            return String.format("%.0f %s", speed * 1000, BPS);
+            return String.format("%d %s", (int) (speed * 1000), BPS);
         }
 
-        return String.format("%.0f %s", speed, KBPS);
+        return String.format("%d %s", (int) speed, KBPS);
     }
 }
