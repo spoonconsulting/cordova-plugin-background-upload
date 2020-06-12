@@ -27,7 +27,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
     private String defaultContent;
     private PendingIntent mPendingIntent;
 
-    public NotificationHandler(@NotNull UploadService service, Activity context, PendingIntent pendingIntent, String defaultTitle, String defaultContent) {
+    public NotificationHandler(@NotNull UploadService service, Activity context, String defaultTitle, String defaultContent) {
         super(service);
         this.mContext = context;
         this.defaultTitle = defaultTitle;
@@ -92,8 +92,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         return builder
                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomContentView(notificationLayout)
-                .setSmallIcon(android.R.drawable.ic_menu_upload)
-                .setContentIntent(mPendingIntent);
+                .setSmallIcon(android.R.drawable.ic_menu_upload);
     }
 
     private float convertUnitToKbps(String unit, int speed) {
