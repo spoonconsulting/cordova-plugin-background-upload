@@ -1,57 +1,40 @@
 const PORT = process.env.PORT || 3000
-var express = require('express')
-var multer = require('multer')
-var fs = require('fs')
-var path = require('path')
-var storage = multer.diskStorage({
-  destination: function (req, file, next) {
-    next(null, './uploads')
-  },
-  filename: function (req, file, next) {
-    next(null, file.originalname)
+const express = require('express')
+const Busboy = require('busboy')
+const fs = require('fs')
+const path = require('path')
+
+const handleUpload = (req, res, next) => {
+  const busboy = new Busboy({ headers: req.headers })
+  let response = {
+    originalFilename: null,
+    accessMode: 'public',
+    height: 1067,
+    grayscale: false,
+    width: 800,
+    headers: req.headers,
+    parameters: {}
   }
-})
-var upload = multer({
-  storage: storage
-})
-var fUpload = upload.fields([{
-  name: 'file',
-  maxCount: 1
-}])
-var app = express()
 
-app.get('/', (req, res) => {
-  res.send('Welcome to test server')
-})
+  busboy.on('file', function(fieldName, file, fileName) {
+    response.originalFilename = fileName
+    file.pipe(fs.createWriteStream(path.join('./uploads', fileName)));
+  });
 
-app.post('/upload', fUpload, (req, res, next) => {
-  const params = req.body
-  const fileName = req.files.file[0].originalname
-  fUpload(req, res, (err) => {
-    if (err) {
-      console.log('An error occurred when uploading')
-    } else {
-      var toSend = {
-        receivedInfo: {
-          originalFilename: fileName,
-          accessMode: 'public',
-          height: 1067,
-          grayscale: false,
-          width: 800,
-          headers: req.headers,
-          parameters: params
-        }
-      }
-      res.status(210).send(JSON.stringify(toSend))
-    }
-  })
-})
+  busboy.on('field', function(fieldName, value) {
+    response.parameters[fieldName] = value;
+  });
 
+  busboy.on('finish', function() {
+    res.status(req.method == 'POST' ? 210 : 200).send(JSON.stringify({ receivedInfo: response }))
+  });
 
-app.put('/upload', (req, res, next) => {
-  req.pipe(fs.createWriteStream(path.join('./uploads', 'tree.jpg'))).on('finish', () => {
-    res.status(200).send(JSON.stringify({ success: true }))
-  })
-})
+  return req.pipe(busboy);
+}
+
+const app = express()
+
+app.post('/upload', handleUpload)
+app.put('/upload', handleUpload)
 
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))

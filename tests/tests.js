@@ -8,10 +8,11 @@ exports.defineAutoTests = function () {
     var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
     var serverUrl = 'http://' + serverHost + ':3000/upload'
     var nativeUploader
+    var delay = function(call) { setTimeout(call, 250) }
 
     beforeEach(function (done) {
       originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL
-      jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000
+      jasmine.DEFAULT_TIMEOUT_INTERVAL = 120000
       TestUtils.copyFileToDataDirectory(sampleFile).then(function (newPath) {
         path = newPath
         done()
@@ -22,7 +23,6 @@ exports.defineAutoTests = function () {
       jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout
       if (nativeUploader) {
         nativeUploader.destroy()
-        nativeUploader = null
       }
       TestUtils.deleteFile(sampleFile).then(done)
     })
@@ -92,7 +92,7 @@ exports.defineAutoTests = function () {
             expect(upload.error).toBeUndefined()
           }
         })
-        nativeUploader.startUpload({ id: 'a_file_id', serverUrl: serverUrl, filePath: path })
+        delay(function () { nativeUploader.startUpload({ id: 'a_file_id', serverUrl: serverUrl, filePath: path }) })
       })
 
       it('sends success callback when upload is completed', function (done) {
@@ -104,7 +104,6 @@ exports.defineAutoTests = function () {
             expect(upload.statusCode).toBe(210)
             var response = JSON.parse(upload.serverResponse)
             delete response.receivedInfo.headers
-            expect(response.receivedInfo.parameters.requestMethod).toBe('POST')
             expect(response.receivedInfo).toEqual({
               originalFilename: sampleFile,
               accessMode: 'public',
@@ -116,10 +115,10 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
-        nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path })
+        delay(function () { nativeUploader.startUpload({ id: 'abc', serverUrl: serverUrl, filePath: path }) })
       })
 
-      xit('upload success with put method', function (done) {
+      it('upload success with put method', function (done) {
         nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'UPLOADED') {
             expect(upload.id).toBe('file_id')
@@ -128,7 +127,6 @@ exports.defineAutoTests = function () {
             expect(upload.error).toBeUndefined()
             var response = JSON.parse(upload.serverResponse)
             delete response.receivedInfo.headers
-            expect(response.receivedInfo.parameters.requestMethod).toBe('PUT')
             expect(response.receivedInfo).toEqual({
               originalFilename: sampleFile,
               accessMode: 'public',
@@ -138,10 +136,9 @@ exports.defineAutoTests = function () {
               parameters: {}
             })
             nativeUploader.acknowledgeEvent(upload.eventId, done)
-            done()
           }
         })
-        nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path, requestMethod: 'PUT' })
+        delay(function () { nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path, requestMethod: 'PUT' }) })
       })
 
       it('sends headers during upload', function (done) {
@@ -155,7 +152,7 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
-        nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers })
+        delay( function () { nativeUploader.startUpload({ id: 'plop', serverUrl: serverUrl, filePath: path, headers: headers }) })
       })
 
       it('sends parameters during upload', function (done) {
@@ -171,7 +168,7 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
-        nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params })
+        delay( function () { nativeUploader.startUpload({ id: 'xeon', serverUrl: serverUrl, filePath: path, parameters: params }) })
       })
 
       it('sends a FAILED event if upload fails', function (done) {
@@ -183,16 +180,18 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
-        nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })
+        delay( function () { nativeUploader.startUpload({ id: 'err_id', serverUrl: 'dummy_url', filePath: path })})
       })
 
       it('sends a FAILED callback if file does not exist', function (done) {
         nativeUploader = FileTransferManager.init({}, function (upload) {})
-        nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' }, function () {}, function (upload) {
-          expect(upload.id).toBe('nox')
-          expect(upload.eventId).toBeUndefined()
-          expect(upload.error).toContain('File not found')
-          done()
+        delay( function () {
+          nativeUploader.startUpload({ id: 'nox', serverUrl: serverUrl, filePath: '/path/fake.jpg' }, function () {}, function (upload) {
+            expect(upload.id).toBe('nox')
+            expect(upload.eventId).toBeUndefined()
+            expect(upload.error).toContain('File not found')
+            done()
+          })
         })
       })
     })
@@ -230,9 +229,11 @@ exports.defineAutoTests = function () {
             }
           }
         })
-        nativeUploader.startUpload({ id: filesToUpload[0], serverUrl: serverUrl, filePath: path })
-        nativeUploader.startUpload({ id: filesToUpload[1], serverUrl: serverUrl, filePath: path2 })
-        nativeUploader.startUpload({ id: filesToUpload[2], serverUrl: serverUrl, filePath: path3 })
+        delay( function () {
+          nativeUploader.startUpload({ id: filesToUpload[0], serverUrl: serverUrl, filePath: path })
+          nativeUploader.startUpload({ id: filesToUpload[1], serverUrl: serverUrl, filePath: path2 })
+          nativeUploader.startUpload({ id: filesToUpload[2], serverUrl: serverUrl, filePath: path3 })
+        })
       })
     })
 
@@ -259,10 +260,12 @@ exports.defineAutoTests = function () {
 
       it('does not return error if uploadId is given', function (done) {
         nativeUploader = FileTransferManager.init({}, function () {})
-        nativeUploader.removeUpload('blob', function () {
-          expect(true).toBeTruthy()
-          done()
-        }, null)
+        delay( function () {
+          nativeUploader.removeUpload('blob', function () {
+            expect(true).toBeTruthy()
+            done()
+          }, null)
+        })
       })
 
       it('sends a FAILED callback when upload is removed', function (done) {
@@ -277,7 +280,7 @@ exports.defineAutoTests = function () {
             nativeUploader.removeUpload('xyz', null, null)
           }
         })
-        nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path })
+        delay( function () { nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path }) })
       })
     })
 
@@ -303,10 +306,12 @@ exports.defineAutoTests = function () {
 
       it('does not return error if eventId is given', function (done) {
         nativeUploader = FileTransferManager.init({}, function () {})
-        nativeUploader.acknowledgeEvent('x-coredata://123/UploadEvent/p1', function () {
-          expect(true).toBeTruthy()
-          done()
-        }, null)
+        delay( function () { 
+          nativeUploader.acknowledgeEvent('x-coredata://123/UploadEvent/p1', function () {
+            expect(true).toBeTruthy()
+            done()
+          }, null)
+        })
       })
 
       it('persist event id until it is acknowledged', function (done) {
@@ -320,7 +325,7 @@ exports.defineAutoTests = function () {
             })
           }
         })
-        nativeUploader.startUpload({ id: 'unsub', serverUrl: serverUrl, filePath: path })
+        delay( function () { nativeUploader.startUpload({ id: 'unsub', serverUrl: serverUrl, filePath: path }) })
       })
     })
   })
