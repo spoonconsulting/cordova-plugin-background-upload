@@ -2,7 +2,6 @@ package com.spoon.backgroundfileupload;
 
 import android.app.Activity;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.res.Resources;
 import android.widget.RemoteViews;
 
@@ -25,14 +24,12 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
     private long uploadCount = 0;
     private String defaultTitle;
     private String defaultContent;
-    private PendingIntent mPendingIntent;
 
     public NotificationHandler(@NotNull UploadService service, Activity context, String defaultTitle, String defaultContent) {
         super(service);
         this.mContext = context;
         this.defaultTitle = defaultTitle;
         this.defaultContent = defaultContent;
-        this.mPendingIntent = pendingIntent;
     }
 
     @Override
