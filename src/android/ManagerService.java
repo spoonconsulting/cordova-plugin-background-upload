@@ -176,12 +176,8 @@ public class ManagerService extends Service {
 
         if (pendingUploadCount >= 0 && !isNetworkAvailable) {
             updateNotificationText("Waiting for connection");
-            return;
-        }
-
-        if (pendingUploadCount == 0) {
+        } else if (pendingUploadCount == 0) {
             updateNotificationText(this.notificationContent);
-            return;
         }
     }
 
@@ -241,11 +237,10 @@ public class ManagerService extends Service {
 
     public Notification createNotification(PendingIntent pendingIntent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "upload channel",
-                    importance
+                    NotificationManager.IMPORTANCE_DEFAULT
             );
 
             this.notificationManager = getSystemService(NotificationManager.class);
@@ -272,7 +267,6 @@ public class ManagerService extends Service {
 
         this.requestObserver = new GlobalRequestObserver(this.getApplication(), broadcastReceiver);
         this.requestObserver.register();
-
         int parallelUploadsLimit = 1;
 
         try {
@@ -299,8 +293,7 @@ public class ManagerService extends Service {
     private PendingIntent getPendingIntent() {
         try {
             Intent intent = getPackageManager().getLaunchIntentForPackage(getPackageName());
-            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-            return pendingIntent;
+            return PendingIntent.getActivity(this, 0, intent, 0);
         } catch (Exception e) {
             logMessage(String.format("package name does not exist: %s", e.getMessage()));
         }
