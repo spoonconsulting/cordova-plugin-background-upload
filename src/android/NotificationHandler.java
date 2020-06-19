@@ -30,9 +30,9 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
     public NotificationHandler(@NotNull UploadService service, Activity context, PendingIntent pendingIntent, String defaultTitle, String defaultContent) {
         super(service);
         this.mContext = context;
+        this.mPendingIntent = pendingIntent;
         this.defaultTitle = defaultTitle;
         this.defaultContent = defaultContent;
-        this.mPendingIntent = pendingIntent;
     }
 
     @Override
@@ -119,9 +119,9 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
     }
 
     private String toReadable(float speed) {
-        final String BPS = "bps";
-        final String KBPS = "kbps";
-        final String MBPS = "Mbps";
+        final String BPS = "B/s";
+        final String KBPS = "kB/s";
+        final String MBPS = "MB/s";
 
         if (speed >= 1000) {
             return String.format("%d %s", (int) (speed / 1000), MBPS);
