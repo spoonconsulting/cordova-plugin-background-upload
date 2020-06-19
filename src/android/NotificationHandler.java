@@ -104,15 +104,15 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         float value = 0;
 
         if (unit == BPS) {
-            value = speed / 1000f;
+            value = speed / 8000f;
         }
 
         if (unit == KPS) {
-            value = speed;
+            value = speed / 8;
         }
 
         if (unit == MPS) {
-            value = speed * 1000;
+            value = speed * 125;
         }
 
         return value;

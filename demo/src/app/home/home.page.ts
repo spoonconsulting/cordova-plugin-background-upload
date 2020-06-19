@@ -27,9 +27,9 @@ export class HomePage {
       }, event => {
         console.log('EVENT');
         var correspondingMedia = self.getMediaWithId(event.id);
-        if (!correspondingMedia)
-          return;
-        if (event.state == 'UPLOADED') {
+        if (!correspondingMedia) { return; }
+
+        if (event.state == 'UPLOADED') { 
           console.log("upload: " + event.id + " has been completed successfully");
           console.log(event.statusCode, event.serverResponse);
           correspondingMedia.updateStatus("uploaded successfully");
@@ -44,6 +44,7 @@ export class HomePage {
           console.log("uploading: " + event.id + " progress: " + event.progress + "%");
           correspondingMedia.updateStatus("uploading: " + event.progress + "%");
         }
+
         if (event.eventId)
           self.uploader.acknowledgeEvent(event.eventId);
       });
