@@ -100,15 +100,15 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         float value = 0;
 
         if (unit == BPS) {
-            value = speed / 1000f;
+            value = speed / 8000f;
         }
 
         if (unit == KPS) {
-            value = speed;
+            value = speed / 8;
         }
 
         if (unit == MPS) {
-            value = speed * 1000;
+            value = speed * 125;
         }
 
         return value;
@@ -120,13 +120,13 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         final String MBPS = "Mbps";
 
         if (speed >= 1000) {
-            return String.format("%.0f %s", speed / 1000, MBPS);
+            return String.format("%d %s", (int) (speed / 1000), MBPS);
         }
 
         if (speed < 1) {
-            return String.format("%.0f %s", speed * 1000, BPS);
+            return String.format("%d %s", (int) (speed * 1000), BPS);
         }
 
-        return String.format("%.0f %s", speed, KBPS);
+        return String.format("%d %s", (int) speed, KBPS);
     }
 }
