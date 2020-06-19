@@ -77,7 +77,6 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
     public void destroy() {
         try {
             this.managerService.setConnectedPlugin(null);
-            this.managerService.stopServiceIfInactive();
             cordova.getActivity().unbindService(this);
             this.managerService = null;
         } catch (Exception e) {

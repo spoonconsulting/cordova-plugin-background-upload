@@ -22,8 +22,8 @@ export class HomePage {
 
       self.uploader = FileTransferManager.init({
         parallelUploadsLimit: 2,
-        foregroundTitle: 'Upload service',
-        foregroundContent: 'Background upload service running'
+        notificationTitle: 'Upload service',
+        notificationContent: 'Background upload service running'
       }, event => {
         console.log('EVENT');
         var correspondingMedia = self.getMediaWithId(event.id);
