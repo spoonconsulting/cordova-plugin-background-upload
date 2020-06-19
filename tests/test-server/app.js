@@ -26,7 +26,7 @@ const handleUpload = (req, res, next) => {
   });
 
   busboy.on('finish', function() {
-    res.status(req.method == 'POST' ? 210 : 200).send(JSON.stringify({ receivedInfo: response }))
+    res.status(req.method == 'POST' ? 201 : 200).send(JSON.stringify({ receivedInfo: response }))
   });
 
   return req.pipe(busboy);

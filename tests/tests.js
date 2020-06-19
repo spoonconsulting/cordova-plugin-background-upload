@@ -101,10 +101,9 @@ exports.defineAutoTests = function () {
             expect(upload.id).toBe('abc')
             expect(upload.eventId).toBeDefined()
             expect(upload.error).toBeUndefined()
-            expect(upload.statusCode).toBe(210)
+            expect(upload.statusCode).toBe(201)
             var response = JSON.parse(upload.serverResponse)
             delete response.receivedInfo.headers
-            expect(response.receivedInfo.parameters.requestMethod).toBe('POST')
             expect(response.receivedInfo).toEqual({
               originalFilename: sampleFile,
               accessMode: 'public',
@@ -246,9 +245,13 @@ exports.defineAutoTests = function () {
             expect(upload.error).toBeUndefined()
             var response = JSON.parse(upload.serverResponse)
             delete response.receivedInfo.headers
-            expect(response.receivedInfo.parameters.requestMethod).toBe('PUT')
             expect(response.receivedInfo).toEqual({
-              success: true
+              originalFilename: sampleFile,
+              accessMode: 'public',
+              height: 1067,
+              grayscale: false,
+              width: 800,
+              parameters: {}
             })
             nativeUploader.acknowledgeEvent(upload.eventId, done)
             done()
