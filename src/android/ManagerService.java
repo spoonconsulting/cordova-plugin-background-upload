@@ -60,10 +60,9 @@ public class ManagerService extends Service {
     private IConnectedPlugin connectedPlugin;
     private Disposable networkObservable;
     private boolean isNetworkAvailable = false;
-    private String inputTitle = "Upload Service";
-    private String inputContent = "Background upload service running";
-
     private boolean serviceIsRunning = false;
+    private String notificationTitle = "Upload Service";
+    private String notificationContent = "Background upload service running";
 
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
 
@@ -164,8 +163,8 @@ public class ManagerService extends Service {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 try {
                     JSONObject settings = new JSONObject(intent.getStringExtra("options"));
-                    this.inputTitle = settings.getString("foregroundTitle");
-                    this.inputContent = settings.getString("foregroundContent");
+                    this.notificationTitle = settings.getString("notificationTitle");
+                    this.notificationContent = settings.getString("notificationContent");
                 } catch (JSONException error) {
                     error.printStackTrace();
                 }
@@ -208,16 +207,16 @@ public class ManagerService extends Service {
                     "upload channel",
                     NotificationManager.IMPORTANCE_LOW
             );
-            NotificationManager manager = (NotificationManager) ManagerService.this
+            NotificationManager notificationManager = (NotificationManager) ManagerService.this
                     .getApplication()
                     .getApplicationContext()
                     .getSystemService(Context.NOTIFICATION_SERVICE);
-            manager.createNotificationChannel(channel);
+            notificationManager.createNotificationChannel(channel);
         }
 
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(this.inputTitle)
-                .setContentText(this.inputContent)
+                .setContentTitle(this.notificationTitle)
+                .setContentText(this.notificationContent)
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
                 .setContentIntent(pendingIntent)
                 .build();
@@ -244,7 +243,7 @@ public class ManagerService extends Service {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, this.inputTitle, this.inputContent));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, this.notificationTitle, this.notificationContent));
 
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =
@@ -283,6 +282,7 @@ public class ManagerService extends Service {
 
     private void startUpload(HashMap<String, Object> payload) {
         String uploadId = payload.get("id").toString();
+        String requestMethod = payload.get("requestMethod").toString();
 
         if (UploadService.getTaskList().contains(uploadId)) {
             logMessage(String.format("eventLabel='Uploader upload is already being uploaded. ignoring re-upload start' uploadId='%s'", uploadId));
@@ -301,7 +301,7 @@ public class ManagerService extends Service {
         try {
             request = new MultipartUploadRequest(this, payload.get("serverUrl").toString())
                     .setUploadID(uploadId)
-                    .setMethod("POST")
+                    .setMethod(requestMethod)
                     .addFileToUpload(payload.get("filePath").toString(), payload.get("fileKey").toString())
                     .setMaxRetries(0);
         } catch (IllegalArgumentException | FileNotFoundException error) {
@@ -359,10 +359,21 @@ public class ManagerService extends Service {
     private void sendMissingEvents() {
         migrateOldUploads();
 
-        for (UploadEvent event : UploadEvent.all()) {
-            logMessage("Uploader send event missing on Start - " + event.getId());
-            this.connectedPlugin.callback(event.dataRepresentation());
-        }
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Iterator<UploadEvent> events = UploadEvent.findAll(UploadEvent.class);
+                    while (events.hasNext()) {
+                        UploadEvent event = events.next();
+                        sendCallback(event.dataRepresentation());
+                        sleep(250);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
     }
 
     public void migrateOldUploads() {
