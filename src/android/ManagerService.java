@@ -63,7 +63,6 @@ public class ManagerService extends Service {
     private boolean serviceIsRunning = false;
     private String notificationTitle = "Upload Service";
     private String notificationContent = "Background upload service running";
-    private String packageToOpen;
     private NotificationManager notificationManager;
 
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
@@ -205,7 +204,6 @@ public class ManagerService extends Service {
                     JSONObject settings = new JSONObject(intent.getStringExtra("options"));
                     this.notificationTitle = settings.getString("notificationTitle");
                     this.notificationContent = settings.getString("notificationContent");
-                    this.packageToOpen = settings.getString("packageToOpen");
                 } catch (JSONException error) {
                     error.printStackTrace();
                 }
@@ -299,14 +297,12 @@ public class ManagerService extends Service {
     }
 
     private PendingIntent getPendingIntent() {
-        if (packageToOpen != null) {
-            try {
-                Intent intent = getPackageManager().getLaunchIntentForPackage(packageToOpen);
-                PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-                return pendingIntent;
-            } catch (Exception e) {
-                logMessage(String.format("package name does not exist: %s", e.getMessage()));
-            }
+        try {
+            Intent intent = getPackageManager().getLaunchIntentForPackage(getPackageName());
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+            return pendingIntent;
+        } catch (Exception e) {
+            logMessage(String.format("package name does not exist: %s", e.getMessage()));
         }
 
         return null;
