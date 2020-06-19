@@ -10,9 +10,8 @@
   "author": "Spoon Consulting Ltd",
   "license": "CC-BY-NC-SA-3.0",
   "dependencies": {
-    "body-parser": "^1.18.3",
-    "express": "^4.14.0",
-    "multer": "^1.4.2"
+    "busboy": "^0.3.1",
+    "express": "^4.14.0"
   },
   "engines": {
     "node": "10.9.0"
