@@ -234,29 +234,6 @@ exports.defineAutoTests = function () {
           nativeUploader.startUpload({ id: filesToUpload[2], serverUrl: serverUrl, filePath: path3 })
         })
       })
-
-      it('upload success with put method', function (done) {
-        nativeUploader = FileTransferManager.init({}, function (upload) {
-          if (upload.state === 'UPLOADED') {
-            expect(upload.id).toBe('file_id')
-            expect(upload.statusCode).toBe(200)
-            expect(upload.eventId).toBeDefined()
-            expect(upload.error).toBeUndefined()
-            var response = JSON.parse(upload.serverResponse)
-            delete response.receivedInfo.headers
-            expect(response.receivedInfo).toEqual({
-              originalFilename: sampleFile,
-              accessMode: 'public',
-              height: 1067,
-              grayscale: false,
-              width: 800,
-              parameters: {}
-            })
-            nativeUploader.acknowledgeEvent(upload.eventId, done)
-          }
-        })
-        delay(function () { nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path, requestMethod: 'PUT' }) })
-      })
     })
 
     describe('Remove upload', function () {
@@ -290,7 +267,7 @@ exports.defineAutoTests = function () {
         })
       })
 
-      xit('sends a FAILED callback when upload is removed', function (done) {
+      it('sends a FAILED callback when upload is removed', function (done) {
         nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'FAILED') {
             expect(upload.id).toBe('xyz')
