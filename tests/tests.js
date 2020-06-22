@@ -267,7 +267,7 @@ exports.defineAutoTests = function () {
         })
       })
 
-      xit('sends a FAILED callback when upload is removed', function (done) {
+      it('sends a FAILED callback when upload is removed', function (done) {
         nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'FAILED') {
             expect(upload.id).toBe('xyz')
@@ -277,6 +277,9 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           } else if (upload.state === 'UPLOADING') {
             nativeUploader.removeUpload('xyz', null, null)
+          } else if (upload.state === 'UPLOADED') {
+            expect(true).toBeTruthy()
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
         delay(function () { nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path }) })
