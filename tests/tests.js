@@ -290,7 +290,7 @@ exports.defineAutoTests = function () {
         })
       })
 
-      it('sends a FAILED callback when upload is removed', function (done) {
+      xit('sends a FAILED callback when upload is removed', function (done) {
         nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'FAILED') {
             expect(upload.id).toBe('xyz')
