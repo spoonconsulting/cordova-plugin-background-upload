@@ -195,17 +195,15 @@ public class ManagerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!this.serviceIsRunning) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                try {
-                    JSONObject settings = new JSONObject(intent.getStringExtra("options"));
-                    this.notificationTitle = settings.getString("notificationTitle");
-                    this.notificationContent = settings.getString("notificationContent");
-                } catch (JSONException error) {
-                    error.printStackTrace();
-                }
-
-                startForegroundNotification();
+            try {
+                JSONObject settings = new JSONObject(intent.getStringExtra("options"));
+                this.notificationTitle = settings.getString("notificationTitle");
+                this.notificationContent = settings.getString("notificationContent");
+            } catch (JSONException error) {
+                error.printStackTrace();
             }
+
+            startForegroundNotification();
 
             initUploadService(intent.getStringExtra("options"));
             this.serviceIsRunning = true;
@@ -245,6 +243,8 @@ public class ManagerService extends Service {
 
             this.notificationManager = getSystemService(NotificationManager.class);
             this.notificationManager.createNotificationChannel(channel);
+        } else {
+            this.notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         }
 
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -267,8 +267,8 @@ public class ManagerService extends Service {
 
         this.requestObserver = new GlobalRequestObserver(this.getApplication(), broadcastReceiver);
         this.requestObserver.register();
-
         int parallelUploadsLimit = 1;
+
         try {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
