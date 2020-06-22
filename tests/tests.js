@@ -8,7 +8,7 @@ exports.defineAutoTests = function () {
     var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
     var serverUrl = 'http://' + serverHost + ':3000/upload'
     var nativeUploader
-    var delay = function (call) { setTimeout(call, 250) }
+    var delay = function (call) { setTimeout(call, 600) }
 
     beforeEach(function (done) {
       originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL
@@ -106,9 +106,9 @@ exports.defineAutoTests = function () {
             expect(response.receivedInfo).toEqual({
               originalFilename: sampleFile,
               accessMode: 'public',
-              height: 1067,
+              height: 4048,
               grayscale: false,
-              width: 800,
+              width: 3036,
               parameters: {}
             })
             nativeUploader.acknowledgeEvent(upload.eventId, done)
@@ -129,9 +129,9 @@ exports.defineAutoTests = function () {
             expect(response.receivedInfo).toEqual({
               originalFilename: sampleFile,
               accessMode: 'public',
-              height: 1067,
+              height: 4048,
               grayscale: false,
-              width: 800,
+              width: 3036,
               parameters: {}
             })
             nativeUploader.acknowledgeEvent(upload.eventId, done)
@@ -277,9 +277,6 @@ exports.defineAutoTests = function () {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
           } else if (upload.state === 'UPLOADING') {
             nativeUploader.removeUpload('xyz', null, null)
-          } else if (upload.state === 'UPLOADED') {
-            expect(true).toBeTruthy()
-            nativeUploader.acknowledgeEvent(upload.eventId, done)
           }
         })
         delay(function () { nativeUploader.startUpload({ id: 'xyz', serverUrl: serverUrl, filePath: path }) })

@@ -9,9 +9,9 @@ const handleUpload = (req, res, next) => {
   let response = {
     originalFilename: null,
     accessMode: 'public',
-    height: 1067,
+    height: 4048,
     grayscale: false,
-    width: 800,
+    width: 3036,
     headers: req.headers,
     parameters: {}
   }
