@@ -84,7 +84,6 @@ exports.defineAutoTests = function () {
         nativeUploader = FileTransferManager.init({}, function (upload) {
           if (upload.state === 'UPLOADED') {
             nativeUploader.acknowledgeEvent(upload.eventId, done)
-            done()
           } else if (upload.state === 'UPLOADING') {
             expect(upload.id).toBe('a_file_id')
             expect(typeof upload.progress).toBe('number')
@@ -254,10 +253,9 @@ exports.defineAutoTests = function () {
               parameters: {}
             })
             nativeUploader.acknowledgeEvent(upload.eventId, done)
-            done()
           }
         })
-        nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path, requestMethod: 'PUT' })
+        delay(function () { nativeUploader.startUpload({ id: 'file_id', serverUrl: serverUrl, filePath: path, requestMethod: 'PUT' }) })
       })
     })
 
