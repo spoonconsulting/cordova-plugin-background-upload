@@ -267,8 +267,8 @@ public class ManagerService extends Service {
 
         this.requestObserver = new GlobalRequestObserver(this.getApplication(), broadcastReceiver);
         this.requestObserver.register();
+        
         int parallelUploadsLimit = 1;
-
         try {
             JSONObject settings = new JSONObject(options);
             parallelUploadsLimit = settings.getInt("parallelUploadsLimit");
