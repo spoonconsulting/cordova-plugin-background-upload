@@ -74,25 +74,20 @@ public class ManagerService extends Service {
             Long currentTimestamp = System.currentTimeMillis() / 1000;
             if (currentTimestamp - lastProgressTimestamp >= 1) {
                 lastProgressTimestamp = currentTimestamp;
-
                 JSONObject data = new JSONObject(new HashMap() {{
                     put("id", uploadInfo.getUploadId());
                     put("progress", uploadInfo.getProgressPercent());
                     put("state", "UPLOADING");
                 }});
-
                 sendCallback(data);
             }
         }
 
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
-            if (!isNetworkAvailable) {
-                return;
-            }
+            if (!isNetworkAvailable) { return; }
 
             String errorMsg = exception != null ? exception.getMessage() : "unknown exception";
-
             JSONObject data = new JSONObject(new HashMap() {{
                 put("id", uploadInfo.getUploadId());
                 put("state", "FAILED");
@@ -137,16 +132,13 @@ public class ManagerService extends Service {
 
     public void deletePendingUploadAndSendEvent(JSONObject obj) {
         String id;
-
         try {
             id = obj.getString("id");
         } catch (JSONException error) {
             logMessage(String.format("eventLabel='Uploader could not delete pending upload' error='%s'", error.getMessage()));
             return;
         }
-
         logMessage(String.format("eventLabel='Uploader delete pending upload' uploadId='%s'", id));
-
         PendingUpload.remove(id);
         createAndSendEvent(obj);
     }
@@ -158,22 +150,18 @@ public class ManagerService extends Service {
 
     public void stopServiceIfInactive() {
         long pendingUploadCount = PendingUpload.count(PendingUpload.class);
-
         if (pendingUploadCount == 0 && this.connectedPlugin == null) {
             Intent intent = new Intent(this, ManagerService.class);
             this.requestObserver.unregister();
             this.requestObserver = null;
-
             stopService(intent);
             return;
         }
-
         updateNotification();
     }
 
     private void updateNotification() {
         long pendingUploadCount = PendingUpload.count(PendingUpload.class);
-
         if (pendingUploadCount >= 0 && !isNetworkAvailable) {
             updateNotificationText("Waiting for connection");
         } else if (pendingUploadCount == 0) {
@@ -188,7 +176,6 @@ public class ManagerService extends Service {
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
                 .setContentIntent(getPendingIntent())
                 .build();
-
         this.notificationManager.notify(NOTIFICATION_ID, notification);
     }
 
@@ -204,10 +191,8 @@ public class ManagerService extends Service {
             }
 
             startForegroundNotification();
-
             initUploadService(intent.getStringExtra("options"));
             this.serviceIsRunning = true;
-
             networkObservable = ReactiveNetwork
                     .observeNetworkConnectivity(this)
                     .subscribeOn(Schedulers.io())
@@ -240,7 +225,6 @@ public class ManagerService extends Service {
                     "upload channel",
                     NotificationManager.IMPORTANCE_DEFAULT
             );
-
             this.notificationManager = getSystemService(NotificationManager.class);
             this.notificationManager.createNotificationChannel(channel);
         } else {
@@ -277,7 +261,6 @@ public class ManagerService extends Service {
         }
 
         UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, getPendingIntent(), this.notificationTitle, this.notificationContent));
-
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =
                 new ThreadPoolExecutor(
@@ -303,7 +286,6 @@ public class ManagerService extends Service {
 
     private void uploadPendingList() {
         List<PendingUpload> previousUploads = PendingUpload.all();
-
         for (PendingUpload upload : previousUploads) {
             JSONObject obj = null;
             try {
@@ -341,7 +323,6 @@ public class ManagerService extends Service {
         }
 
         MultipartUploadRequest request;
-
         try {
             request = new MultipartUploadRequest(this, payload.get("serverUrl").toString())
                     .setUploadID(uploadId)
@@ -520,7 +501,6 @@ public class ManagerService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-
         this.networkObservable.dispose();
         this.networkObservable = null;
     }
