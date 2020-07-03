@@ -8,7 +8,7 @@ exports.defineAutoTests = function () {
     var serverHost = window.cordova.platformId === 'android' ? '10.0.2.2' : 'localhost'
     var serverUrl = 'http://' + serverHost + ':3000/upload'
     var nativeUploader
-    var delay = function (call) { setTimeout(call, 600) }
+    var delay = function (call) { setTimeout(call, 250) }
 
     beforeEach(function (done) {
       originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL
