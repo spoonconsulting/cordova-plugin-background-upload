@@ -85,7 +85,9 @@ public class ManagerService extends Service {
 
         @Override
         public void onError(final Context context, final UploadInfo uploadInfo, final Throwable exception) {
-            if (!isNetworkAvailable) { return; }
+            if (!isNetworkAvailable) {
+                return;
+            }
 
             String errorMsg = exception != null ? exception.getMessage() : "unknown exception";
             JSONObject data = new JSONObject(new HashMap() {{
@@ -210,6 +212,11 @@ public class ManagerService extends Service {
 
         }
 
+        JSONObject serviceState = new JSONObject(new HashMap() {{
+            put("state", "INITIALIZED");
+        }});
+        createAndSendEvent(serviceState);
+
         return START_NOT_STICKY;
     }
 
@@ -223,7 +230,7 @@ public class ManagerService extends Service {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "upload channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    NotificationManager.IMPORTANCE_LOW
             );
             this.notificationManager = getSystemService(NotificationManager.class);
             this.notificationManager.createNotificationChannel(channel);
@@ -251,7 +258,7 @@ public class ManagerService extends Service {
 
         this.requestObserver = new GlobalRequestObserver(this.getApplication(), broadcastReceiver);
         this.requestObserver.register();
-        
+
         int parallelUploadsLimit = 1;
         try {
             JSONObject settings = new JSONObject(options);
