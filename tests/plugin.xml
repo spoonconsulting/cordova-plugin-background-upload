@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin 
+	xmlns="http://apache.org/cordova/ns/plugins/1.0" 
+	xmlns:android="http://schemas.android.com/apk/res/android" 
+	id="cordova-plugin-background-upload-tests"
+    version="0.0.1">
+    
+    <name>cordova-plugin-background-upload tests</name>
+    <description>Cordova plugin for background upload</description>
+    <license>Apache 2.0</license>
+    <repo>https://github.com/spoonconsulting/cordova-plugin-background-upload.git</repo>
+   <js-module src="test-utils.js" name="TestUtils">
+      <clobbers target="window.TestUtils"/>
+   </js-module>
+     <js-module src="tests.js" name="tests"></js-module>
+     <dependency id="cordova-plugin-file" version="6.0.2" />
+     <platform name="android">
+        <resource-file src="tree.jpg" target="assets/tree.jpg" />
+     </platform>
+      <platform name="ios">
+        <resource-file src="tree.jpg" target="Resources/tree.jpg" />
+     </platform>
+</plugin>
