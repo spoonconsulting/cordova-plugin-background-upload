@@ -23,12 +23,16 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
     private Activity mContext;
     private long uploadCount = 0;
+    private float speed = 0;
+    private int inProgress = 0;
     private String defaultTitle;
     private String defaultContent;
     private PendingIntent mPendingIntent;
+    private ManagerService mService;
 
-    public NotificationHandler(@NotNull UploadService service, Activity context, PendingIntent pendingIntent, String defaultTitle, String defaultContent) {
+    public NotificationHandler(@NotNull UploadService service, ManagerService managerService, Activity context, PendingIntent pendingIntent, String defaultTitle, String defaultContent) {
         super(service);
+        this.mService = managerService;
         this.mContext = context;
         this.mPendingIntent = pendingIntent;
         this.defaultTitle = defaultTitle;
@@ -48,11 +52,41 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         this.uploadCount = PendingUpload.count(PendingUpload.class);
     }
 
+    private RemoteViews refresh() {
+        String pkg = mContext.getApplication().getPackageName();
+        String layoutDef = "layout";
+        String idDef = "id";
+
+        Resources resources = mContext.getResources();
+
+        RemoteViews notificationLayout = new RemoteViews(mContext.getPackageName(),
+                resources.getIdentifier("notification_small", layoutDef, pkg));
+
+        String title;
+        String leftContent;
+        String rightContent = "";
+
+        if (mService.isNetworkAvailable) {
+            title = inProgress == 0 ? defaultTitle : String.format("%s upload(s) remaining", uploadCount);
+            leftContent = inProgress == 0 ? defaultContent : String.format("%d in progress", inProgress);
+            rightContent = inProgress == 0 ? "" : toReadable(speed);
+        } else {
+            title = defaultTitle;
+            leftContent = "Waiting for connection";
+        }
+
+        notificationLayout.setTextViewText(resources.getIdentifier("notification_title", idDef, pkg), title);
+        notificationLayout.setTextViewText(resources.getIdentifier("notification_content_left", idDef, pkg), leftContent);
+        notificationLayout.setTextViewText(resources.getIdentifier("notification_content_right", idDef, pkg), rightContent);
+
+        return notificationLayout;
+    }
+
     @Nullable
     @Override
     public NotificationCompat.Builder updateNotification(@NotNull NotificationManager notificationManager, @NotNull NotificationCompat.Builder builder, @NotNull Map<String, TaskData> tasks) {
-        float speed = 0;
-        int inProgress = 0;
+        this.speed = 0;
+        this.inProgress = 0;
 
         for (Map.Entry<String, TaskData> entry : tasks.entrySet()) {
             if (entry.getValue().getStatus() == TaskStatus.InProgress) {
@@ -64,29 +98,7 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
             }
         }
 
-        String pkg = mContext.getApplication().getPackageName();
-        String layoutDef = "layout";
-        String idDef = "id";
-
-        Resources resources = mContext.getResources();
-
-        RemoteViews notificationLayout = new RemoteViews(mContext.getPackageName(),
-                resources.getIdentifier("notification_small", layoutDef, pkg));
-
-        notificationLayout.setTextViewText(
-                resources.getIdentifier("notification_title", idDef, pkg),
-                inProgress == 0 ? defaultTitle : String.format("%s upload(s) remaining", uploadCount)
-        );
-
-        notificationLayout.setTextViewText(
-                resources.getIdentifier("notification_content_left", idDef, pkg),
-                inProgress == 0 ? defaultContent : String.format("%d in progress", inProgress)
-        );
-
-        notificationLayout.setTextViewText(
-                resources.getIdentifier("notification_content_right", idDef, pkg),
-                inProgress == 0 ? "" : toReadable(speed)
-        );
+        RemoteViews notificationLayout = refresh();
 
         return builder
                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
@@ -101,9 +113,15 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         final String MPS = UploadRate.UploadRateUnit.MegabitPerSecond.name();
 
         float value = 0;
-        if (unit == BPS) { value = speed / 8000f; }
-        if (unit == KPS) { value = speed / 8; }
-        if (unit == MPS) { value = speed * 125; }
+        if (unit == BPS) {
+            value = speed / 8000f;
+        }
+        if (unit == KPS) {
+            value = speed / 8;
+        }
+        if (unit == MPS) {
+            value = speed * 125;
+        }
 
         return value;
     }
@@ -113,8 +131,12 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         final String KBPS = "kB/s";
         final String MBPS = "MB/s";
 
-        if (speed >= 1000) { return String.format("%.0f %s", speed / 1000, MBPS); }
-        if (speed < 1) { return String.format("%.0f %s", speed * 1000, BPS); }
+        if (speed >= 1000) {
+            return String.format("%.0f %s", speed / 1000, MBPS);
+        }
+        if (speed < 1) {
+            return String.format("%.0f %s", speed * 1000, BPS);
+        }
 
         return String.format("%.0f %s", speed, KBPS);
     }

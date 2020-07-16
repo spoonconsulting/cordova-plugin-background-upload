@@ -59,7 +59,7 @@ public class ManagerService extends Service {
     private Activity mainActivity;
     private IConnectedPlugin connectedPlugin;
     private Disposable networkObservable;
-    private boolean isNetworkAvailable = false;
+    public boolean isNetworkAvailable = false;
     private boolean serviceIsRunning = false;
     private String notificationTitle = "Upload Service";
     private String notificationContent = "Background upload service running";
@@ -115,13 +115,11 @@ public class ManagerService extends Service {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
-            updateNotification();
             stopServiceIfInactive();
         }
 
         @Override
         public void onCompletedWhileNotObserving() {
-            updateNotification();
             stopServiceIfInactive();
         }
     };
@@ -159,31 +157,13 @@ public class ManagerService extends Service {
             stopService(intent);
             return;
         }
-        updateNotification();
-    }
-
-    private void updateNotification() {
-        long pendingUploadCount = PendingUpload.count(PendingUpload.class);
-        if (pendingUploadCount >= 0 && !isNetworkAvailable) {
-            updateNotificationText("Waiting for connection");
-        } else if (pendingUploadCount == 0) {
-            updateNotificationText(this.notificationContent);
-        }
-    }
-
-    private void updateNotificationText(String content) {
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(this.notificationTitle)
-                .setContentText(content)
-                .setSmallIcon(android.R.drawable.ic_menu_upload)
-                .setContentIntent(getPendingIntent())
-                .build();
-        this.notificationManager.notify(NOTIFICATION_ID, notification);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!this.serviceIsRunning) {
+            this.serviceIsRunning = true;
+
             try {
                 JSONObject settings = new JSONObject(intent.getStringExtra("options"));
                 this.notificationTitle = settings.getString("notificationTitle");
@@ -194,7 +174,6 @@ public class ManagerService extends Service {
 
             startForegroundNotification();
             initUploadService(intent.getStringExtra("options"));
-            this.serviceIsRunning = true;
             networkObservable = ReactiveNetwork
                     .observeNetworkConnectivity(this)
                     .subscribeOn(Schedulers.io())
@@ -206,8 +185,6 @@ public class ManagerService extends Service {
                         if (isNetworkAvailable) {
                             uploadPendingList();
                         }
-
-                        updateNotification();
                     });
 
         }
@@ -267,7 +244,7 @@ public class ManagerService extends Service {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, getPendingIntent(), this.notificationTitle, this.notificationContent));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, this, mainActivity, getPendingIntent(), this.notificationTitle, this.notificationContent));
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =
                 new ThreadPoolExecutor(
