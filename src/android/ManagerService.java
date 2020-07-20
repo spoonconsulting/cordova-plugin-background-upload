@@ -185,8 +185,9 @@ public class ManagerService extends Service {
                         if (isNetworkAvailable) {
                             uploadPendingList();
                         }
-                    });
 
+                        updateNotificationText();
+                    });
         }
 
         JSONObject serviceState = new JSONObject(new HashMap() {{
@@ -195,6 +196,16 @@ public class ManagerService extends Service {
         createAndSendEvent(serviceState);
 
         return START_NOT_STICKY;
+    }
+
+    private void updateNotificationText() {
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(this.notificationTitle)
+                .setContentText(isNetworkAvailable ? this.notificationContent : "Waiting for connection")
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setContentIntent(getPendingIntent())
+                .build();
+        this.notificationManager.notify(NOTIFICATION_ID, notification);
     }
 
     private void startForegroundNotification() {
