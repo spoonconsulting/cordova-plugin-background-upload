@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="fastlane.lanes">
+    
+    
+    
+      
+      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000934">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="1: ionic cordova build android --prod --release" time="44.9880898">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="2: jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore ../upload-demo.keystore -storepass upload_demo ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk upload_demo" time="2.2598129">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="3: zipalign -v 4 ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk ../demo-0.1.apk" time="0.5723936">
+        
+      </testcase>
+    
+  </testsuite>
+</testsuites>
