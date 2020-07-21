@@ -11,7 +11,7 @@ exports.defineAutoTests = function () {
 
     beforeEach(function (done) {
       originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL
-      jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000
+      jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
       TestUtils.copyFileToDataDirectory(sampleFile).then(function (newPath) {
         path = newPath
         done()
