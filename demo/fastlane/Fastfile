@@ -1,3 +1,5 @@
+require '../version.rb'
+
 default_platform :android
 
 platform :android do
@@ -8,6 +10,7 @@ platform :android do
     sh "ionic cordova platform add android@8.1.0"
     sh "ionic cordova build android --prod --release"
     sh "jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore ../upload-demo.keystore -storepass upload_demo ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk upload_demo"
-    sh "zipalign -v 4 ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+    apk_file = "#{AppVersion.version}.apk"
+    sh "zipalign -v 4 ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk #{apk_file}"
   end
 end
