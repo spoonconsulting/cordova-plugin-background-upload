@@ -17,7 +17,7 @@ platform :android do
 
     pull_request_build = ENV['TRAVIS_PULL_REQUEST'] != '' && ENV['TRAVIS_PULL_REQUEST'] != 'false'
 
-    if ENV['GOOGLE_DRIVE_UPLOAD_BETA_ANDROID_FOLDER_ID'].present?
+    unless ENV['GOOGLE_DRIVE_UPLOAD_BETA_ANDROID_FOLDER_ID'] == nil || ENV['GOOGLE_DRIVE_UPLOAD_BETA_ANDROID_FOLDER_ID'] == ''
       upload_to_google_drive(
         drive_keyfile: 'uploaddemo-581403-758fd9a3e503.json',
         service_account: true,
