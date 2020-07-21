@@ -5,8 +5,9 @@ platform :android do
   desc "Demo App - Beta release"
 
   lane :beta do |options|
+    sh "ionic cordova platform add android@8.1.0"
     sh "ionic cordova build android --prod --release"
     sh "jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore ../upload-demo.keystore -storepass upload_demo ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk upload_demo"
-    sh "zipalign -v 4 ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk ../demo-0.1.apk"
+    sh "zipalign -v 4 ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk"
   end
 end
