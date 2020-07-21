@@ -10,7 +10,20 @@ platform :android do
     sh "ionic cordova platform add android@8.1.0"
     sh "ionic cordova build android --prod --release"
     sh "jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore ../upload-demo.keystore -storepass upload_demo ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk upload_demo"
+    sh "zipalign -f -v 4 ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk ../platforms/android/app/build/outputs/apk/release/app-release.apk"
+
     apk_file = "#{AppVersion.version}.apk"
-    sh "zipalign -v 4 ../platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk #{apk_file}"
+    sh "cd .. && cp platforms/android/app/build/outputs/apk/release/app-release.apk #{apk_file}"
+
+    pull_request_build = ENV['TRAVIS_PULL_REQUEST'] != '' && ENV['TRAVIS_PULL_REQUEST'] != 'false'
+
+    if ENV['GOOGLE_DRIVE_UPLOAD_BETA_ANDROID_FOLDER_ID'].present?
+      upload_to_google_drive(
+        drive_keyfile: 'uploaddemo-581403-758fd9a3e503.json',
+        service_account: true,
+        folder_id: ENV['GOOGLE_DRIVE_UPLOAD_BETA_ANDROID_FOLDER_ID'],
+        upload_files: [apk_file]
+      )
+    end
   end
 end
