@@ -23,6 +23,14 @@ matrix:
           - 'android-sdk-preview-license-.+'
           - 'android-sdk-license-.+'
           - 'google-gdk-license-.+'
+      cache:
+        bundler: true
+        directories:
+          - $HOME/.gradle/caches/
+          - $HOME/.gradle/wrapper/
+          - $HOME/.android/build-cache
+          - demo/node_modules
+          - $HOME/.nvm
 script:
   - nvm install 12.14.0
   - nvm use 12.14.0
