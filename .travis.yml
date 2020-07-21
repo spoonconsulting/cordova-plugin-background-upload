@@ -32,6 +32,10 @@ matrix:
           - demo/node_modules
           - $HOME/.nvm
 script:
+  - nvm install 10.9.0
+  - nvm use 10.9.0
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rvm use 2.5.1 --install; fi
+  - /bin/bash tests/travis.sh
   - nvm install 12.14.0
   - nvm use 12.14.0
   - rvm use 2.7.0 --install
