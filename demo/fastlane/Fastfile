@@ -18,22 +18,22 @@ platform :android do
 
     pull_request_build = ENV['TRAVIS_PULL_REQUEST'] != '' && ENV['TRAVIS_PULL_REQUEST'] != 'false'
 
-    aws_s3(
-      access_key: ENV['S3_ACCESS_KEY'],
-      secret_access_key: ENV['S3_SECRET_ACCESS_KEY'],
-      bucket: ENV['S3_BUCKET'],
-      region: ENV['S3_REGION'],
-      app_directory: pull_request_build ? "cordova-plugin-background-upload-demo/android/pr/#{ENV['TRAVIS_PULL_REQUEST']}" : 'cordova-plugin-background-upload-demo/android',
-      apk: apk_file
-    )
+    # aws_s3(
+    #   access_key: ENV['S3_ACCESS_KEY'],
+    #   secret_access_key: ENV['S3_SECRET_ACCESS_KEY'],
+    #   bucket: ENV['S3_BUCKET'],
+    #   region: ENV['S3_REGION'],
+    #   app_directory: pull_request_build ? "cordova-plugin-background-upload-demo/android/pr/#{ENV['TRAVIS_PULL_REQUEST']}" : 'cordova-plugin-background-upload-demo/android',
+    #   apk: apk_file
+    # )
 
-    if pull_request_build
-      github_api(
-        api_token: ENV["GITHUB_TOKEN"],
-        http_method: 'POST',
-        path: "/repos/#{ENV['TRAVIS_PULL_REQUEST_SLUG']}/issues/#{ENV['TRAVIS_PULL_REQUEST']}/comments",
-        body: { body: "#{ENV['S3_APK_OUTPUT_PATH']}"},
-      )
-    end
+    # if pull_request_build
+    #   github_api(
+    #     api_token: ENV["GITHUB_TOKEN"],
+    #     http_method: 'POST',
+    #     path: "/repos/#{ENV['TRAVIS_PULL_REQUEST_SLUG']}/issues/#{ENV['TRAVIS_PULL_REQUEST']}/comments",
+    #     body: { body: "#{ENV['S3_APK_OUTPUT_PATH']}"},
+    #   )
+    # end
   end
 end
