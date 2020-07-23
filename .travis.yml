@@ -32,7 +32,10 @@ matrix:
           - demo/node_modules
           - $HOME/.nvm
 script:
-  - nvm install 12.14.0
-  - nvm use 12.14.0
-  - rvm use 2.7.0 --install
-  - /bin/bash demo/travis.sh
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      nvm install 12.14.0;
+      nvm use 12.14.0;
+      rvm use 2.7.0 --install;
+      /bin/bash demo/travis.sh;
+    fi
+
