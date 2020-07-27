@@ -62,17 +62,14 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         RemoteViews notificationLayout = new RemoteViews(mContext.getPackageName(),
                 resources.getIdentifier("notification_small", layoutDef, pkg));
 
-        String title;
-        String leftContent;
+        String title = "";
+        String leftContent = "";
         String rightContent = "";
 
         if (mService.isNetworkAvailable) {
             title = inProgress == 0 ? defaultTitle : String.format("%s upload(s) remaining", uploadCount);
             leftContent = inProgress == 0 ? defaultContent : String.format("%d in progress", inProgress);
             rightContent = inProgress == 0 ? "" : toReadable(speed);
-        } else {
-            title = defaultTitle;
-            leftContent = "Waiting for connection";
         }
 
         notificationLayout.setTextViewText(resources.getIdentifier("notification_title", idDef, pkg), title);
@@ -85,6 +82,10 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
     @Nullable
     @Override
     public NotificationCompat.Builder updateNotification(@NotNull NotificationManager notificationManager, @NotNull NotificationCompat.Builder builder, @NotNull Map<String, TaskData> tasks) {
+        if (!mService.isNetworkAvailable) {
+            return null;
+        }
+
         this.speed = 0;
         this.inProgress = 0;
 
