@@ -62,15 +62,9 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         RemoteViews notificationLayout = new RemoteViews(mContext.getPackageName(),
                 resources.getIdentifier("notification_small", layoutDef, pkg));
 
-        String title = "";
-        String leftContent = "";
-        String rightContent = "";
-
-        if (mService.isNetworkAvailable) {
-            title = inProgress == 0 ? defaultTitle : String.format("%s upload(s) remaining", uploadCount);
-            leftContent = inProgress == 0 ? defaultContent : String.format("%d in progress", inProgress);
-            rightContent = inProgress == 0 ? "" : toReadable(speed);
-        }
+        String title = inProgress == 0 ? defaultTitle : String.format("%s upload(s) remaining", uploadCount);
+        String leftContent = inProgress == 0 ? defaultContent : String.format("%d in progress", inProgress);
+        String rightContent = inProgress == 0 ? "" : toReadable(speed);
 
         notificationLayout.setTextViewText(resources.getIdentifier("notification_title", idDef, pkg), title);
         notificationLayout.setTextViewText(resources.getIdentifier("notification_content_left", idDef, pkg), leftContent);
