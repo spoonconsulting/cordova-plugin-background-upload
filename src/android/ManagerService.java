@@ -63,10 +63,13 @@ public class ManagerService extends Service {
     private boolean serviceIsRunning = false;
     private String notificationTitle = "Upload Service";
     private String notificationContent = "Background upload service running";
+    private String noNetwork = "Waiting for connection";
     private NotificationManager notificationManager;
+    private NotificationCompat.Builder defaultNotification;
+
 
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
-    private static final int NOTIFICATION_ID = 1234;
+    private static final int NOTIFICATION_ID = 8951;
 
     private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
@@ -199,13 +202,8 @@ public class ManagerService extends Service {
     }
 
     private void updateNotificationText() {
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(this.notificationTitle)
-                .setContentText(isNetworkAvailable ? this.notificationContent : "Waiting for connection")
-                .setSmallIcon(android.R.drawable.ic_menu_upload)
-                .setContentIntent(getPendingIntent())
-                .build();
-        this.notificationManager.notify(NOTIFICATION_ID, notification);
+        defaultNotification.setContentText(isNetworkAvailable ? this.notificationContent : this.noNetwork);
+        notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
     }
 
     private void startForegroundNotification() {
@@ -226,15 +224,15 @@ public class ManagerService extends Service {
             this.notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         }
 
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_menu_upload)
+        defaultNotification = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
                 .setContentTitle(this.notificationTitle)
                 .setContentText(this.notificationContent)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingIntent)
-                .build();
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setGroup(getPackageName())
+                .setGroupSummary(true)
+                .setContentIntent(pendingIntent);
 
-        return notification;
+        return defaultNotification.build();
     }
 
     public void initUploadService(String options) {
@@ -255,7 +253,7 @@ public class ManagerService extends Service {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, this, mainActivity, getPendingIntent(), this.notificationTitle, this.notificationContent));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, getPendingIntent()));
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =
                 new ThreadPoolExecutor(
