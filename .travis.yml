@@ -38,7 +38,7 @@ script:
       rvm use 2.5.1 --install; 
     fi
   - /bin/bash tests/travis.sh || travis_terminate 1;
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
       nvm install 12.14.0;
       nvm use 12.14.0;
       rvm use 2.7.0 --install;
