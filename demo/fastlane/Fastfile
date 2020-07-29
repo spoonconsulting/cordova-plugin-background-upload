@@ -8,7 +8,7 @@ platform :android do
 
   lane :beta do |options|
     return unless ENV['TRAVIS_PULL_REQUEST'] != 'false'
-    
+
     apk_file = "#{ENV['TRAVIS_PULL_REQUEST']}_#{Time.now.strftime("%Y-%m-%d-%H-%M-%S")}.apk"
 
     sh "ionic cordova platform add android@8.1.0"
@@ -23,7 +23,7 @@ platform :android do
       bucket: ENV['S3_BUCKET'],
       region: ENV['S3_REGION'],
       acl: ENV['S3_ACL'],
-      app_directory: "cordova-plugin-background-upload-demo/android/pr/#{ENV['TRAVIS_PULL_REQUEST']}"
+      app_directory: "cordova-plugin-background-upload-demo/android/pr/#{ENV['TRAVIS_PULL_REQUEST']}",
       apk: apk_file
     )
 
