@@ -209,7 +209,7 @@ public class ManagerService extends Service {
 
     private void startForegroundNotification() {
         Notification notification = createNotification(getPendingIntent());
-        startForeground(NOTIFICATION_ID, notification);
+        startForeground(5123, notification);
     }
 
     public Notification createNotification(PendingIntent pendingIntent) {
@@ -225,15 +225,25 @@ public class ManagerService extends Service {
             this.notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         }
 
+        Notification summaryNotification = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setGroup(getPackageName())
+                .setGroupSummary(true)
+                .setContentIntent(pendingIntent)
+                .build();
+
         defaultNotification = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
                 .setContentTitle(this.notificationTitle)
                 .setContentText(this.notificationContent)
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setPriority(BIND_IMPORTANT)
+                .setContentIntent(pendingIntent)
                 .setGroup(getPackageName())
-                .setGroupSummary(true)
-                .setContentIntent(pendingIntent);
+                .setOngoing(true);
 
-        return defaultNotification.build();
+        notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
+
+        return summaryNotification;
     }
 
     public void initUploadService(String options) {
