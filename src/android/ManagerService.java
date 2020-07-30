@@ -63,7 +63,7 @@ public class ManagerService extends Service {
     private boolean serviceIsRunning = false;
     private String notificationTitle = "Upload Service";
     private String notificationContent = "Background upload service running";
-    private String noNetwork = "Waiting for connection";
+    private String offlineNotificationContent = "Waiting for connection";
     private NotificationManager notificationManager;
     private NotificationCompat.Builder defaultNotification;
 
@@ -171,6 +171,7 @@ public class ManagerService extends Service {
                 JSONObject settings = new JSONObject(intent.getStringExtra("options"));
                 this.notificationTitle = settings.getString("notificationTitle");
                 this.notificationContent = settings.getString("notificationContent");
+                this.offlineNotificationContent = settings.getString("offlineNotificationContent");
             } catch (JSONException error) {
                 error.printStackTrace();
             }
@@ -202,7 +203,7 @@ public class ManagerService extends Service {
     }
 
     private void updateNotificationText() {
-        defaultNotification.setContentText(isNetworkAvailable ? this.notificationContent : this.noNetwork);
+        defaultNotification.setContentText(isNetworkAvailable ? this.notificationContent : this.offlineNotificationContent);
         notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
     }
 
