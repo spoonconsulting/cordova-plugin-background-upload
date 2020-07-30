@@ -154,8 +154,10 @@ public class ManagerService extends Service {
         long pendingUploadCount = PendingUpload.count(PendingUpload.class);
         if (pendingUploadCount == 0 && this.connectedPlugin == null) {
             Intent intent = new Intent(this, ManagerService.class);
-            this.requestObserver.unregister();
-            this.requestObserver = null;
+            if(this.requestObserver != null) {
+                this.requestObserver.unregister();
+                this.requestObserver = null;
+            }
             stopService(intent);
             return;
         }
