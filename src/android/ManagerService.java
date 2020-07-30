@@ -67,7 +67,6 @@ public class ManagerService extends Service {
     private NotificationManager notificationManager;
     private NotificationCompat.Builder defaultNotification;
 
-
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
     private static final int NOTIFICATION_ID = 8951;
 
@@ -119,6 +118,7 @@ public class ManagerService extends Service {
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
             stopServiceIfInactive();
+            updateNotificationText();
         }
 
         @Override
@@ -203,7 +203,16 @@ public class ManagerService extends Service {
     }
 
     private void updateNotificationText() {
-        defaultNotification.setContentText(isNetworkAvailable ? this.notificationContent : this.offlineNotificationContent);
+        long pendingUploadCount = PendingUpload.count(PendingUpload.class);
+        String notificationContent;
+
+        if (isNetworkAvailable) {
+            notificationContent = pendingUploadCount > 0 ? String.format("%d upload(s) remaining", pendingUploadCount) : this.notificationContent;
+        } else {
+            notificationContent = pendingUploadCount > 0 ? String.format("%d upload(s) remaining (offline)", pendingUploadCount) : this.offlineNotificationContent;
+        }
+
+        defaultNotification.setContentText(notificationContent);
         notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
     }
 
@@ -264,7 +273,7 @@ public class ManagerService extends Service {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, getPendingIntent()));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, getPendingIntent()));
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =
                 new ThreadPoolExecutor(
