@@ -26,6 +26,10 @@
             }];
         }
 
+        [self sendCallback:@{
+            @"state" : @"INITIALIZED"
+        }];
+
         for (UploadEvent* event in [UploadEvent allEvents]){
             [self uploadManagerDidReceiveCallback: [event dataRepresentation]];
         }
