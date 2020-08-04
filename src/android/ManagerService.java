@@ -214,11 +214,6 @@ public class ManagerService extends Service {
 
         }
 
-        JSONObject serviceState = new JSONObject(new HashMap() {{
-            put("state", "INITIALIZED");
-        }});
-        createAndSendEvent(serviceState);
-
         return START_NOT_STICKY;
     }
 
