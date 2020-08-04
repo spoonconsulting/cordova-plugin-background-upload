@@ -2,7 +2,7 @@
 set -o nounset
 set -o errexit
 
-npm install -g cordova npx forever
+npm install -g cordova@8.1.2 npx forever
 npm install
 
 # lint
