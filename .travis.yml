@@ -3,7 +3,7 @@ matrix:
   include:
     - os: osx
       language: objective-c
-      osx_image: xcode12u
+      osx_image: xcode11.2
       cache:
         bundler: true
         cocoapods: true
