@@ -193,12 +193,6 @@ public class ManagerService extends Service {
                         updateNotificationText();
                     });
         }
-
-        JSONObject serviceState = new JSONObject(new HashMap() {{
-            put("state", "INITIALIZED");
-        }});
-        createAndSendEvent(serviceState);
-
         return START_NOT_STICKY;
     }
 
