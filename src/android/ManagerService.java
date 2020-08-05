@@ -32,11 +32,13 @@ import net.gotev.uploadservice.observer.request.RequestObserverDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
 import net.gotev.uploadservice.protocols.multipart.MultipartUploadRequest;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -50,6 +52,14 @@ import java.util.concurrent.TimeUnit;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class ManagerService extends Service {
 
@@ -154,10 +164,11 @@ public class ManagerService extends Service {
     public void stopServiceIfInactive() {
         long pendingUploadCount = PendingUpload.count(PendingUpload.class);
         if (pendingUploadCount == 0 && this.connectedPlugin == null) {
-            Intent intent = new Intent(this, ManagerService.class);
-            this.requestObserver.unregister();
-            this.requestObserver = null;
-            stopService(intent);
+            if (this.requestObserver != null) {
+                this.requestObserver.unregister();
+                this.requestObserver = null;
+            }
+            stopService(new Intent(this, ManagerService.class));
             return;
         }
     }
@@ -289,7 +300,7 @@ public class ManagerService extends Service {
             }
             if (obj != null) {
                 logMessage(String.format("eventLabel='Uploader upload pending list' uploadId='%s'", upload.uploadId));
-                this.startUpload(upload.dataHash());
+                this.startUploadV2(upload.dataHash());
             }
         }
     }
@@ -345,6 +356,73 @@ public class ManagerService extends Service {
         }
 
         request.startUpload();
+    }
+
+    private void startUploadV2(HashMap<String, Object> payload) {
+        String uploadId = payload.get("id").toString();
+        String serverUrl = payload.get("serverUrl").toString();
+        String requestMethod = payload.get("requestMethod").toString();
+        File file = new File(payload.get("filePath").toString());
+
+        OkHttpClient client = new OkHttpClient();
+
+        try {
+            RequestBody requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                    .addFormDataPart("file", file.getName(),
+                            RequestBody.create(file, MediaType.parse("image/jpeg")))
+                    .addFormDataPart("some-field", "some-value")
+                    .build();
+
+            Request.Builder builder = new Request.Builder()
+                    .url(serverUrl)
+                    .method(requestMethod, requestBody);
+
+            try {
+                HashMap<String, Object> headers = convertToHashMap((JSONObject) payload.get("headers"));
+
+                for (String key : headers.keySet()) {
+                    builder.addHeader(key, headers.get(key).toString());
+                }
+            } catch (JSONException exception) {
+                sendAddingUploadError(uploadId, exception);
+            }
+
+            client.newCall(builder.build()).enqueue(new Callback() {
+
+                @Override
+                public void onResponse(@NotNull Call call, @NotNull Response response) {
+                    if (response.isSuccessful()) {
+                        if (response.code() == 200) {
+                            JSONObject data = new JSONObject(new HashMap() {{
+                                put("id", uploadId);
+                                put("state", "UPLOADED");
+                                put("serverResponse", response.body().toString());
+                                put("statusCode", response.code());
+                            }});
+
+                            deletePendingUploadAndSendEvent(data);
+                        }
+                    } else {
+                        String errorMsg = response.message() != null ? response.message() : "unknown exception";
+                        JSONObject data = new JSONObject(new HashMap() {{
+                            put("id", uploadId);
+                            put("state", "FAILED");
+                            put("error", "upload failed: " + errorMsg);
+                            put("errorCode", response.code());
+                        }});
+
+                        deletePendingUploadAndSendEvent(data);
+                    }
+                }
+
+                @Override
+                public void onFailure(final Call call, final IOException e) {
+                    sendAddingUploadError(uploadId, e);
+                }
+            });
+        } catch (Exception exception) {
+            sendAddingUploadError(uploadId, exception);
+        }
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {
@@ -441,7 +519,7 @@ public class ManagerService extends Service {
         }
 
         PendingUpload.create(jsonPayload);
-        startUpload(payload);
+        startUploadV2(payload);
     }
 
     public void removeUpload(String uploadId) {
