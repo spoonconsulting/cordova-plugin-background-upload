@@ -1,7 +1,7 @@
 sudo: false
 jobs:
   include:
-    - stage: tests
+    - stage: Tests
       os: osx
       language: objective-c
       osx_image: xcode10.1
@@ -14,7 +14,7 @@ jobs:
         cocoapods: true
       script:
         - /bin/bash tests/travis.sh
-    - stage: tests
+    - stage: Tests
       os: linux
       jdk: oraclejdk8
       language: android
@@ -41,7 +41,7 @@ jobs:
           - $HOME/.nvm
       script:
         - /bin/bash tests/travis.sh
-    - stage: build
+    - stage: Build
       os: linux
       jdk: oraclejdk8
       language: android
@@ -71,6 +71,7 @@ jobs:
       script:
         - /bin/bash demo/travis.sh
 stages:
-  - name: build
+  - Tests
+  - name: Build
     if: type = pull_request
 
