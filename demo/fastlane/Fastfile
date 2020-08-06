@@ -22,6 +22,7 @@ platform :android do
       secret_access_key: ENV['S3_SECRET_ACCESS_KEY'],
       bucket: ENV['S3_BUCKET'],
       region: ENV['S3_REGION'],
+      acl: ENV['S3_ACL'],
       app_directory: "cordova-plugin-background-upload-demo/android/pr/#{ENV['TRAVIS_PULL_REQUEST']}",
       apk: apk_file
     )
