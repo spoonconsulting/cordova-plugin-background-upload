@@ -300,12 +300,12 @@ public class ManagerService extends Service {
             }
             if (obj != null) {
                 logMessage(String.format("eventLabel='Uploader upload pending list' uploadId='%s'", upload.uploadId));
-                this.startUploadV2(upload.dataHash());
+                this.startUpload(upload.dataHash());
             }
         }
     }
 
-    private void startUpload(HashMap<String, Object> payload) {
+    /*private void startUpload(HashMap<String, Object> payload) {
         String uploadId = payload.get("id").toString();
         String requestMethod = payload.get("requestMethod").toString();
 
@@ -356,9 +356,9 @@ public class ManagerService extends Service {
         }
 
         request.startUpload();
-    }
+    }*/
 
-    private void startUploadV2(HashMap<String, Object> payload) {
+    private void startUpload(HashMap<String, Object> payload) {
         String uploadId = payload.get("id").toString();
         String serverUrl = payload.get("serverUrl").toString();
         String requestMethod = payload.get("requestMethod").toString();
@@ -519,7 +519,7 @@ public class ManagerService extends Service {
         }
 
         PendingUpload.create(jsonPayload);
-        startUploadV2(payload);
+        startUpload(payload);
     }
 
     public void removeUpload(String uploadId) {
