@@ -117,8 +117,8 @@ public class ManagerService extends Service {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
-            stopServiceIfInactive();
             updateNotificationText();
+            stopServiceIfInactive();
         }
 
         @Override
