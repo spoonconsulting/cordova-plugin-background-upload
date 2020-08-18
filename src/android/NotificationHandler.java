@@ -2,6 +2,7 @@ package com.spoon.backgroundfileupload;
 
 import android.app.Activity;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.res.Resources;
 import android.widget.RemoteViews;
 
@@ -24,10 +25,12 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
     private long uploadCount = 0;
     private String defaultTitle;
     private String defaultContent;
+    private PendingIntent mPendingIntent;
 
-    public NotificationHandler(@NotNull UploadService service, Activity context, String defaultTitle, String defaultContent) {
+    public NotificationHandler(@NotNull UploadService service, Activity context, PendingIntent pendingIntent, String defaultTitle, String defaultContent) {
         super(service);
         this.mContext = context;
+        this.mPendingIntent = pendingIntent;
         this.defaultTitle = defaultTitle;
         this.defaultContent = defaultContent;
     }
@@ -54,7 +57,6 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         for (Map.Entry<String, TaskData> entry : tasks.entrySet()) {
             if (entry.getValue().getStatus() == TaskStatus.InProgress) {
                 inProgress++;
-
                 speed += convertUnitToKbps(
                         entry.getValue().getInfo().getUploadRate().getUnit().name(),
                         entry.getValue().getInfo().getUploadRate().getValue()
@@ -89,7 +91,8 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         return builder
                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomContentView(notificationLayout)
-                .setSmallIcon(android.R.drawable.ic_menu_upload);
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setContentIntent(mPendingIntent);
     }
 
     private float convertUnitToKbps(String unit, int speed) {
@@ -98,35 +101,21 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         final String MPS = UploadRate.UploadRateUnit.MegabitPerSecond.name();
 
         float value = 0;
-
-        if (unit == BPS) {
-            value = speed / 8000f;
-        }
-
-        if (unit == KPS) {
-            value = speed / 8;
-        }
-
-        if (unit == MPS) {
-            value = speed * 125;
-        }
+        if (unit == BPS) { value = speed / 8000f; }
+        if (unit == KPS) { value = speed / 8; }
+        if (unit == MPS) { value = speed * 125; }
 
         return value;
     }
 
     private String toReadable(float speed) {
-        final String BPS = "bps";
-        final String KBPS = "kbps";
-        final String MBPS = "Mbps";
+        final String BPS = "B/s";
+        final String KBPS = "kB/s";
+        final String MBPS = "MB/s";
 
-        if (speed >= 1000) {
-            return String.format("%d %s", (int) (speed / 1000), MBPS);
-        }
+        if (speed >= 1000) { return String.format("%.0f %s", speed / 1000, MBPS); }
+        if (speed < 1) { return String.format("%.0f %s", speed * 1000, BPS); }
 
-        if (speed < 1) {
-            return String.format("%d %s", (int) (speed * 1000), BPS);
-        }
-
-        return String.format("%d %s", (int) speed, KBPS);
+        return String.format("%.0f %s", speed, KBPS);
     }
 }

@@ -27,10 +27,10 @@ export class HomePage {
 
       this.uploader = FileTransferManager.init({
         parallelUploadsLimit: 2,
-        foregroundTitle: 'Upload service',
-        foregroundContent: 'Background upload service running'
+        notificationTitle: 'Upload service',
+        notificationContent: 'Background upload service running'
       }, event => {
-        console.log('EVENT');
+        console.log('EVENT', event);
         const correspondingMedia = this.getMediaWithId(event.id);
         if (!correspondingMedia) return;
 

@@ -9,9 +9,9 @@ const handleUpload = (req, res, next) => {
   let response = {
     originalFilename: null,
     accessMode: 'public',
-    height: 1067,
+    height: 4048,
     grayscale: false,
-    width: 800,
+    width: 3036,
     headers: req.headers,
     parameters: {}
   }
@@ -26,7 +26,7 @@ const handleUpload = (req, res, next) => {
   });
 
   busboy.on('finish', function() {
-    res.status(req.method == 'POST' ? 210 : 200).send(JSON.stringify({ receivedInfo: response }))
+    res.status(req.method == 'POST' ? 201 : 200).send(JSON.stringify({ receivedInfo: response }))
   });
 
   return req.pipe(busboy);
