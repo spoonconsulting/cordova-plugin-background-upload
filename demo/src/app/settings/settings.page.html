@@ -1,0 +1,61 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Settings</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-buttons slot="end">
+      <ion-button (click)="save()">Save</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+ <ion-list>
+  <ion-radio-group [(ngModel)]="selectedOption">
+    <ion-list-header>
+      <ion-label class="text-bigger">Options</ion-label>
+    </ion-list-header>
+    <ion-item>
+      <ion-label>Default</ion-label>
+      <ion-radio slot="start" value="default"></ion-radio>
+    </ion-item>
+    <ion-item>
+      <ion-label>Custom</ion-label>
+      <ion-radio slot= "start" value="custom"></ion-radio>
+    </ion-item>
+  </ion-radio-group>
+  <ng-container *ngIf="selectedOption == 'custom'">
+    <ion-item>
+      <ion-label position="floating">Server URL</ion-label>
+      <ion-input type="url" [(ngModel)]="customOptions.serverUrl"></ion-input>
+    </ion-item>
+    <ion-item>
+     <ion-label position="floating">File Key (eg: image)</ion-label>
+     <ion-input [(ngModel)]="customOptions.fileKey"></ion-input>
+    </ion-item>
+    <ion-radio-group [(ngModel)]="customOptions.requestMethod">
+      <ion-list-header>
+        <ion-label>Request Method</ion-label>
+      </ion-list-header>
+      <ion-item>
+        <ion-label>POST</ion-label>
+        <ion-radio slot="start" value="POST"></ion-radio>
+      </ion-item>
+      <ion-item>
+        <ion-label>PUT</ion-label>
+        <ion-radio slot= "start" value="PUT"></ion-radio>
+      </ion-item>
+    </ion-radio-group>
+    <ion-item>
+      <ion-label>Headers</ion-label>
+      <ion-button (click)="addCustomHeader()"> + </ion-button>
+    </ion-item>
+    <ion-item *ngFor="let header of customOptions.headers">
+      <ion-input [(ngModel)]="header.key" placeholder="Key"></ion-input>
+      <ion-input [(ngModel)]="header.value" placeholder="value"></ion-input>
+      <ion-button color="danger" (click)="removeCustomHeader(header.id)"> - </ion-button>
+    </ion-item>
+  </ng-container>
+ </ion-list>
+</ion-content>

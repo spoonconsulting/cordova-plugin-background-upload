@@ -1,9 +1,13 @@
-import { Component, NgZone, ViewChild, ElementRef} from '@angular/core';
+import { Component, NgZone, ViewChild, ElementRef, OnInit} from '@angular/core';
 import { ImagePicker } from '@ionic-native/image-picker/ngx';
 import { WebView } from '@ionic-native/ionic-webview/ngx';
-import { Platform } from '@ionic/angular';
+import { NativeStorage } from '@ionic-native/native-storage/ngx';
+
+import { Platform, NavController } from '@ionic/angular';
 
 import { Media } from '../model/media';
+import { Options } from '../model/options';
+import { EventsService } from '../services/events.service';
 
 declare var FileTransferManager: any;
 
@@ -13,16 +17,26 @@ declare var FileTransferManager: any;
   styleUrls: ['home.page.scss'],
 })
 
-export class HomePage {
+export class HomePage implements OnInit {
 
   allMedia: Array<Media> = [];
   pendingMedia: Array<Media> = [];
   logs: Array<String> = [];
   uploader: any;
+  uploadOptions: Options;
+  uploadUseCustomOptions: boolean;
 
   @ViewChild('logs_container', {read: ElementRef, static: true }) logsContainer: ElementRef;
 
-  constructor(private platform: Platform, private _ngZone: NgZone, private imgPicker: ImagePicker, private webView: WebView) {
+  constructor(
+    private platform: Platform, 
+    private _ngZone: NgZone, 
+    private events: EventsService,
+    private navController: NavController, 
+    private imgPicker: ImagePicker, 
+    private webView: WebView, 
+    private nativeStorage: NativeStorage) {
+
     this.platform.ready().then(() => {
 
       this.uploader = FileTransferManager.init({
@@ -30,7 +44,6 @@ export class HomePage {
         notificationTitle: 'Upload service',
         notificationContent: 'Background upload service running'
       }, event => {
-        console.log('EVENT', event);
         const correspondingMedia = this.getMediaWithId(event.id);
         if (!correspondingMedia) return;
 
@@ -54,12 +67,17 @@ export class HomePage {
           this.uploader.acknowledgeEvent(event.eventId);
       });
     })
+
+    this.events.getUploadOptionsChange().subscribe(() =>  { this.loadUploadOptions() });
+  }
+
+  ngOnInit() {
+    this.loadUploadOptions();
   }
 
   cancelUpload(media: Media): void {
     this.uploader.removeUpload(media.id, res => {
       media.updateStatus("Aborted");
-      console.log('removeUpload result: ', res);
       this.log("Upload: " + media.id + " aborted");
     }, err => alert('Error removing upload'));
   }
@@ -80,22 +98,14 @@ export class HomePage {
 
   startUpload(media: Media) {
     const options: any = {
-      serverUrl: "https://en7paaa03bwd.x.pipedream.net/",
+      serverUrl: this.uploadOptions.serverUrl,
       filePath: media.uri,
-      fileKey: "file",
+      fileKey: this.uploadOptions.fileKey,
       id: media.id,
       notificationTitle: "Uploading image (Job 0)",
-      headers: {},
-      parameters: {
-        colors: 1,
-        faces: 1,
-        image_metadata: 1,
-        phash: 1,
-        signature: "924736486",
-        tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
-        timestamp: 1572858811,
-        type: "authenticated"
-      }
+      headers: this.getHeadersHash(this.uploadOptions.headers),
+      parameters: this.uploadOptions.parameters,
+      requestMethod: this.uploadOptions.requestMethod
     };
     this.uploader.startUpload(options);
     media.updateStatus("Uploading...");
@@ -135,6 +145,50 @@ export class HomePage {
     }
   }
 
+  openSettings() {
+    this.navController.navigateForward('/settings');
+  }
+
+  private async loadUploadOptions() {
+    this.uploadUseCustomOptions = false;
+    this.uploadOptions = {
+      serverUrl: 'https://en7paaa03bwd.x.pipedream.net/',
+      fileKey: 'file',
+      requestMethod: 'POST',
+      headers: [],
+      parameters: {
+        colors: 1,
+        faces: 1,
+        image_metadata: 1,
+        phash: 1,
+        signature: "924736486",
+        tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
+        timestamp: 1572858811,
+        type: "authenticated"
+      }
+    }
+
+    try {
+      this.uploadUseCustomOptions = await this.nativeStorage.getItem('upload_use_custom_options');
+      
+      if(this.uploadUseCustomOptions) {
+        const uploadCustomOptions = await this.nativeStorage.getItem('upload_custom_options');
+        if(uploadCustomOptions) {
+          this.uploadOptions = uploadCustomOptions
+        }
+      }
+      
+    }catch(error) {}
+
+    console.log('this.uploadOptions', this.uploadOptions);
+  }
+
+  private getHeadersHash(headers: Options["headers"]) {
+    const headersHash = {};
+    headers.forEach(header => headersHash[header.key] = header.value)
+    return headersHash;
+  }
+
   private getMediaWithId(mediaId) {
     return this.allMedia.find(media => media.id == mediaId);
   }
@@ -144,7 +198,6 @@ export class HomePage {
   }
 
   private log(message: String) {
-    console.log(message);
     this._ngZone.run(() => {
       this.logs.push(message);
       setTimeout(() => {
