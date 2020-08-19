@@ -74,6 +74,7 @@ public class ManagerService extends Service {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
             Long currentTimestamp = System.currentTimeMillis() / 1000;
+
             if (currentTimestamp - lastProgressTimestamp >= 1) {
                 lastProgressTimestamp = currentTimestamp;
                 JSONObject data = new JSONObject(new HashMap() {{
@@ -268,7 +269,7 @@ public class ManagerService extends Service {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, getPendingIntent()));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, getPendingIntent(), getPackageName()));
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =
                 new ThreadPoolExecutor(

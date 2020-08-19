@@ -20,11 +20,13 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
 
     private float speed = 0;
     private int inProgress = 0;
+    private String mPackageName;
     private PendingIntent mPendingIntent;
 
-    public NotificationHandler(@NotNull UploadService service, PendingIntent pendingIntent) {
+    public NotificationHandler(@NotNull UploadService service, PendingIntent pendingIntent, String packageName) {
         super(service);
         this.mPendingIntent = pendingIntent;
+        this.mPackageName = packageName;
     }
 
     @Override
@@ -52,7 +54,8 @@ public class NotificationHandler extends AbstractSingleNotificationHandler {
         return builder
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
                 .setContentTitle(String.format("Uploading %d at %s", inProgress, toReadable(speed)))
-                .setContentIntent(mPendingIntent);
+                .setContentIntent(mPendingIntent)
+                .setGroup(mPackageName);
     }
 
     private float convertUnitToKbps(String unit, int speed) {
