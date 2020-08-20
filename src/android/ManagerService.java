@@ -169,6 +169,8 @@ public class ManagerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.e(TAG, "serviceIsRunning: " + this.serviceIsRunning);
+        
         if (!this.serviceIsRunning) {
             this.serviceIsRunning = true;
 
