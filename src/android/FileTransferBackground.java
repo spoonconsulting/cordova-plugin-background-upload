@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -79,8 +80,10 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
             this.managerService.setConnectedPlugin(null);
             cordova.getActivity().unbindService(this);
             this.managerService = null;
+            Log.e("ManagerServiceTag", "Destroy finished");
         } catch (Exception e) {
             e.printStackTrace();
+            Log.e("ManagerServiceTag", "Exception on destroy: " + e.getMessage());
         }
     }
 
