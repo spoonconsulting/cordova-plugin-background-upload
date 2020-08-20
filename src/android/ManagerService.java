@@ -195,7 +195,7 @@ public class ManagerService extends Service {
                             uploadPendingList();
                         }
 
-                        updateNotificationText();
+                        //updateNotificationText();
                     });
         }
         return START_NOT_STICKY;
@@ -250,8 +250,8 @@ public class ManagerService extends Service {
                 .build();
 
         defaultNotification = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
-                .setContentTitle(this.notificationTitle)
-                .setContentText(this.notificationContent)
+                .setContentTitle("Tmp title")
+                .setContentText("Tmp text")
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
                 .setPriority(BIND_IMPORTANT)
                 .setContentIntent(pendingIntent)
