@@ -170,7 +170,7 @@ public class ManagerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.e(TAG, "serviceIsRunning: " + this.serviceIsRunning);
-        
+
         if (!this.serviceIsRunning) {
             this.serviceIsRunning = true;
 
@@ -260,7 +260,17 @@ public class ManagerService extends Service {
                 .setGroup(getPackageName())
                 .setOngoing(true);
 
+        NotificationCompat.Builder defaultNotification2 = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
+                .setContentTitle("Title 2")
+                .setContentText("Text 2")
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setPriority(BIND_IMPORTANT)
+                .setContentIntent(pendingIntent)
+                .setGroup(getPackageName())
+                .setOngoing(true);
+
         notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
+        notificationManager.notify(0007, defaultNotification2.build());
 
         return summaryNotification;
     }
