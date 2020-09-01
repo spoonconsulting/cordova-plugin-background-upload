@@ -70,8 +70,6 @@ public class ManagerService extends Service {
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
     private static final int NOTIFICATION_ID = 8951;
 
-    private String TAG = "ManagerServiceTag";
-
     private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
@@ -162,16 +160,12 @@ public class ManagerService extends Service {
                 this.requestObserver = null;
             }
             stopService(new Intent(this, ManagerService.class));
-            defaultNotification = null;
-            Log.e(TAG, "Upload service stopped");
             return;
         }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.e(TAG, "serviceIsRunning: " + this.serviceIsRunning);
-
         if (!this.serviceIsRunning) {
             this.serviceIsRunning = true;
 
@@ -198,28 +192,24 @@ public class ManagerService extends Service {
                             uploadPendingList();
                         }
 
-                        //updateNotificationText();
+                        updateNotificationText();
                     });
         }
         return START_NOT_STICKY;
     }
 
     private void updateNotificationText() {
-        Log.e(TAG, "Start updateNotificationText");
         long pendingUploadCount = PendingUpload.count(PendingUpload.class);
         String notificationContent;
 
         if (isNetworkAvailable) {
             notificationContent = pendingUploadCount > 0 ? String.format("%d upload(s) remaining", pendingUploadCount) : this.notificationContent;
-            Log.e(TAG, "isNetworkAvailable should be true: " + isNetworkAvailable);
         } else {
             notificationContent = pendingUploadCount > 0 ? String.format("%d upload(s) remaining (offline)", pendingUploadCount) : this.offlineNotificationContent;
-            Log.e(TAG, "isNetworkAvailable should be false: " + isNetworkAvailable);
         }
 
         defaultNotification.setContentText(notificationContent);
         notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
-        Log.e(TAG, "Done with updateNotificationText");
     }
 
     private void startForegroundNotification() {
@@ -245,11 +235,6 @@ public class ManagerService extends Service {
                 .setGroup(getPackageName())
                 .setGroupSummary(true)
                 .setContentIntent(pendingIntent)
-                .setStyle(new NotificationCompat.InboxStyle()
-                        .addLine("Line 1")
-                        .addLine("Line 2")
-                        .setBigContentTitle("Content title")
-                        .setSummaryText("Summary text"))
                 .build();
 
         defaultNotification = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
