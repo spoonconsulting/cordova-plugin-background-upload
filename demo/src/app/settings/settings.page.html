@@ -11,51 +11,37 @@
 </ion-header>
 
 <ion-content>
+ <p class="text-bigger">Upload Target</p>
  <ion-list>
-  <ion-radio-group [(ngModel)]="selectedOption">
+  <ion-item>
+    <ion-label position="floating">Server URL</ion-label>
+    <ion-input type="url" [(ngModel)]="options.serverUrl"></ion-input>
+  </ion-item>
+  <ion-item>
+   <ion-label position="floating">File Key (eg: image)</ion-label>
+   <ion-input [(ngModel)]="options.fileKey"></ion-input>
+  </ion-item>
+  <ion-radio-group [(ngModel)]="options.requestMethod">
     <ion-list-header>
-      <ion-label class="text-bigger">Upload Target</ion-label>
+      <ion-label>Request Method</ion-label>
     </ion-list-header>
     <ion-item>
-      <ion-label>Default</ion-label>
-      <ion-radio slot="start" value="default"></ion-radio>
+      <ion-label>POST</ion-label>
+      <ion-radio slot="start" value="POST"></ion-radio>
     </ion-item>
     <ion-item>
-      <ion-label>Custom</ion-label>
-      <ion-radio slot= "start" value="custom"></ion-radio>
+      <ion-label>PUT</ion-label>
+      <ion-radio slot= "start" value="PUT"></ion-radio>
     </ion-item>
   </ion-radio-group>
-  <ng-container *ngIf="selectedOption == 'custom'">
-    <ion-item>
-      <ion-label position="floating">Server URL</ion-label>
-      <ion-input type="url" [(ngModel)]="customOptions.serverUrl"></ion-input>
-    </ion-item>
-    <ion-item>
-     <ion-label position="floating">File Key (eg: image)</ion-label>
-     <ion-input [(ngModel)]="customOptions.fileKey"></ion-input>
-    </ion-item>
-    <ion-radio-group [(ngModel)]="customOptions.requestMethod">
-      <ion-list-header>
-        <ion-label>Request Method</ion-label>
-      </ion-list-header>
-      <ion-item>
-        <ion-label>POST</ion-label>
-        <ion-radio slot="start" value="POST"></ion-radio>
-      </ion-item>
-      <ion-item>
-        <ion-label>PUT</ion-label>
-        <ion-radio slot= "start" value="PUT"></ion-radio>
-      </ion-item>
-    </ion-radio-group>
-    <ion-item>
-      <ion-label>Headers</ion-label>
-      <ion-button (click)="addCustomHeader()"> + </ion-button>
-    </ion-item>
-    <ion-item *ngFor="let header of customOptions.headers">
-      <ion-input [(ngModel)]="header.key" placeholder="Key"></ion-input>
-      <ion-input [(ngModel)]="header.value" placeholder="value"></ion-input>
-      <ion-button color="danger" (click)="removeCustomHeader(header.id)"> - </ion-button>
-    </ion-item>
-  </ng-container>
+  <ion-item>
+    <ion-label>Headers</ion-label>
+    <ion-button (click)="addHeader()"> + </ion-button>
+  </ion-item>
+  <ion-item *ngFor="let header of options.headers">
+    <ion-input [(ngModel)]="header.key" placeholder="Key"></ion-input>
+    <ion-input [(ngModel)]="header.value" placeholder="value"></ion-input>
+    <ion-button color="danger" (click)="removeHeader(header.id)"> - </ion-button>
+  </ion-item>
  </ion-list>
 </ion-content>

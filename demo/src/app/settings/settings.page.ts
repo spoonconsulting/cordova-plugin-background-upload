@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { NavController } from '@ionic/angular';
 import { NativeStorage } from '@ionic-native/native-storage/ngx';
-import { Options } from '../model/options';
+import { Options, DEFAULT as DEFAULT_OPTIONS } from '../model/options';
 import { EventsService } from '../services/events.service';
 
 @Component({
@@ -11,47 +11,34 @@ import { EventsService } from '../services/events.service';
 })
 export class SettingsPage implements OnInit {
 
-  selectedOption: 'default' | 'custom' = 'default';
-  customOptions : Options = {
-    serverUrl: 'https://en7paaa03bwd.x.pipedream.net',
-    fileKey: 'file',
-    requestMethod: 'POST',
-    headers: [],
-    parameters: {},
-  }
+  options : Options = DEFAULT_OPTIONS;
 
   constructor(private events:EventsService, private nativeStorage: NativeStorage, private navController: NavController) { }
 
   async ngOnInit() {
     try {
-      const customOptions = await this.nativeStorage.getItem('upload_custom_options');
-      const useCustomOption = await this.nativeStorage.getItem('upload_use_custom_options');
-
-      if(customOptions) this.customOptions = customOptions;
-      this.selectedOption = useCustomOption ? 'custom' : 'default';
-
+      const options = await this.nativeStorage.getItem('upload_options');
+      if(options) this.options = options;
     }catch(error) {}
-
   }
 
-  addCustomHeader() {
-    const customHeaders = this.customOptions.headers;
-    const lastCustomHeaderId = customHeaders.length > 0 ? customHeaders[customHeaders.length -1].id : - 1;
+  addHeader() {
+    const headers = this.options.headers;
+    const lastHeaderId = headers.length > 0 ? headers[headers.length -1].id : - 1;
 
-    this.customOptions.headers.push({
-      id: lastCustomHeaderId + 1,
+    this.options.headers.push({
+      id: lastHeaderId + 1,
       key: '',
       value: ''
     });
   }
 
-  removeCustomHeader(id) {
-    this.customOptions.headers = this.customOptions.headers.filter(header => header.id != id);
+  removeHeader(id) {
+    this.options.headers = this.options.headers.filter(header => header.id != id);
   }
 
   save() {
-    this.nativeStorage.setItem('upload_custom_options', this.customOptions);
-    this.nativeStorage.setItem('upload_use_custom_options', this.selectedOption == 'default' ? false : true);
+    this.nativeStorage.setItem('upload_options', this.options);
     this.events.publishUploadOptionsChange(true);
     this.navController.back();
   }

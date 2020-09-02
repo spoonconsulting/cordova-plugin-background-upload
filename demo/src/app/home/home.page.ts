@@ -6,7 +6,7 @@ import { NativeStorage } from '@ionic-native/native-storage/ngx';
 import { Platform, NavController } from '@ionic/angular';
 
 import { Media } from '../model/media';
-import { Options } from '../model/options';
+import { Options, DEFAULT as DEFAULT_OPTIONS } from '../model/options';
 import { EventsService } from '../services/events.service';
 
 declare var FileTransferManager: any;
@@ -23,8 +23,7 @@ export class HomePage implements OnInit {
   pendingMedia: Array<Media> = [];
   logs: Array<String> = [];
   uploader: any;
-  uploadOptions: Options;
-  uploadUseCustomOptions: boolean;
+  uploadOptions: Options = DEFAULT_OPTIONS; 
 
   @ViewChild('logs_container', {read: ElementRef, static: true }) logsContainer: ElementRef;
 
@@ -102,7 +101,7 @@ export class HomePage implements OnInit {
       filePath: media.uri,
       fileKey: this.uploadOptions.fileKey,
       id: media.id,
-      notificationTitle: "Uploading image (Job 0)",
+      notificationTitle: "Uploading image",
       headers: this.getHeadersHash(this.uploadOptions.headers),
       parameters: this.uploadOptions.parameters,
       requestMethod: this.uploadOptions.requestMethod
@@ -110,11 +109,6 @@ export class HomePage implements OnInit {
     this.uploader.startUpload(options);
     media.updateStatus("Uploading...");
     this.log("Upload: " + media.id + " start");
-  }
-
-  retryUpload(media: Media) {
-    media.updateStatus(null);
-    this.startUpload(media);
   }
 
   removeUpload(media: Media) {
@@ -130,57 +124,15 @@ export class HomePage implements OnInit {
     }
   }
 
-  canActOnMedia(actionName: string, media:Media ):boolean {
-    switch(actionName) {
-      case 'startUpload':
-        return !media.status;
-      case 'retryUpload':
-        return media.status && media.status.indexOf('Error') > -1;
-      case 'cancelUpload':
-        return media.status && media.status.indexOf('%') > -1;
-      case 'removeUpload':
-        return !media.status || (media.status && media.status.indexOf('%') < 0);  
-      default:
-        return true;
-    }
-  }
-
   openSettings() {
     this.navController.navigateForward('/settings');
   }
 
   private async loadUploadOptions() {
-    this.uploadUseCustomOptions = false;
-    this.uploadOptions = {
-      serverUrl: 'https://en7paaa03bwd.x.pipedream.net/',
-      fileKey: 'file',
-      requestMethod: 'POST',
-      headers: [],
-      parameters: {
-        colors: 1,
-        faces: 1,
-        image_metadata: 1,
-        phash: 1,
-        signature: "924736486",
-        tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
-        timestamp: 1572858811,
-        type: "authenticated"
-      }
-    }
-
     try {
-      this.uploadUseCustomOptions = await this.nativeStorage.getItem('upload_use_custom_options');
-      
-      if(this.uploadUseCustomOptions) {
-        const uploadCustomOptions = await this.nativeStorage.getItem('upload_custom_options');
-        if(uploadCustomOptions) {
-          this.uploadOptions = uploadCustomOptions
-        }
-      }
-      
+      const uploadOptions = await this.nativeStorage.getItem('upload_options');
+      if(uploadOptions) this.uploadOptions = uploadOptions;
     }catch(error) {}
-
-    console.log('this.uploadOptions', this.uploadOptions);
   }
 
   private getHeadersHash(headers: Options["headers"]) {
