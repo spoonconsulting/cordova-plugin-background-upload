@@ -1,69 +1,51 @@
-import {
-  Component,
-  NgZone
-} from '@angular/core';
-
-import {
-  NavController
-} from 'ionic-angular';
-import {
-  ImagePicker
-} from 'ionic-native';
-import {
-  Platform
-} from 'ionic-angular';
-
+import { Component, NgZone} from '@angular/core';
+import { ImagePicker } from '@ionic-native/image-picker/ngx';
+import { Platform } from '@ionic/angular';
 
 declare var FileTransferManager: any;
 
 @Component({
-  selector: 'page-home',
-  templateUrl: 'home.html'
+  selector: 'app-home',
+  templateUrl: 'home.page.html',
+  styleUrls: ['home.page.scss'],
 })
+
 export class HomePage {
 
   allMedia: Array < Media > = [];
   uploader: any;
+  win: any = window;
 
-  constructor(private platform: Platform, private _navCtrl: NavController, private _ngZone: NgZone) {
+  constructor(private platform: Platform, private _ngZone: NgZone, private imgPicker: ImagePicker) {
+    this.platform.ready().then(() => {
+      let self = this;
 
-    let self = this;
-    setTimeout(() => {
-      self.uploader = FileTransferManager.init();
-
-      self.uploader.on('success', function (upload) {
-        console.log("upload: " + upload.id + " has been completed successfully");
-        console.log(upload.serverResponse);
-        var correspondingMedia = self.getMediaWithId(upload.id);
-        if (correspondingMedia) {
+      self.uploader = FileTransferManager.init({
+        parallelUploadsLimit: 1
+      }, event => {
+        console.log('EVENT');
+        if (event.state == 'UPLOADED') {
+          console.log("upload: " + event.id + " has been completed successfully");
+          console.log(event.statusCode, event.serverResponse);
+          var correspondingMedia = self.getMediaWithId(event.id);
           correspondingMedia.updateStatus("uploaded successfully");
-        }
-      });
-
-      self.uploader.on('progress', function (upload) {
-        console.log("uploading: " + upload.id + " progress: " + upload.progress + "%");
-        var correspondingMedia = self.getMediaWithId(upload.id);
-        if (correspondingMedia) {
-          correspondingMedia.updateStatus("uploading: " + upload.progress + "%");
-        }
-      });
-
-      self.uploader.on('error', function (uploadException) {
-        if (uploadException.id) {
-          console.log("upload: " + uploadException.id + " has failed");
-          var correspondingMedia = self.getMediaWithId(uploadException.id);
-          if (correspondingMedia)
+        } else if (event.state == 'FAILED') {
+          if (event.id) {
+            console.log("upload: " + event.id + " has failed");
+            var correspondingMedia = self.getMediaWithId(event.id);
             correspondingMedia.updateStatus("Error while uploading");
-
-        } else {
-          console.error("uploader caught an error: " + uploadException.error);
+          } else {
+            console.error("uploader caught an error: " + event.error);
+          }
+        } else if (event.state == 'UPLOADING') {
+          console.log("uploading: " + event.id + " progress: " + event.progress + "%");
+          var correspondingMedia = self.getMediaWithId(event.id);
+          correspondingMedia.updateStatus("uploading: " + event.progress + "%");
         }
-
+        if (event.eventId)
+          self.uploader.acknowledgeEvent(event.eventId);
       });
-    }, 1000);
-
-
-
+    })
   }
 
   private getMediaWithId(mediaId) {
@@ -72,55 +54,55 @@ export class HomePage {
         return media;
       }
     }
-
     return null;
   }
 
-  
-  private cancelUpload(media: Media): void {
-    this.uploader.removeUpload(media.id, res=>{
+  cancelUpload(media: Media): void {
+    this.uploader.removeUpload(media.id, res => {
       console.log('removeUpload result: ', res);
       media.updateStatus("Aborted");
-    },err=>alert('Error removing upload'));  
+    }, err => alert('Error removing upload'));
   }
 
-  private openGallery(): void {
-
+  openGallery(): void {
     var self = this;
 
-    ImagePicker.getPictures({
+    var options = {
+      width: 200,
+      quality: 25
+    };
+
+    self.imgPicker.getPictures({
       maximumImagesCount: 3
-    }).then(
-      file_uris => {
-        for (var i = 0; i < file_uris.length; i++) {
-          var media = new Media(file_uris[i], this._ngZone);
-          this.allMedia.push(media);
+    }).then(file_uris => {
+      for (var i = 0; i < file_uris.length; i++) {
+        let path = this.win.Ionic.WebView.convertFileSrc(file_uris[i]);
+        var media = new Media(path, this._ngZone);
+        this.allMedia.push(media);
 
-          var options: any = {
-            serverUrl: "https://putsreq.com/efxwhEHBaJJeXNwkOxS8/",
-            filePath: file_uris[i],
-            fileKey: "file",
-            id: media.id,
-            headers: {
-            },
-            parameters: {
-              
-            }
-          };
-
-          self.uploader.startUpload(options);
-        }
-      },
-      err => console.log('err: ' + err)
-    );
-
-
-
+        var options: any = {
+          serverUrl: "http://requestbin.net/r/1me11dr1",
+          filePath: file_uris[i],
+          fileKey: "file",
+          id: media.id,
+          notificationTitle: "Uploading image (Job 0)",
+          headers: {},
+          parameters: {
+            colors: 1,
+            faces: 1,
+            image_metadata: 1,
+            phash: 1,
+            signature: "924736486",
+            tags: "device_id_F13F74C5-4F03-B800-2F76D3C37B27",
+            timestamp: 1572858811,
+            type: "authenticated"
+          }
+        };
+        self.uploader.startUpload(options);
+      }
+    }, err => console.log('err: ' + err));
   }
-
-
 }
-
 
 export class Media {
 
@@ -146,5 +128,4 @@ export class Media {
       this.status = stat;
     });
   }
-
 }

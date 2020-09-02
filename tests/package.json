@@ -1,0 +1,14 @@
+{
+  "name": "tests",
+  "version": "0.0.1",
+  "description": "tests for cordova-plugin-background-upload",
+  "cordova": {
+    "id": "cordova-plugin-background-upload-tests",
+    "platforms": []
+  },
+  "keywords": [
+    "ecosystem:cordova"
+  ],
+  "author": "Spoon Consulting Ltd",
+  "license": "Apache-2.0"
+}
