@@ -1,5 +1,5 @@
 {
-  "name": "cordova-plugin-background-upload",
+  "name": "@spoonconsulting/cordova-plugin-background-upload",
   "version": "2.0.0",
   "description": "Cordova plugin for uploading file in the background",
   "cordova": {
