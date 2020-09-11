@@ -30,14 +30,12 @@ import net.gotev.uploadservice.network.ServerResponse;
 import net.gotev.uploadservice.observer.request.GlobalRequestObserver;
 import net.gotev.uploadservice.observer.request.RequestObserverDelegate;
 import net.gotev.uploadservice.okhttp.OkHttpStack;
-import net.gotev.uploadservice.protocols.multipart.MultipartUploadRequest;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -76,7 +74,6 @@ public class ManagerService extends Service {
     private String offlineNotificationContent = "Waiting for connection";
     private NotificationManager notificationManager;
     private NotificationCompat.Builder defaultNotification;
-
 
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
     private static final int NOTIFICATION_ID = 8951;
@@ -359,70 +356,70 @@ public class ManagerService extends Service {
     }*/
 
     private void startUpload(HashMap<String, Object> payload) {
-        String uploadId = payload.get("id").toString();
-        String serverUrl = payload.get("serverUrl").toString();
-        String requestMethod = payload.get("requestMethod").toString();
-        File file = new File(payload.get("filePath").toString());
+        ExecutorSupplier.getInstance().backgroundTasks().execute(() -> {
+            String uploadId = payload.get("id").toString();
+            String serverUrl = payload.get("serverUrl").toString();
+            String requestMethod = payload.get("requestMethod").toString();
+            File file = new File(payload.get("filePath").toString());
 
-        OkHttpClient client = new OkHttpClient();
-
-        try {
-            RequestBody requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
-                    .addFormDataPart("file", file.getName(),
-                            RequestBody.create(file, MediaType.parse("image/jpeg")))
-                    .addFormDataPart("some-field", "some-value")
-                    .build();
-
-            Request.Builder builder = new Request.Builder()
-                    .url(serverUrl)
-                    .method(requestMethod, requestBody);
+            OkHttpClient client = new OkHttpClient();
 
             try {
-                HashMap<String, Object> headers = convertToHashMap((JSONObject) payload.get("headers"));
+                RequestBody requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                        .addFormDataPart("file", file.getName(),
+                                RequestBody.create(file, MediaType.parse("image/jpeg")))
+                        .addFormDataPart("some-field", "some-value")
+                        .build();
 
-                for (String key : headers.keySet()) {
-                    builder.addHeader(key, headers.get(key).toString());
+                Request.Builder builder = new Request.Builder()
+                        .url(serverUrl)
+                        .method(requestMethod, requestBody);
+
+                try {
+                    HashMap<String, Object> headers = convertToHashMap((JSONObject) payload.get("headers"));
+
+                    for (String key : headers.keySet()) {
+                        builder.addHeader(key, headers.get(key).toString());
+                    }
+                } catch (JSONException exception) {
+                    sendAddingUploadError(uploadId, exception);
                 }
-            } catch (JSONException exception) {
-                sendAddingUploadError(uploadId, exception);
-            }
+                client.newCall(builder.build()).enqueue(new Callback() {
+                    @Override
+                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                        sendAddingUploadError(uploadId, e);
+                    }
 
-            client.newCall(builder.build()).enqueue(new Callback() {
+                    @Override
+                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                        if (response.isSuccessful()) {
+                            if (response.code() == 200) {
+                                JSONObject data = new JSONObject(new HashMap() {{
+                                    put("id", uploadId);
+                                    put("state", "UPLOADED");
+                                    put("serverResponse", response.body().toString());
+                                    put("statusCode", response.code());
+                                }});
 
-                @Override
-                public void onResponse(@NotNull Call call, @NotNull Response response) {
-                    if (response.isSuccessful()) {
-                        if (response.code() == 200) {
+                                deletePendingUploadAndSendEvent(data);
+                            }
+                        } else {
+                            String errorMsg = response.message() != null ? response.message() : "unknown exception";
                             JSONObject data = new JSONObject(new HashMap() {{
                                 put("id", uploadId);
-                                put("state", "UPLOADED");
-                                put("serverResponse", response.body().toString());
-                                put("statusCode", response.code());
+                                put("state", "FAILED");
+                                put("error", "upload failed: " + errorMsg);
+                                put("errorCode", response.code());
                             }});
 
                             deletePendingUploadAndSendEvent(data);
                         }
-                    } else {
-                        String errorMsg = response.message() != null ? response.message() : "unknown exception";
-                        JSONObject data = new JSONObject(new HashMap() {{
-                            put("id", uploadId);
-                            put("state", "FAILED");
-                            put("error", "upload failed: " + errorMsg);
-                            put("errorCode", response.code());
-                        }});
-
-                        deletePendingUploadAndSendEvent(data);
                     }
-                }
-
-                @Override
-                public void onFailure(final Call call, final IOException e) {
-                    sendAddingUploadError(uploadId, e);
-                }
-            });
-        } catch (Exception exception) {
-            sendAddingUploadError(uploadId, exception);
-        }
+                });
+            } catch (Exception exception) {
+                sendAddingUploadError(uploadId, exception);
+            }
+        });
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {
