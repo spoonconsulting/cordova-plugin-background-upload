@@ -51,6 +51,9 @@
                 }];
             }
         }];
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [pluginResult setKeepCallback:@YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     } forCommand:command];
 }
 
