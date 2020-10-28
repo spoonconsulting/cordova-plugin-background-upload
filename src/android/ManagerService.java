@@ -74,6 +74,7 @@ public class ManagerService extends Service {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
             Long currentTimestamp = System.currentTimeMillis() / 1000;
+
             if (currentTimestamp - lastProgressTimestamp >= 1) {
                 lastProgressTimestamp = currentTimestamp;
                 JSONObject data = new JSONObject(new HashMap() {{
@@ -117,8 +118,8 @@ public class ManagerService extends Service {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
-            stopServiceIfInactive();
             updateNotificationText();
+            stopServiceIfInactive();
         }
 
         @Override
