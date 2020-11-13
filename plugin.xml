@@ -20,9 +20,6 @@
         <framework src="com.sromku:simple-storage:1.2.0" />
         <framework src="com.github.satyan:sugar:1.5" />
         <framework src="com.github.pwittchen:reactivenetwork-rx2:3.0.6" />
-         <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application">
-            <application android:name="com.orm.SugarApp" />
-        </edit-config>
         <framework src="src/android/config.gradle" custom="true" type="gradleReference"/>
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
