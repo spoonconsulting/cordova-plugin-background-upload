@@ -61,7 +61,7 @@
         <resource-file src="src/android/res/notification_small.xml" target="res/layout/notification_small.xml" />
     </platform>
     <platform name="ios">
-        <framework src="AFNetworking" type="podspec" spec="~> 3.2.1" />
+        <framework src="AFNetworking" type="podspec" spec="~> 4.0.1" />
         <config-file target="config.xml" parent="/*">
             <feature name="FileTransferBackground">
                 <param name="ios-package" value="FileTransferBackground" />
