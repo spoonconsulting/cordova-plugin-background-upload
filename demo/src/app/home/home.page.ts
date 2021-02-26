@@ -21,27 +21,30 @@ export class HomePage {
       let self = this;
 
       self.uploader = FileTransferManager.init({
-        parallelUploadsLimit: 1
+        parallelUploadsLimit: 2,
+        notificationTitle: 'Upload service',
+        notificationContent: 'Background upload service running'
       }, event => {
         console.log('EVENT');
-        if (event.state == 'UPLOADED') {
+        var correspondingMedia = self.getMediaWithId(event.id);
+        if (!correspondingMedia) { return; }
+
+        if (event.state == 'UPLOADED') { 
           console.log("upload: " + event.id + " has been completed successfully");
           console.log(event.statusCode, event.serverResponse);
-          var correspondingMedia = self.getMediaWithId(event.id);
           correspondingMedia.updateStatus("uploaded successfully");
         } else if (event.state == 'FAILED') {
           if (event.id) {
             console.log("upload: " + event.id + " has failed");
-            var correspondingMedia = self.getMediaWithId(event.id);
             correspondingMedia.updateStatus("Error while uploading");
           } else {
             console.error("uploader caught an error: " + event.error);
           }
         } else if (event.state == 'UPLOADING') {
           console.log("uploading: " + event.id + " progress: " + event.progress + "%");
-          var correspondingMedia = self.getMediaWithId(event.id);
           correspondingMedia.updateStatus("uploading: " + event.progress + "%");
         }
+
         if (event.eventId)
           self.uploader.acknowledgeEvent(event.eventId);
       });
@@ -81,7 +84,7 @@ export class HomePage {
         this.allMedia.push(media);
 
         var options: any = {
-          serverUrl: "http://requestbin.net/r/1me11dr1",
+          serverUrl: "https://en7paaa03bwd.x.pipedream.net/",
           filePath: file_uris[i],
           fileKey: "file",
           id: media.id,

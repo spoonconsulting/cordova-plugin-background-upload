@@ -1,36 +1,30 @@
+# Upload Demo
 
-### Instructions:
+Upload Demo is a sample using cordova-plugin-background-upload plugin
 
-Install ionic (minimum v2.2.2) and cordova (minimum v6.5.0)
+## Getting started
+
+Install dependencies
 ```bash
-$ sudo npm i -g ionic cordova --unsafe-perm
+npm i
 ```
 
-Install the dependencies and create a build folder named www
+Add platform and run on Android
 ```bash
-$ npm i
-$ mkdir www
+ionic cordova platform add android
+ionic cordova run android
 ```
-
-Make sure you have install the latest android support libraries via SDK Manager.
-
-Then, to run it on android:
+Add platform and run on iOS
 
 ```bash
-$ ionic platform add android
-$ ionic run android
+ionic cordova platform add ios
+ionic cordova run ios
 ```
 
-For ios:
-```bash
-$ ionic platform add ios
-$ ionic run ios
-```
+## License
 
-To run on your browser
-```
-$ ionic platform add browser
-$ ionic run browser
-```
+Upload Demo is licensed under the Apache v2 License.
 
+## Credits
 
+Upload Demo is brought to you by Spoon Consulting Ltd.

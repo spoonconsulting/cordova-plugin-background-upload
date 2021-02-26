@@ -1,23 +1,22 @@
-<ion-header>
-  <ion-navbar>
+<ion-header [translucent]="true">
+  <ion-toolbar>
     <ion-title>
       File Uploader Sample
     </ion-title>
     <ion-buttons end> 
-      <button ion-button="ion-button" (click)="openGallery()"> Select Photos </button> 
+      <ion-button color="primary" (click)="openGallery()"> Select Photos </ion-button> 
     </ion-buttons> 
-  </ion-navbar>
+  </ion-toolbar>
 </ion-header>
 
-<ion-content padding="" >
+<ion-content [fullscreen]="true">
   <ion-list>
     <ion-item *ngFor="let media of allMedia">
       <img [src]="media.uri" style="width: 50px; height:auto;" />
       <div class="item-text-center item-text-wrap">
           {{media.status}}
       </div>
-      <button ion-button color="danger" style="float:right;" on-tap="cancelUpload(media)">Abort</button>
+      <ion-button color="danger" slot="end" (click)="cancelUpload(media)">Abort</ion-button>
     </ion-item>
   </ion-list>
-
 </ion-content>
