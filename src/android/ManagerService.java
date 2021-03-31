@@ -67,7 +67,6 @@ public class ManagerService extends Service {
     private NotificationManager notificationManager;
     private NotificationCompat.Builder defaultNotification;
 
-
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
     private static final int NOTIFICATION_ID = 8951;
 
@@ -75,6 +74,7 @@ public class ManagerService extends Service {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
             Long currentTimestamp = System.currentTimeMillis() / 1000;
+
             if (currentTimestamp - lastProgressTimestamp >= 1) {
                 lastProgressTimestamp = currentTimestamp;
                 JSONObject data = new JSONObject(new HashMap() {{
@@ -118,6 +118,7 @@ public class ManagerService extends Service {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
+            updateNotificationText();
             stopServiceIfInactive();
         }
 
@@ -198,13 +199,22 @@ public class ManagerService extends Service {
     }
 
     private void updateNotificationText() {
-        defaultNotification.setContentText(isNetworkAvailable ? this.notificationContent : this.offlineNotificationContent);
+        long pendingUploadCount = PendingUpload.count(PendingUpload.class);
+        String notificationContent;
+
+        if (isNetworkAvailable) {
+            notificationContent = pendingUploadCount > 0 ? String.format("%d upload(s) remaining", pendingUploadCount) : this.notificationContent;
+        } else {
+            notificationContent = pendingUploadCount > 0 ? String.format("%d upload(s) remaining (offline)", pendingUploadCount) : this.offlineNotificationContent;
+        }
+
+        defaultNotification.setContentText(notificationContent);
         notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
     }
 
     private void startForegroundNotification() {
         Notification notification = createNotification(getPendingIntent());
-        startForeground(NOTIFICATION_ID, notification);
+        startForeground(5123, notification);
     }
 
     public Notification createNotification(PendingIntent pendingIntent) {
@@ -220,15 +230,25 @@ public class ManagerService extends Service {
             this.notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         }
 
+        Notification summaryNotification = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setGroup(getPackageName())
+                .setGroupSummary(true)
+                .setContentIntent(pendingIntent)
+                .build();
+
         defaultNotification = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
                 .setContentTitle(this.notificationTitle)
                 .setContentText(this.notificationContent)
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setPriority(BIND_IMPORTANT)
+                .setContentIntent(pendingIntent)
                 .setGroup(getPackageName())
-                .setGroupSummary(true)
-                .setContentIntent(pendingIntent);
+                .setOngoing(true);
 
-        return defaultNotification.build();
+        notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
+
+        return summaryNotification;
     }
 
     public void initUploadService(String options) {
@@ -249,7 +269,7 @@ public class ManagerService extends Service {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, getPendingIntent()));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, getPendingIntent()));
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =
                 new ThreadPoolExecutor(
