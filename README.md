@@ -150,6 +150,7 @@ On Android Oreo and above, there are strict limitations on background services a
 - Events need to be acknowledged to be removed. Failure to do so will result in all saved events being broadcast on `init`.
 -`showNotification` parameter has been removed (A notification will always be shown on Android during upload)
 
+
 ## README for v1.0
 The README for the previous version can be found [here](https://github.com/spoonconsulting/cordova-plugin-background-upload/blob/eacce4385ae497188307a9944c2f353571a463a2/README.md).
 
