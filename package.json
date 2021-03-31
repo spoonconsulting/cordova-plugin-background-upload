@@ -3,7 +3,7 @@
   "version": "3.0.0",
   "description": "Cordova plugin for uploading file in the background",
   "cordova": {
-    "id": "cordova-plugin-background-upload",
+    "id": "@spoonconsulting/cordova-plugin-background-upload",
     "platforms": [
       "android",
       "ios"
