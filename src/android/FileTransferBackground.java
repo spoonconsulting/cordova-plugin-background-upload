@@ -14,6 +14,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.HashMap;
+
 public class FileTransferBackground extends CordovaPlugin implements ServiceConnection, ManagerService.IConnectedPlugin {
     private CallbackContext uploadCallback;
     private ManagerService managerService;
@@ -32,21 +34,19 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
                 return true;
             }
 
-            cordova.getThreadPool().execute(new Runnable() {
-                public void run() {
-                    try {
-                        if (action.equalsIgnoreCase("removeUpload")) {
-                            managerService.removeUpload(args.get(0).toString());
-                        } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
-                            managerService.acknowledgeEvent(args.getString(0));
-                        } else if (action.equalsIgnoreCase("startUpload")) {
-                            managerService.addUpload((JSONObject) args.get(0));
-                        }
-                        callbackContext.success();
-                    } catch (Exception exception) {
-                        exception.printStackTrace();
-                        callbackContext.error(exception.getMessage());
+            cordova.getThreadPool().execute(() -> {
+                try {
+                    if (action.equalsIgnoreCase("removeUpload")) {
+                        managerService.removeUpload(args.get(0).toString());
+                    } else if (action.equalsIgnoreCase("acknowledgeEvent")) {
+                        managerService.acknowledgeEvent(args.getString(0));
+                    } else if (action.equalsIgnoreCase("startUpload")) {
+                        managerService.addUpload((JSONObject) args.get(0));
                     }
+                    callbackContext.success();
+                } catch (Exception exception) {
+                    exception.printStackTrace();
+                    callbackContext.error(exception.getMessage());
                 }
             });
         } catch (Exception e) {
@@ -91,6 +91,10 @@ public class FileTransferBackground extends CordovaPlugin implements ServiceConn
             this.managerService = binder.getServiceInstance();
             this.managerService.setMainActivity(cordova.getActivity());
             this.managerService.setConnectedPlugin(this);
+
+            callback(new JSONObject(new HashMap() {{
+                put("state", "INITIALIZED");
+            }}));
         } catch (Exception e) {
             e.printStackTrace();
         }

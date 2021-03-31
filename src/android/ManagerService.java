@@ -59,19 +59,22 @@ public class ManagerService extends Service {
     private Activity mainActivity;
     private IConnectedPlugin connectedPlugin;
     private Disposable networkObservable;
-    private boolean isNetworkAvailable = false;
+    public boolean isNetworkAvailable = false;
     private boolean serviceIsRunning = false;
     private String notificationTitle = "Upload Service";
     private String notificationContent = "Background upload service running";
+    private String offlineNotificationContent = "Waiting for connection";
     private NotificationManager notificationManager;
+    private NotificationCompat.Builder defaultNotification;
 
     public static final String CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
-    private static final int NOTIFICATION_ID = 1234;
+    private static final int NOTIFICATION_ID = 8951;
 
     private RequestObserverDelegate broadcastReceiver = new RequestObserverDelegate() {
         @Override
         public void onProgress(Context context, UploadInfo uploadInfo) {
             Long currentTimestamp = System.currentTimeMillis() / 1000;
+
             if (currentTimestamp - lastProgressTimestamp >= 1) {
                 lastProgressTimestamp = currentTimestamp;
                 JSONObject data = new JSONObject(new HashMap() {{
@@ -115,13 +118,12 @@ public class ManagerService extends Service {
 
         @Override
         public void onCompleted(Context context, UploadInfo uploadInfo) {
-            updateNotification();
+            updateNotificationText();
             stopServiceIfInactive();
         }
 
         @Override
         public void onCompletedWhileNotObserving() {
-            updateNotification();
             stopServiceIfInactive();
         }
     };
@@ -153,48 +155,31 @@ public class ManagerService extends Service {
     public void stopServiceIfInactive() {
         long pendingUploadCount = PendingUpload.count(PendingUpload.class);
         if (pendingUploadCount == 0 && this.connectedPlugin == null) {
-            Intent intent = new Intent(this, ManagerService.class);
-            this.requestObserver.unregister();
-            this.requestObserver = null;
-            stopService(intent);
+            if (this.requestObserver != null) {
+                this.requestObserver.unregister();
+                this.requestObserver = null;
+            }
+            stopService(new Intent(this, ManagerService.class));
             return;
         }
-        updateNotification();
-    }
-
-    private void updateNotification() {
-        long pendingUploadCount = PendingUpload.count(PendingUpload.class);
-        if (pendingUploadCount >= 0 && !isNetworkAvailable) {
-            updateNotificationText("Waiting for connection");
-        } else if (pendingUploadCount == 0) {
-            updateNotificationText(this.notificationContent);
-        }
-    }
-
-    private void updateNotificationText(String content) {
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(this.notificationTitle)
-                .setContentText(content)
-                .setSmallIcon(android.R.drawable.ic_menu_upload)
-                .setContentIntent(getPendingIntent())
-                .build();
-        this.notificationManager.notify(NOTIFICATION_ID, notification);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!this.serviceIsRunning) {
+            this.serviceIsRunning = true;
+
             try {
                 JSONObject settings = new JSONObject(intent.getStringExtra("options"));
                 this.notificationTitle = settings.getString("notificationTitle");
                 this.notificationContent = settings.getString("notificationContent");
+                this.offlineNotificationContent = settings.getString("offlineNotificationContent");
             } catch (JSONException error) {
                 error.printStackTrace();
             }
 
             startForegroundNotification();
             initUploadService(intent.getStringExtra("options"));
-            this.serviceIsRunning = true;
             networkObservable = ReactiveNetwork
                     .observeNetworkConnectivity(this)
                     .subscribeOn(Schedulers.io())
@@ -207,22 +192,29 @@ public class ManagerService extends Service {
                             uploadPendingList();
                         }
 
-                        updateNotification();
+                        updateNotificationText();
                     });
+        }
+        return START_NOT_STICKY;
+    }
 
+    private void updateNotificationText() {
+        long pendingUploadCount = PendingUpload.count(PendingUpload.class);
+        String notificationContent;
+
+        if (isNetworkAvailable) {
+            notificationContent = pendingUploadCount > 0 ? String.format("%d upload(s) remaining", pendingUploadCount) : this.notificationContent;
+        } else {
+            notificationContent = pendingUploadCount > 0 ? String.format("%d upload(s) remaining (offline)", pendingUploadCount) : this.offlineNotificationContent;
         }
 
-        JSONObject serviceState = new JSONObject(new HashMap() {{
-            put("state", "INITIALIZED");
-        }});
-        createAndSendEvent(serviceState);
-
-        return START_NOT_STICKY;
+        defaultNotification.setContentText(notificationContent);
+        notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
     }
 
     private void startForegroundNotification() {
         Notification notification = createNotification(getPendingIntent());
-        startForeground(NOTIFICATION_ID, notification);
+        startForeground(5123, notification);
     }
 
     public Notification createNotification(PendingIntent pendingIntent) {
@@ -238,15 +230,25 @@ public class ManagerService extends Service {
             this.notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         }
 
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+        Notification summaryNotification = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_menu_upload)
-                .setContentTitle(this.notificationTitle)
-                .setContentText(this.notificationContent)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setGroup(getPackageName())
+                .setGroupSummary(true)
                 .setContentIntent(pendingIntent)
                 .build();
 
-        return notification;
+        defaultNotification = new NotificationCompat.Builder(ManagerService.this, CHANNEL_ID)
+                .setContentTitle(this.notificationTitle)
+                .setContentText(this.notificationContent)
+                .setSmallIcon(android.R.drawable.ic_menu_upload)
+                .setPriority(BIND_IMPORTANT)
+                .setContentIntent(pendingIntent)
+                .setGroup(getPackageName())
+                .setOngoing(true);
+
+        notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
+
+        return summaryNotification;
     }
 
     public void initUploadService(String options) {
@@ -267,7 +269,7 @@ public class ManagerService extends Service {
             ManagerService.logMessage(String.format("eventLabel='Uploader could not read parallelUploadsLimit from config' error='%s'", error.getMessage()));
         }
 
-        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, mainActivity, getPendingIntent(), this.notificationTitle, this.notificationContent));
+        UploadServiceConfig.setNotificationHandlerFactory((uploadService) -> new NotificationHandler(uploadService, getPendingIntent()));
         UploadServiceConfig.setHttpStack(new OkHttpStack());
         ExecutorService threadPoolExecutor =
                 new ThreadPoolExecutor(
