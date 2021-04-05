@@ -316,9 +316,11 @@ public class ManagerService extends Service {
     }
 
     private void startUpload(HashMap<String, Object> payload) {
+        String uploadId;
+        String requestMethod;
         try {
-            String uploadId = payload.get("id").toString();
-            String requestMethod = payload.get("requestMethod").toString();
+            uploadId = payload.get("id").toString();
+            requestMethod = payload.get("requestMethod").toString();
         } catch (Exception exception) {
             logMessage(String.format("eventLabel='payload info error' uploadId='%s' error='%s'", uploadId, exception.getMessage()));
             sendAddingUploadError(uploadId, exception);
