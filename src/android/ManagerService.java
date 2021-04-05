@@ -316,8 +316,8 @@ public class ManagerService extends Service {
     }
 
     private void startUpload(HashMap<String, Object> payload) {
-        String uploadId;
-        String requestMethod;
+        String uploadId = "";
+        String requestMethod = "";
         try {
             uploadId = payload.get("id").toString();
             requestMethod = payload.get("requestMethod").toString();
