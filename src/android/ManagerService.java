@@ -317,7 +317,7 @@ public class ManagerService extends Service {
 
     private void startUpload(HashMap<String, Object> payload) {
         String uploadId = payload.get("id").toString();
-        String requestMethod = payload.contains("requestMethod") ? payload.get("requestMethod").toString() : "POST";
+        String requestMethod = payload.containsKey("requestMethod") ? payload.get("requestMethod").toString() : "POST";
 
         if (UploadService.getTaskList().contains(uploadId)) {
             logMessage(String.format("eventLabel='Uploader upload is already being uploaded. ignoring re-upload start' uploadId='%s'", uploadId));
