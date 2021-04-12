@@ -316,16 +316,8 @@ public class ManagerService extends Service {
     }
 
     private void startUpload(HashMap<String, Object> payload) {
-        String uploadId = "";
-        String requestMethod = "";
-        try {
-            uploadId = payload.get("id").toString();
-            requestMethod = payload.get("requestMethod").toString();
-        } catch (Exception exception) {
-            logMessage(String.format("eventLabel='payload info error' uploadId='%s' error='%s'", uploadId, exception.getMessage()));
-            sendAddingUploadError(uploadId, exception);
-            return;
-        }
+        String uploadId = payload.get("id").toString();
+        String requestMethod = payload.contains("requestMethod") ? payload.get("requestMethod").toString() : "POST";
 
         if (UploadService.getTaskList().contains(uploadId)) {
             logMessage(String.format("eventLabel='Uploader upload is already being uploaded. ignoring re-upload start' uploadId='%s'", uploadId));
