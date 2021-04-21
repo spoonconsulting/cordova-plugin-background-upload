@@ -1,22 +1,18 @@
 package com.spoon.backgroundfileupload;
 
 import android.app.Activity;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.net.NetworkInfo;
-import android.os.Build;
 import android.util.Log;
 
 import com.github.pwittchen.reactivenetwork.library.rx2.ReactiveNetwork;
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
 import com.sromku.simple.storage.helpers.OrderType;
-
-import android.app.NotificationChannel;
 
 import net.gotev.uploadservice.UploadService;
 import net.gotev.uploadservice.UploadServiceConfig;
@@ -157,33 +153,12 @@ public class FileTransferBackground extends CordovaPlugin {
         return true;
     }
 
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel channel = new NotificationChannel(
-                    "com.spoon.backgroundfileupload.channel",
-                    "upload channel",
-                    NotificationManager.IMPORTANCE_LOW
-            );
-            NotificationManager manager = (NotificationManager) cordova.getActivity()
-                    .getApplication()
-                    .getApplicationContext()
-                    .getSystemService(Context.NOTIFICATION_SERVICE);
-            manager.createNotificationChannel(channel);
-        }
-    }
-
     private void initManager(String options, final CallbackContext callbackContext) throws IllegalStateException {
         if (this.ready) {
             throw new IllegalStateException("initManager was called twice");
         }
         this.uploadCallback = callbackContext;
         this.ready = true;
-        String notificationChannelID = "com.spoon.backgroundfileupload.channel";
-        UploadServiceConfig.initialize(
-                this.cordova.getActivity().getApplication(),
-                notificationChannelID,
-                false
-        );
         this.globalObserver = new RequestObserver(this.cordova.getActivity().getApplicationContext(), broadcastReceiver);
         this.globalObserver.register();
         int parallelUploadsLimit = 1;
@@ -203,7 +178,6 @@ public class FileTransferBackground extends CordovaPlugin {
                         new LinkedBlockingQueue<Runnable>()
                 );
         UploadServiceConfig.setThreadPool((AbstractExecutorService) threadPoolExecutor);
-        this.createNotificationChannel();
         FileTransferBackground manager = this;
         //mark v1 uploads as failed
         migrateOldUploads();
