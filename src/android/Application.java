@@ -28,13 +28,8 @@ public class Application extends com.orm.SugarApp {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                channelId,
-                channelName,
-                NotificationManager.IMPORTANCE_LOW
-            );
-
             NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationChannel channel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW);
             manager.createNotificationChannel(channel);
         }
     }
