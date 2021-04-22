@@ -19,11 +19,8 @@ public class Application extends com.orm.SugarApp {
 
         createNotificationChannel();
 
-        UploadServiceConfig.initialize(
-                this,
-                channelId,
-                false
-        );
+        UploadServiceConfig.initialize(this, channelId, false);
+        UploadServiceConfig.setHttpStack(new OkHttpStack());
     }
 
     private void createNotificationChannel() {
