@@ -23,7 +23,6 @@ import net.gotev.uploadservice.exceptions.UserCancelledUploadException;
 import net.gotev.uploadservice.network.ServerResponse;
 import net.gotev.uploadservice.observer.request.RequestObserver;
 import net.gotev.uploadservice.observer.request.RequestObserverDelegate;
-import net.gotev.uploadservice.okhttp.OkHttpStack;
 import net.gotev.uploadservice.protocols.multipart.MultipartUploadRequest;
 
 import org.apache.cordova.CallbackContext;

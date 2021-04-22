@@ -3,11 +3,10 @@ package com.spoon.backgroundfileupload;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.os.Build;
 
 import net.gotev.uploadservice.UploadServiceConfig;
+import net.gotev.uploadservice.okhttp.OkHttpStack;
 
 public class Application extends com.orm.SugarApp {
     private static final String channelId = "com.spoon.backgroundfileupload.channel";
