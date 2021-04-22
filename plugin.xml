@@ -44,7 +44,7 @@
             <meta-data android:name="QUERY_LOG" android:value="false" />
             <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
         </config-file>
-        <edit-config file="AndroidManifest.xml" mode="merge" target="/*/application">
+        <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application">
             <application android:name="com.spoon.backgroundfileupload.Application" />
         </edit-config>
         <source-file src="src/android/Application.java" target-dir="src/com/spoon/backgroundfileupload" />
