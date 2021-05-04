@@ -4,6 +4,7 @@ This plugin provides a file upload functionality that can continue to run even w
 
 [![npm version](https://badge.fury.io/js/cordova-plugin-background-upload.svg)](https://badge.fury.io/js/cordova-plugin-background-upload)
 [![Build Status](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload.svg?branch=master)](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload)
+See tag 2.0.3 for latest stable version.
 
 **Supported Platforms**
 - iOS
