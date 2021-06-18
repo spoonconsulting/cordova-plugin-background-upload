@@ -510,7 +510,7 @@ public class ManagerService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        this.networkObservable.dispose();
+        if (this.networkObservable != null) { this.networkObservable.dispose(); }
         this.networkObservable = null;
     }
 }
