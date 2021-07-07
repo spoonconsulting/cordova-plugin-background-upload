@@ -28,7 +28,7 @@
     "cordova-android": "8.1.0",
     "cordova-plugin-androidx": "^1.0.2",
     "cordova-plugin-androidx-adapter": "^1.1.0",
-    "cordova-plugin-background-upload": "git+https://github.com/spoonconsulting/cordova-plugin-background-upload.git#afnetworking-spx-demo",
+    "@spoonconsulting/cordova-plugin-background-upload": "git+https://github.com/spoonconsulting/cordova-plugin-background-upload.git#1a8be3b148bb808cc149673704975bd8fb941211",
     "cordova-plugin-file": "^6.0.2",
     "cordova-plugin-telerik-imagepicker": "^2.3.3",
     "core-js": "^2.5.4",
@@ -79,8 +79,8 @@
         "ANDROID_SUPPORT_ANNOTATIONS_VERSION": "27.+"
       },
       "cordova-plugin-ionic-keyboard": {},
-      "cordova-plugin-telerik-imagepicker": {},
-      "cordova-plugin-background-upload": {}
+      "@spoonconsulting/cordova-plugin-background-upload": {},
+      "cordova-plugin-telerik-imagepicker": {}
     },
     "platforms": [
       "android"
