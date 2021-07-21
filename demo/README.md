@@ -24,7 +24,3 @@ ionic cordova run ios
 ## License
 
 Upload Demo is licensed under the Apache v2 License.
-
-## Credits
-
-Upload Demo is brought to you by Spoon Consulting Ltd.
