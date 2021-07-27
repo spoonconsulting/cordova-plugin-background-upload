@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
+import androidx.annotation.IntegerRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -21,10 +22,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import io.ionic.starter.R;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -57,6 +62,10 @@ public final class UploadTask extends Worker {
     public static final String KEY_INPUT_PARAMETERS_NAMES = "input_parameters_names";
     public static final String KEY_INPUT_PARAMETER_VALUE_PREFIX = "input_parameter_";
     public static final String KEY_INPUT_NOTIFICATION_TITLE = "input_notification_title";
+    public static final String KEY_INPUT_NOTIFICATION_ICON = "input_notification_icon";
+
+    // Input keys but used for configuring the OkHttp instance
+    public static final String KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS = "input_config_concurrent_downloads";
 
     // Keys used for the progress data
     public static final String KEY_PROGRESS_ID = "progress_id";
@@ -71,6 +80,52 @@ public final class UploadTask extends Worker {
     public static final String KEY_OUTPUT_FAILURE_CANCELED = "output_failure_canceled";
     // </editor-fold>
 
+    // Unified notification
+    // <editor-fold>
+    private static class UploadForegroundNotification {
+        private static final Map<UUID, Float> collectiveProgress = Collections.synchronizedMap(new HashMap<>());
+
+        private static final int notificationId = new Random().nextInt();
+        private static String notificationTitle = "Default title";
+        @IntegerRes private static int notificationIconRes = 0;
+
+        private static void configure(final String title, @IntegerRes final int icon) {
+            notificationTitle = title;
+            notificationIconRes = icon;
+        }
+
+        private static void progress(final UUID uuid, final float progress) {
+            collectiveProgress.put(uuid, progress);
+        }
+
+        private static void done(final UUID uuid) {
+            collectiveProgress.remove(uuid);
+        }
+
+        private static ForegroundInfo getForegroundInfo(final Context context) {
+            float progress = 0f;
+            for (Float p : collectiveProgress.values()) {
+                progress += p;
+            }
+            progress /= collectiveProgress.size();
+
+            Log.e(TAG, "getForegroundInfo: general (" + progress + ") all (" + collectiveProgress + ")");
+
+            // TODO: click intent open app
+            Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+                    .setContentTitle(notificationTitle)
+                    .setTicker(notificationTitle)
+                    .setSmallIcon(notificationIconRes)
+                    .setColor(Color.rgb(57, 100, 150))
+                    .setOngoing(true)
+                    .setProgress(100, (int) (progress * 100f), false)
+                    .build();
+
+            return new ForegroundInfo(notificationId, notification);
+        }
+    }
+    // </editor-fold>
+
     private static OkHttpClient httpClient;
 
     private Call currentCall;
@@ -79,7 +134,6 @@ public final class UploadTask extends Worker {
         super(context, workerParams);
 
         if (httpClient == null) {
-            // TODO: make this configurable somewhere else
             httpClient = new OkHttpClient.Builder()
                     .followRedirects(true)
                     .followSslRedirects(true)
@@ -90,12 +144,13 @@ public final class UploadTask extends Worker {
                     .cache(null)
                     .build();
 
-            httpClient.dispatcher().setMaxRequests(2);
+            httpClient.dispatcher().setMaxRequests(workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
         }
-    }
 
-    private long getLowQualityId() {
-        return getId().getLeastSignificantBits();
+        UploadForegroundNotification.configure(
+                workerParams.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
+                getApplicationContext().getResources().getIdentifier(workerParams.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null)
+        );
     }
 
     @NonNull
@@ -122,7 +177,9 @@ public final class UploadTask extends Worker {
             );
         }
 
-        setForegroundAsync(createForegroundInfo(0));
+        // Register me
+        UploadForegroundNotification.progress(getId(), 0f);
+        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
 
         // Start call
         currentCall = httpClient.newCall(request);
@@ -133,6 +190,7 @@ public final class UploadTask extends Worker {
             response = currentCall.execute();
         } catch (IOException e) {
             // If it was user cancelled its ok
+            // See #handleProgress for cancel code
             if (isStopped()) {
                 return Result.success(new Data.Builder()
                         .putString(KEY_OUTPUT_ID, id)
@@ -147,6 +205,9 @@ public final class UploadTask extends Worker {
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
                 return Result.retry();
             }
+        } finally {
+            // Always remove ourselves from the notification
+            UploadForegroundNotification.done(getId());
         }
 
         // Start building the output data
@@ -181,20 +242,24 @@ public final class UploadTask extends Worker {
      * Called internally by the custom request body provider each time 8kio are written.
      */
     private void handleProgress(long bytesWritten, long totalBytes) {
+        // The cancel mechanism is best-effort and wont actually halt work, we need to
+        // take care of it ourselves.
         if (isStopped()) {
             currentCall.cancel();
             return;
         }
 
-        double percent = ((double) bytesWritten / (double) totalBytes) * 100.0;
-        Log.i(TAG, "handleProgress: " + getId() + " Progress: " + (int) percent);
+        float percent = (float) bytesWritten / (float) totalBytes;
+        UploadForegroundNotification.progress(getId(), percent);
+
+        Log.i(TAG, "handleProgress: " + getId() + " Progress: " + (int) (percent * 100f));
 
         setProgressAsync(new Data.Builder()
                 .putString(KEY_PROGRESS_ID, getInputData().getString(KEY_INPUT_ID))
                 .putInt(KEY_PROGRESS_PERCENT, (int) percent)
                 .build()
         );
-        setForegroundAsync(createForegroundInfo((int) percent));
+        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
     }
 
     /**
@@ -258,23 +323,6 @@ public final class UploadTask extends Worker {
         return requestBuilder.build();
     }
 
-    @NonNull
-    private ForegroundInfo createForegroundInfo(int progress) {
-        final String title = getInputData().getString(KEY_INPUT_NOTIFICATION_TITLE);
-
-        // TODO: click intent open app
-        Notification notification = new NotificationCompat.Builder(getApplicationContext(), NOTIFICATION_CHANNEL_ID)
-                .setContentTitle(title)
-                .setTicker(title)
-                .setSmallIcon(R.drawable.ic_upload)
-                .setColor(Color.rgb(57, 100, 150))
-                .setOngoing(true)
-                .setProgress(100, progress, false)
-                .build();
-
-        return new ForegroundInfo((int) getLowQualityId(), notification);
-    }
-
     /**
      * Custom request body provider that will notify the progress of the read for each 8kio of data
      */
@@ -291,6 +339,7 @@ public final class UploadTask extends Worker {
         private final ProgressListener listener;
 
         private long bytesWritten = 0;
+        private long lastProgressTimestamp = 0;
 
         private ProgressRequestBody(final MediaType mediaType, long contentLength, final InputStream stream, final ProgressListener listener) {
             this.mediaType = mediaType;
@@ -319,7 +368,13 @@ public final class UploadTask extends Worker {
 
                 // Trigger listener
                 bytesWritten += read;
-                listener.onProgress(bytesWritten, contentLength);
+
+                // Event throttling
+                long now = System.currentTimeMillis() / 1000;
+                if (now - lastProgressTimestamp >= 1) {
+                    lastProgressTimestamp = now;
+                    listener.onProgress(bytesWritten, contentLength);
+                }
             }
         }
     }
