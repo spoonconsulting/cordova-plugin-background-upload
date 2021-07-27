@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,10 +43,12 @@ import okio.BufferedSink;
 
 public final class UploadTask extends Worker {
 
-    private static final String TAG = "UploadWorker";
+    private static final String TAG = "CordovaBackgroundUpload";
 
     public static final String NOTIFICATION_CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
     public static final String NOTIFICATION_CHANNEL_NAME = "upload channel";
+
+    public static final int MAX_TRIES = 10;
 
     // Key stuff
     // <editor-fold>
@@ -55,6 +58,7 @@ public final class UploadTask extends Worker {
     public static final String KEY_INPUT_URL = "input_url";
     public static final String KEY_INPUT_FILEPATH = "input_filepath";
     public static final String KEY_INPUT_FILE_KEY = "input_file_key";
+    public static final String KEY_INPUT_HTTP_METHOD = "input_http_method";
     public static final String KEY_INPUT_HEADERS_COUNT = "input_headers_count";
     public static final String KEY_INPUT_HEADERS_NAMES = "input_headers_names";
     public static final String KEY_INPUT_HEADER_VALUE_PREFIX = "input_header_";
@@ -63,7 +67,6 @@ public final class UploadTask extends Worker {
     public static final String KEY_INPUT_PARAMETER_VALUE_PREFIX = "input_parameter_";
     public static final String KEY_INPUT_NOTIFICATION_TITLE = "input_notification_title";
     public static final String KEY_INPUT_NOTIFICATION_ICON = "input_notification_icon";
-
     // Input keys but used for configuring the OkHttp instance
     public static final String KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS = "input_config_concurrent_downloads";
 
@@ -110,7 +113,7 @@ public final class UploadTask extends Worker {
             }
             progress /= collectiveProgress.size();
 
-            Log.e(TAG, "getForegroundInfo: general (" + progress + ") all (" + collectiveProgress + ")");
+            Log.d(TAG, "eventLabel='getForegroundInfo: general (" + progress + ") all (" + collectiveProgress + ")'");
 
             // TODO: click intent open app
             Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
@@ -162,6 +165,17 @@ public final class UploadTask extends Worker {
         if (id == null) {
             Log.e(TAG, "doWork: ID is invalid !");
             return Result.failure();
+        }
+
+        // Check retry count
+        if (getRunAttemptCount() > MAX_TRIES) {
+            return Result.success(new Data.Builder()
+                    .putString(KEY_OUTPUT_ID, id)
+                    .putBoolean(KEY_OUTPUT_IS_ERROR, true)
+                    .putString(KEY_OUTPUT_FAILURE_REASON, "Too many retries")
+                    .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
+                    .build()
+            );
         }
 
         Request request;
@@ -305,9 +319,13 @@ public final class UploadTask extends Worker {
                 .build();
 
         // Start build request
+        String method = getInputData().getString(KEY_INPUT_HTTP_METHOD);
+        if (method == null) {
+            method = "POST";
+        }
         Request.Builder requestBuilder = new Request.Builder()
                 .url(urlBuilder.build())
-                .post(body);
+                .method(method.toUpperCase(), body);
 
         // Write headers
         final int headersCount = getInputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);

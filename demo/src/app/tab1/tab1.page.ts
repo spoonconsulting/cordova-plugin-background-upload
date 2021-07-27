@@ -147,7 +147,7 @@ export class Tab1Page {
       filePath: uri,
       fileKey: 'file',
       id,
-      notificationTitle: 'Uploading image (Job 0)',
+      notificationTitle: 'Uploading image'
     };
     this.uploader.startUpload(options);
     console.log('Upload submitted');

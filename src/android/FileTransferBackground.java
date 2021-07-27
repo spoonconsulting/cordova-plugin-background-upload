@@ -43,7 +43,6 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private static final String TAG = "FileTransferBackground";
     public static final String WORK_TAG_UPLOAD = "work_tag_upload";
-    public static final String WORK_TAG_ACK = "work_tag_ack";
 
     private CallbackContext uploadCallback;
     private boolean ready = false;
@@ -170,22 +169,16 @@ public class FileTransferBackground extends CordovaPlugin {
             ));
         }
 
+        final AckDatabase ackDatabase = AckDatabase.getInstance(cordova.getContext());
         final WorkManager workManager = WorkManager.getInstance(cordova.getContext());
 
-        // Resend pending ACK one time
-        try {
-            final List<WorkInfo> pendingAcks = workManager
-                    .getWorkInfosByTag(WORK_TAG_ACK)
-                    .get();
+        // Resend pending ACK at startup (and warmup database)
+        final List<PendingAck> pendingAcks = ackDatabase
+                .pendingAckDao()
+                .getAll();
 
-            for (WorkInfo ack : pendingAcks) {
-                if (ack.getState() == WorkInfo.State.ENQUEUED || ack.getState() == WorkInfo.State.RUNNING) {
-                    Log.d(TAG, "initManager: Actually handle it !");
-                    handleAck(ack);
-                }
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            logMessage("eventLabel='Failed to get old ACKs' error='" + e.getMessage() + "'");
+        for (PendingAck ack : pendingAcks) {
+            handleAck(ack.getOutputData());
         }
 
         // Can't use observeForever anywhere else than the main thread
@@ -209,29 +202,22 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
-                                    // Nothing to do really
+                                    // Not cool to execute database in main thread
+                                    cordova.getThreadPool().execute(() -> {
+                                        // Add a pending ACK
+                                        Data outputData = info.getOutputData();
+                                        if (outputData.getString(UploadTask.KEY_OUTPUT_ID) != null) {
+                                            Log.e(TAG, "initManager: " + outputData);
+                                            PendingAck ack = new PendingAck(outputData.getString(UploadTask.KEY_OUTPUT_ID), outputData);
+                                            ackDatabase.pendingAckDao().insert(ack);
+                                            handleAck(ack.getOutputData());
+                                        }
+                                    });
                                     break;
                                 case FAILED:
                                     // The task can't fail completely so something really bad has happened.
                                     logMessage("eventLabel='Uploader failed inexplicably' error='" + info.getOutputData() + "'");
                                     break;
-                            }
-                        }
-                    });
-
-            // Listen for ACK retries
-            // ACK Workers that want to retry will quickly flash their progress from null to something to null again
-            workManager
-                    .getWorkInfosByTagLiveData(WORK_TAG_ACK)
-                    .observeForever((workInfo) -> {
-                        for (WorkInfo info : workInfo) {
-                            // Handle him
-                            if (info.getState() == WorkInfo.State.RUNNING && info.getProgress() != Data.EMPTY) {
-                                Log.d(TAG, "initManager: Resending ACK " + info.getId());
-                                handleAck(info);
-                            } else if (info.getState() == WorkInfo.State.FAILED) {
-                                // Something really bad must have happened
-                                logMessage("eventLabel='ACK task failed inexplicably' error='" + info.getProgress() + "'");
                             }
                         }
                     });
@@ -296,6 +282,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 .putString(UploadTask.KEY_INPUT_URL, (String) payload.get("serverUrl"))
                 .putString(UploadTask.KEY_INPUT_FILEPATH, (String) payload.get("filePath"))
                 .putString(UploadTask.KEY_INPUT_FILE_KEY, (String) payload.get("fileKey"))
+                .putString(UploadTask.KEY_INPUT_HTTP_METHOD, (String) payload.get("requestMethod"))
 
                 // Put headers
                 .putInt(UploadTask.KEY_INPUT_HEADERS_COUNT, headersNames.size())
@@ -331,16 +318,8 @@ public class FileTransferBackground extends CordovaPlugin {
                 .setInputData(payload)
                 .build();
 
-        OneTimeWorkRequest ackRequest = new OneTimeWorkRequest.Builder(PendingAcknowledgeTask.class)
-                .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS)
-                .addTag(WORK_TAG_ACK)
-                .build();
-
         WorkManager.getInstance(cordova.getContext())
-                .beginUniqueWork(uploadId, ExistingWorkPolicy.KEEP, workRequest)
-                .then(ackRequest)
-                .enqueue();
+                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.KEEP, workRequest);
 
         logMessage("eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
     }
@@ -360,12 +339,16 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void removeUpload(String uploadId, CallbackContext context) {
-        cleanupUpload(uploadId);
+        logMessage("eventLabel='Remove upload " + uploadId + "'");
 
+        // Cancel the task ...
         WorkManager.getInstance(cordova.getContext())
                 .cancelUniqueWork(uploadId)
                 .getResult()
                 .addListener(() -> {
+                    // ... and cleanup eventual ACK and file
+                    cleanupUpload(uploadId);
+
                     PluginResult result = new PluginResult(PluginResult.Status.OK);
                     result.setKeepCallback(true);
                     context.sendPluginResult(result);
@@ -375,66 +358,70 @@ public class FileTransferBackground extends CordovaPlugin {
     private void acknowledgeEvent(String eventId, CallbackContext context) {
         logMessage("eventLabel='ACK event " + eventId + "'");
 
+        // Cleanup will delete the ACK.
         cleanupUpload(eventId);
 
-        // Yes, cancelling the ACK task means that it has done its job
-        // and can quit
-        WorkManager.getInstance(cordova.getContext())
-                .cancelUniqueWork(eventId)
-                .getResult()
-                .addListener(() -> {
-                    PluginResult result = new PluginResult(PluginResult.Status.OK);
-                    result.setKeepCallback(true);
-                    context.sendPluginResult(result);
-                }, cordova.getThreadPool());
-
+        PluginResult result = new PluginResult(PluginResult.Status.OK);
+        result.setKeepCallback(true);
+        context.sendPluginResult(result);
     }
 
-    private void handleAck(final WorkInfo ackWorker) {
-        // Every code path that leads here already checks that the worker is RUNNING or ENQUEUED
-
-        final Data eventData = ackWorker.getProgress();
-
-        if (eventData != Data.EMPTY) {
-            // If upload was successful
-            if (!eventData.getBoolean(UploadTask.KEY_OUTPUT_IS_ERROR, false)) {
-                // Read response from file if present
-                String response = null;
-                if (eventData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
-                    response = readFileToStringNoThrow(eventData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
-                }
-
-                sendSuccess(
-                        eventData.getString(UploadTask.KEY_OUTPUT_ID),
-                        response,
-                        eventData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1 /* If this is sent, something is really wrong */)
-                );
-
-            } else {
-                // The upload was a failure
-                sendError(
-                        eventData.getString(UploadTask.KEY_OUTPUT_ID),
-                        eventData.getString(UploadTask.KEY_OUTPUT_FAILURE_REASON),
-                        eventData.getBoolean(UploadTask.KEY_OUTPUT_FAILURE_CANCELED, false)
-                );
+    /**
+     * Handle ACK data and send it to the JS.
+     */
+    private void handleAck(final Data ackData) {
+        // If upload was successful
+        if (!ackData.getBoolean(UploadTask.KEY_OUTPUT_IS_ERROR, false)) {
+            // Read response from file if present
+            String response = null;
+            if (ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
+                response = readFileToStringNoThrow(ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
             }
+
+            sendSuccess(
+                    ackData.getString(UploadTask.KEY_OUTPUT_ID),
+                    response,
+                    ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1 /* If this is sent, something is really wrong */)
+            );
+
+        } else {
+            // The upload was a failure
+            sendError(
+                    ackData.getString(UploadTask.KEY_OUTPUT_ID),
+                    ackData.getString(UploadTask.KEY_OUTPUT_FAILURE_REASON),
+                    ackData.getBoolean(UploadTask.KEY_OUTPUT_FAILURE_CANCELED, false)
+            );
         }
     }
 
+    /**
+     * Cleanup response file and ACK entry.
+     */
     private void cleanupUpload(final String uploadId) {
-        final List<WorkInfo> tasks;
-        try {
-            tasks = WorkManager.getInstance(cordova.getContext())
-                    .getWorkInfosForUniqueWork(uploadId)
-                    .get();
-        } catch (ExecutionException | InterruptedException e) {
-            logMessage("eventLabel='Failed to get work info for cleanup (" + uploadId + ")' error='" + e.getMessage() + "'");
-            return;
-        }
+        final PendingAck ack = AckDatabase.getInstance(cordova.getContext()).pendingAckDao().getById(uploadId);
+        // If the upload is done there is an ACK of it, so get file name from there
+        if (ack != null) {
+            if (ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
+                cordova.getContext().deleteFile(ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
+            }
 
-        for (WorkInfo info : tasks) {
-            if (info.getOutputData() != Data.EMPTY && info.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
-                cordova.getContext().deleteFile(info.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
+            // Also delete it from database
+            AckDatabase.getInstance(cordova.getContext()).pendingAckDao().delete(ack);
+        } else {
+            // Otherwise get the data from the task itself
+            final WorkInfo task;
+            try {
+                task = WorkManager.getInstance(cordova.getContext())
+                        .getWorkInfosForUniqueWork(uploadId)
+                        .get()
+                        .get(0);
+            } catch (ExecutionException | InterruptedException e) {
+                logMessage("eventLabel='Failed to get work info for cleanup (" + uploadId + ")' error='" + e.getMessage() + "'");
+                return;
+            }
+
+            if (task.getOutputData() != Data.EMPTY && task.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
+                cordova.getContext().deleteFile(task.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
             }
         }
     }
