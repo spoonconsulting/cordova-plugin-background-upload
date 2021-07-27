@@ -87,7 +87,8 @@ public final class UploadTask extends Worker {
 
         private static final int notificationId = new Random().nextInt();
         private static String notificationTitle = "Default title";
-        @IntegerRes private static int notificationIconRes = 0;
+        @IntegerRes
+        private static int notificationIconRes = 0;
 
         private static void configure(final String title, @IntegerRes final int icon) {
             notificationTitle = title;
