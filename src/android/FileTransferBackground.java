@@ -409,11 +409,16 @@ public class FileTransferBackground extends CordovaPlugin {
             // Otherwise get the data from the task itself
             final WorkInfo task;
             try {
-                task = WorkManager.getInstance(cordova.getContext())
+                final List<WorkInfo> tasks = WorkManager.getInstance(cordova.getContext())
                         .getWorkInfosForUniqueWork(uploadId)
-                        .get()
-                        .get(0);
-            } catch (ExecutionException | InterruptedException e) {
+                        .get();
+
+                if (tasks.isEmpty()) {
+                    throw new IllegalStateException("No task for id " + uploadId);
+                }
+
+                task = tasks.get(0);
+            } catch (ExecutionException | InterruptedException | IllegalStateException e) {
                 logMessage("eventLabel='Failed to get work info for cleanup (" + uploadId + ")' error='" + e.getMessage() + "'");
                 return;
             }
