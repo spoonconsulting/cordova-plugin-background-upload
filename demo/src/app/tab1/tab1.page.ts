@@ -45,7 +45,7 @@ export class Tab1Page {
           switch (event.state) {
             case 'UPLOADING':
               state.status = UploadStatus.InProgress;
-              state.progress = event.progress;
+              state.progress = event.progress / 100.0;
               break;
 
             case 'UPLOADED':
@@ -182,7 +182,7 @@ export enum UploadStatus {
 
 export class UploadState {
   status = UploadStatus.InProgress;
-  progress = 0;
+  progress = 0.0;
 
   get color(): string {
     switch (this.status) {

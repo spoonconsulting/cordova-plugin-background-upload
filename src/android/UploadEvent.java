@@ -6,8 +6,8 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.work.Data;
 
-@Entity(tableName = "pending_ack")
-public class PendingAck {
+@Entity(tableName = "upload_event")
+public class UploadEvent {
     @PrimaryKey
     @NonNull
     private String id;
@@ -16,7 +16,7 @@ public class PendingAck {
     @NonNull
     private Data outputData;
 
-    public PendingAck(@NonNull final String id, @NonNull final Data outputData) {
+    public UploadEvent(@NonNull final String id, @NonNull final Data outputData) {
         this.id = id;
         this.outputData = outputData;
     }

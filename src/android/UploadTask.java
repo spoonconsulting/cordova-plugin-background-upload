@@ -21,7 +21,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,6 +41,8 @@ import okhttp3.Response;
 import okio.BufferedSink;
 
 public final class UploadTask extends Worker {
+
+    private static final boolean DEBUG_SKIP_UPLOAD = false;
 
     private static final String TAG = "CordovaBackgroundUpload";
 
@@ -202,18 +203,30 @@ public final class UploadTask extends Worker {
         // Block until call is finished (or cancelled)
         Response response;
         try {
-            response = currentCall.execute();
-        } catch (IOException e) {
+            if (!DEBUG_SKIP_UPLOAD) {
+                response = currentCall.execute();
+            } else {
+                for (int i = 0; i < 10; i++) {
+                    handleProgress(i * 100, 1000);
+                    // Can be interrupted
+                    Thread.sleep(200);
+                    if (isStopped()) {
+                        throw new InterruptedException("Stopped");
+                    }
+                }
+            }
+        } catch (IOException | InterruptedException e) {
             // If it was user cancelled its ok
             // See #handleProgress for cancel code
             if (isStopped()) {
-                return Result.success(new Data.Builder()
+                final Data data = new Data.Builder()
                         .putString(KEY_OUTPUT_ID, id)
                         .putBoolean(KEY_OUTPUT_IS_ERROR, true)
                         .putString(KEY_OUTPUT_FAILURE_REASON, "User cancelled")
                         .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
-                        .build()
-                );
+                        .build();
+                AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+                return Result.success(data);
             } else {
                 // But if it was not it must be a connectivity problem or
                 // something similar so we retry later
@@ -229,11 +242,16 @@ public final class UploadTask extends Worker {
         final Data.Builder outputData = new Data.Builder()
                 .putString(KEY_OUTPUT_ID, id)
                 .putBoolean(KEY_OUTPUT_IS_ERROR, false)
-                .putInt(KEY_OUTPUT_STATUS_CODE, response.code());
+                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
 
         // Try read the response body, if any
         try {
-            final String res = response.body() != null ? response.body().string() : "";
+            final String res;
+            if (!DEBUG_SKIP_UPLOAD) {
+                res = response.body() != null ? response.body().string() : "";
+            } else {
+                res = "<span>heyo</span>";
+            }
             final String filename = "upload-response-" + getId() + ".cached-response";
 
             try (FileOutputStream fos = getApplicationContext().openFileOutput(filename, Context.MODE_PRIVATE)) {
@@ -250,7 +268,9 @@ public final class UploadTask extends Worker {
             outputData.putString(KEY_OUTPUT_RESPONSE_FILE, null);
         }
 
-        return Result.success(outputData.build());
+        final Data data = outputData.build();
+        AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+        return Result.success(data);
     }
 
     /**
@@ -269,11 +289,12 @@ public final class UploadTask extends Worker {
 
         Log.i(TAG, "handleProgress: " + getId() + " Progress: " + (int) (percent * 100f));
 
-        setProgressAsync(new Data.Builder()
+        final Data data = new Data.Builder()
                 .putString(KEY_PROGRESS_ID, getInputData().getString(KEY_INPUT_ID))
-                .putInt(KEY_PROGRESS_PERCENT, (int) percent)
-                .build()
-        );
+                .putInt(KEY_PROGRESS_PERCENT, (int) (percent * 100f))
+                .build();
+        Log.d(TAG, "handleProgress: Progress data: " + data);
+        setProgressAsync(data);
         setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
     }
 
