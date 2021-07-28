@@ -317,8 +317,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 .build();
 
         WorkManager.getInstance(cordova.getContext())
-                .beginUniqueWork(uploadId, ExistingWorkPolicy.KEEP, workRequest)
-                .enqueue();
+                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.KEEP, workRequest);
 
         logMessage("eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
     }
