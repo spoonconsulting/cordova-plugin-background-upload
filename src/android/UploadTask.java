@@ -321,8 +321,7 @@ public final class UploadTask extends Worker {
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
         // Build body
-        final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder()
-                .addFormDataPart(fileKey, filepath, fileRequestBody);
+        final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
 
         // With the parameters
         final int parametersCount = getInputData().getInt(KEY_INPUT_PARAMETERS_COUNT, 0);
@@ -337,6 +336,8 @@ public final class UploadTask extends Worker {
                 bodyBuilder.addFormDataPart(key, value.toString());
             }
         }
+
+        bodyBuilder.addFormDataPart(fileKey, filepath, fileRequestBody);
 
         // Start build request
         String method = getInputData().getString(KEY_INPUT_HTTP_METHOD);
