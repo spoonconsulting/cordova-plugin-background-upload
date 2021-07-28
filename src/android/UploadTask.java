@@ -311,10 +311,20 @@ public final class UploadTask extends Worker {
         final String fileKey = getInputData().getString(KEY_INPUT_FILE_KEY);
         assert fileKey != null;
 
-        // Build URL ...
-        HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(getInputData().getString(KEY_INPUT_URL))).newBuilder();
+        // Build URL
+        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(getInputData().getString(KEY_INPUT_URL))).newBuilder().build();
 
-        // ... with parameters if any
+        // Build file reader
+        String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
+        MediaType mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
+        File file = new File(filepath);
+        ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
+
+        // Build body
+        final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder()
+                .addFormDataPart(fileKey, filepath, fileRequestBody);
+
+        // With the parameters
         final int parametersCount = getInputData().getInt(KEY_INPUT_PARAMETERS_COUNT, 0);
         if (parametersCount > 0) {
             final String[] parameterNames = getInputData().getStringArray(KEY_INPUT_PARAMETERS_NAMES);
@@ -324,20 +334,9 @@ public final class UploadTask extends Worker {
                 final String key = parameterNames[i];
                 final Object value = getInputData().getKeyValueMap().get(KEY_INPUT_PARAMETER_VALUE_PREFIX + i);
 
-                urlBuilder.addQueryParameter(key, value.toString());
+                bodyBuilder.addFormDataPart(key, value.toString());
             }
         }
-
-        // Build file reader
-        String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
-        MediaType mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
-        File file = new File(filepath);
-        ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
-
-        // Build body
-        MultipartBody body = new MultipartBody.Builder()
-                .addFormDataPart(fileKey, filepath, fileRequestBody)
-                .build();
 
         // Start build request
         String method = getInputData().getString(KEY_INPUT_HTTP_METHOD);
@@ -345,8 +344,8 @@ public final class UploadTask extends Worker {
             method = "POST";
         }
         Request.Builder requestBuilder = new Request.Builder()
-                .url(urlBuilder.build())
-                .method(method.toUpperCase(), body);
+                .url(url)
+                .method(method.toUpperCase(), bodyBuilder.build());
 
         // Write headers
         final int headersCount = getInputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);
