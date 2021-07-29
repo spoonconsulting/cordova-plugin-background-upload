@@ -12,6 +12,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
 import androidx.work.ForegroundInfo;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -24,11 +26,14 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import okhttp3.Call;
 import okhttp3.HttpUrl;
@@ -43,6 +48,7 @@ import okio.BufferedSink;
 public final class UploadTask extends Worker {
 
     private static final boolean DEBUG_SKIP_UPLOAD = false;
+    private static final long DELAY_BETWEEN_NOTIFICATION_UPDATE_MS = 200;
 
     private static final String TAG = "CordovaBackgroundUpload";
 
@@ -88,6 +94,8 @@ public final class UploadTask extends Worker {
     // <editor-fold>
     private static class UploadForegroundNotification {
         private static final Map<UUID, Float> collectiveProgress = Collections.synchronizedMap(new HashMap<>());
+        private static final AtomicLong lastNotificationUpdateMs = new AtomicLong(0);
+        private static ForegroundInfo cachedInfo;
 
         private static final int notificationId = new Random().nextInt();
         private static String notificationTitle = "Default title";
@@ -108,13 +116,41 @@ public final class UploadTask extends Worker {
         }
 
         private static ForegroundInfo getForegroundInfo(final Context context) {
-            float progress = 0f;
-            for (Float p : collectiveProgress.values()) {
-                progress += p;
-            }
-            progress /= collectiveProgress.size();
+            final long now = System.currentTimeMillis();
+            // Set to now to ensure other worker will be throttled
+            final long lastUpdate = lastNotificationUpdateMs.getAndSet(now);
 
-            Log.d(TAG, "eventLabel='getForegroundInfo: general (" + progress + ") all (" + collectiveProgress + ")'");
+            // Throttle, 200ms delay
+            if (cachedInfo != null && now - lastUpdate <= DELAY_BETWEEN_NOTIFICATION_UPDATE_MS) {
+                // Revert value
+                lastNotificationUpdateMs.set(lastUpdate);
+                return cachedInfo;
+            }
+
+            List<WorkInfo> workInfo;
+            try {
+                workInfo = WorkManager.getInstance(context)
+                        .getWorkInfosByTag(FileTransferBackground.WORK_TAG_UPLOAD)
+                        .get();
+            } catch (ExecutionException | InterruptedException e) {
+                // Bruh, assume there is no work
+                Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
+                workInfo = Collections.emptyList();
+            }
+
+            float totalProgress = 0f;
+            int uploadCount = 0;
+            for (WorkInfo info : workInfo) {
+                if (!info.getState().isFinished()) {
+                    final Float progress = collectiveProgress.get(info.getId());
+                    totalProgress += progress;
+                    uploadCount++;
+                }
+            }
+
+            totalProgress /= (float) uploadCount;
+
+            Log.d(TAG, "eventLabel='getForegroundInfo: general (" + totalProgress + ") all (" + collectiveProgress + ")'");
 
             // TODO: click intent open app
             Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
@@ -123,10 +159,11 @@ public final class UploadTask extends Worker {
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
                     .setOngoing(true)
-                    .setProgress(100, (int) (progress * 100f), false)
+                    .setProgress(100, (int) (totalProgress * 100f), false)
                     .build();
 
-            return new ForegroundInfo(notificationId, notification);
+            cachedInfo = new ForegroundInfo(notificationId, notification);
+            return cachedInfo;
         }
     }
     // </editor-fold>
