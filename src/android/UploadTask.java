@@ -143,7 +143,9 @@ public final class UploadTask extends Worker {
             for (WorkInfo info : workInfo) {
                 if (!info.getState().isFinished()) {
                     final Float progress = collectiveProgress.get(info.getId());
-                    totalProgress += progress;
+                    if (progress != null) {
+                        totalProgress += progress;
+                    } // else 'add 0' of sorts
                     uploadCount++;
                 }
             }
