@@ -1,43 +1,33 @@
 package com.spoon.backgroundfileupload;
 
-import com.orm.SugarRecord;
+import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+import androidx.work.Data;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-import java.util.List;
+@Entity(tableName = "upload_event")
+public class UploadEvent {
+    @PrimaryKey
+    @NonNull
+    private String id;
 
-public class UploadEvent extends SugarRecord {
-    String data;
+    @ColumnInfo(name = "output_data")
+    @NonNull
+    private Data outputData;
 
-    public UploadEvent() {}
-
-    public UploadEvent(JSONObject payload) {
-        data = payload.toString();
+    public UploadEvent(@NonNull final String id, @NonNull final Data outputData) {
+        this.id = id;
+        this.outputData = outputData;
     }
 
-    public JSONObject dataRepresentation() {
-        try {
-            JSONObject parseData = new JSONObject(this.data);
-            parseData.put("eventId", this.getId());
-            return parseData;
-        } catch (JSONException e) {
-            return null;
-        }
+    @NonNull
+    public String getId() {
+        return id;
     }
 
-    public static UploadEvent create(JSONObject payload) {
-        UploadEvent event = new UploadEvent(payload);
-        event.save();
-        return event;
-    }
-
-    public static void destroy(Long eventId) {
-        UploadEvent event = UploadEvent.findById(UploadEvent.class, eventId);
-        if (event != null)
-            event.delete();
-    }
-
-    public static List<UploadEvent> all() {
-        return UploadEvent.listAll(UploadEvent.class);
+    @NonNull
+    public Data getOutputData() {
+        return outputData;
     }
 }
