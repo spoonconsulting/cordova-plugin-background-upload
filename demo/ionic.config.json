@@ -1,7 +1,6 @@
 {
-  "name": "Upload Demo",
+  "name": "demo-new",
   "integrations": {
-    "capacitor": {},
     "cordova": {}
   },
   "type": "angular"
