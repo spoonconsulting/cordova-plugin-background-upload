@@ -158,5 +158,3 @@ Cordova-plugin-background-upload is licensed under the Apache v2 License.
 
 ## Credits
 Cordova-plugin-background-upload is brought to you by [Spoon Consulting Ltd](http://www.spoonconsulting.com/).
-
-## test
