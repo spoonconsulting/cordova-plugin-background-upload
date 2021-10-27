@@ -24,7 +24,6 @@ matrix:
           - 'android-sdk-license-.+'
           - 'google-gdk-license-.+'
 script:
-  - nvm install 10.9.0
-  - nvm use 10.9.0
+  - nvm use
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rvm use 2.5.1 --install; fi
   - /bin/bash tests/travis.sh
