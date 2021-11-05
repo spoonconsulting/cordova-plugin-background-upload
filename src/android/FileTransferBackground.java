@@ -1,5 +1,7 @@
 package com.spoon.backgroundfileupload;
 
+import static android.app.NotificationManager.INTERRUPTION_FILTER_NONE;
+
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
@@ -7,6 +9,7 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
 import androidx.work.Data;
@@ -113,6 +116,11 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
+        try {
+            addUpload(args.getJSONObject(0));
+        } catch(Exception e) {
+
+        }
         cordova.getThreadPool().execute(() -> {
             try {
                 switch (action) {
@@ -316,7 +324,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 .build();
 
         WorkManager.getInstance(cordova.getContext())
-                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.APPEND, workRequest);
+                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.KEEP, workRequest);
 
         logMessage("eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
     }

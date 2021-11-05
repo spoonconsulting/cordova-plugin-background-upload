@@ -1,7 +1,10 @@
 package com.spoon.backgroundfileupload;
 
 import android.app.Notification;
+import android.app.PendingIntent;
+import android.app.Service;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -23,6 +26,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpRetryException;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -161,7 +166,6 @@ public final class UploadTask extends Worker {
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
                     .setOngoing(true)
-                    .setAutoCancel(true)
                     .setProgress(100, (int) (totalProgress * 100f), false)
                     .build();
 
@@ -248,7 +252,12 @@ public final class UploadTask extends Worker {
         Response response;
         try {
             if (!DEBUG_SKIP_UPLOAD) {
-                response = currentCall.execute();
+                try {
+                    response = currentCall.execute();
+                } catch (SocketException e) {
+                    currentCall.cancel();
+                    return Result.retry();
+                }
             } else {
                 for (int i = 0; i < 10; i++) {
                     handleProgress(i * 100, 1000);
@@ -277,9 +286,6 @@ public final class UploadTask extends Worker {
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
                 return Result.retry();
             }
-        } finally {
-            // Always remove ourselves from the notification
-            UploadForegroundNotification.done(getId());
         }
 
         // Start building the output data
