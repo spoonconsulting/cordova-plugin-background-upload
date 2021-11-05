@@ -310,14 +310,13 @@ public class FileTransferBackground extends CordovaPlugin {
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
                 )
-                .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
+                .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
                 .addTag(WORK_TAG_UPLOAD)
                 .setInputData(payload)
                 .build();
 
         WorkManager.getInstance(cordova.getContext())
-                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.KEEP, workRequest);
+                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.APPEND, workRequest);
 
         logMessage("eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
     }

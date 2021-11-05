@@ -161,8 +161,13 @@ public final class UploadTask extends Worker {
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
                     .setOngoing(true)
+                    .setAutoCancel(true)
                     .setProgress(100, (int) (totalProgress * 100f), false)
                     .build();
+
+            notification.flags |= Notification.FLAG_NO_CLEAR;
+            notification.flags |= Notification.FLAG_ONGOING_EVENT;
+            notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
 
             cachedInfo = new ForegroundInfo(notificationId, notification);
             return cachedInfo;
