@@ -6,6 +6,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.IBinder;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -27,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpRetryException;
+import java.net.ProtocolException;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -40,6 +42,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.net.ssl.SSLException;
+
 import okhttp3.Call;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -50,7 +54,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSink;
 
-public final class UploadTask extends Worker {
+public class UploadTask extends Worker {
 
     private static final boolean DEBUG_SKIP_UPLOAD = false;
     private static final long DELAY_BETWEEN_NOTIFICATION_UPDATE_MS = 200;
@@ -97,13 +101,14 @@ public final class UploadTask extends Worker {
 
     // Unified notification
     // <editor-fold>
-    private static class UploadForegroundNotification {
+    public static class UploadForegroundNotification {
         private static final Map<UUID, Float> collectiveProgress = Collections.synchronizedMap(new HashMap<>());
         private static final AtomicLong lastNotificationUpdateMs = new AtomicLong(0);
         private static ForegroundInfo cachedInfo;
 
         private static final int notificationId = new Random().nextInt();
         private static String notificationTitle = "Default title";
+        private static String notificationRetryText = "Some image(s) is left to be uploaded";
         @IntegerRes
         private static int notificationIconRes = 0;
 
@@ -165,8 +170,32 @@ public final class UploadTask extends Worker {
                     .setTicker(notificationTitle)
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
+                    // Notify device that the notification is for an ongoing process
                     .setOngoing(true)
                     .setProgress(100, (int) (totalProgress * 100f), false)
+                    .build();
+
+            // Not allow user to clear
+            notification.flags |= Notification.FLAG_NO_CLEAR;
+            // Notify device that the notification is for an ongoing process
+            // Some device support this flag
+            notification.flags |= Notification.FLAG_ONGOING_EVENT;
+            // Notify device that the notification is for a currently running foreground service
+            notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
+
+            cachedInfo = new ForegroundInfo(notificationId, notification);
+            return cachedInfo;
+        }
+
+        // Foreground notification used to tell user that there is some images left to be uploaded
+        public static ForegroundInfo getRetryForegroundInfo(final Context context) {
+            Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+                    .setContentTitle(notificationTitle)
+                    .setTicker(notificationTitle)
+                    .setContentText(notificationRetryText)
+                    .setSmallIcon(notificationIconRes)
+                    .setOngoing(true)
+                    .setColor(Color.rgb(57, 100, 150))
                     .build();
 
             notification.flags |= Notification.FLAG_NO_CLEAR;
@@ -227,7 +256,7 @@ public final class UploadTask extends Worker {
             );
         }
 
-        Request request;
+        Request request = null;
         try {
             request = createRequest();
         } catch (FileNotFoundException e) {
@@ -239,6 +268,9 @@ public final class UploadTask extends Worker {
                     .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
                     .build()
             );
+        } catch (NullPointerException e) {
+            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+            return Result.retry();
         }
 
         // Register me
@@ -254,8 +286,9 @@ public final class UploadTask extends Worker {
             if (!DEBUG_SKIP_UPLOAD) {
                 try {
                     response = currentCall.execute();
-                } catch (SocketException e) {
+                } catch (SocketException | ProtocolException | SSLException e) {
                     currentCall.cancel();
+                    setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
                     return Result.retry();
                 }
             } else {
@@ -284,8 +317,12 @@ public final class UploadTask extends Worker {
                 // But if it was not it must be a connectivity problem or
                 // something similar so we retry later
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
+                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
                 return Result.retry();
             }
+        } finally {
+            // Always remove ourselves from the notification
+            UploadForegroundNotification.done(getId());
         }
 
         // Start building the output data
