@@ -1,22 +1,13 @@
 package com.spoon.backgroundfileupload;
 
-import static android.app.NotificationManager.INTERRUPTION_FILTER_NONE;
-
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkInfo;
-import android.net.NetworkRequest;
 import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.work.BackoffPolicy;
-import androidx.work.Configuration;
 import androidx.work.Constraints;
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
@@ -46,7 +37,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class FileTransferBackground extends CordovaPlugin {
@@ -211,22 +201,8 @@ public class FileTransferBackground extends CordovaPlugin {
                                     }
                                     break;
                                 case CANCELLED:
-                                    cordova.getThreadPool().execute(() -> {
-//                                         UploadTask.UploadForegroundNotification.getRetryForegroundInfo(cordova.getContext());
-                                    });
-                                    break;
                                 case BLOCKED:
                                 case ENQUEUED:
-                                    // No db in main thread
-                                    cordova.getThreadPool().execute(() -> {
-//                                        UploadTask.UploadForegroundNotification.getRetryForegroundInfo(cordova.getContext());
-                                        // The corresponding ACK is already in the DB, if it not, the task is just a leftover
-                                        String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
-                                        if (ackDatabase.uploadEventDao().exists(id)) {
-                                            handleAck(info.getOutputData());
-                                        }
-                                    });
-                                    break;
                                 case SUCCEEDED:
                                     // No db in main thread
                                     cordova.getThreadPool().execute(() -> {
@@ -239,7 +215,6 @@ public class FileTransferBackground extends CordovaPlugin {
                                     break;
                                 case FAILED:
                                     // The task can't fail completely so something really bad has happened.
-//                                    UploadTask.UploadForegroundNotification.getRetryForegroundInfo(cordova.getContext());
                                     logMessage("eventLabel='Uploader failed inexplicably' error='" + info.getOutputData() + "'");
                                     break;
                             }
@@ -336,8 +311,8 @@ public class FileTransferBackground extends CordovaPlugin {
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
                 )
-                .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
                 .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
+                .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
                 .addTag(WORK_TAG_UPLOAD)
                 .setInputData(payload)
                 .build();

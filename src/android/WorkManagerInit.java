@@ -10,13 +10,16 @@ import androidx.annotation.Nullable;
 import androidx.work.Configuration;
 import androidx.work.WorkManager;
 
+import com.sharinpix.SharinPix.R;
+
 import java.util.concurrent.Executors;
 
 public class WorkManagerInit extends ContentProvider {
     @Override
     public boolean onCreate() {
+        Integer parallelUploads = Integer.parseInt(String.valueOf(getContext().getApplicationContext().getResources().getText(R.string.parallelUploads)));
         Configuration configuration = new Configuration.Builder()
-                .setExecutor(Executors.newFixedThreadPool(2))
+                .setExecutor(Executors.newFixedThreadPool(parallelUploads))
                 .build();
 
         WorkManager.initialize(getContext().getApplicationContext(), configuration);

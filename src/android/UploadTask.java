@@ -1,12 +1,10 @@
 package com.spoon.backgroundfileupload;
 
 import android.app.Notification;
-import android.app.PendingIntent;
-import android.app.Service;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Color;
-import android.os.IBinder;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -27,7 +25,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpRetryException;
 import java.net.ProtocolException;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
@@ -54,7 +51,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSink;
 
-public class UploadTask extends Worker {
+public final class UploadTask extends Worker {
 
     private static final boolean DEBUG_SKIP_UPLOAD = false;
     private static final long DELAY_BETWEEN_NOTIFICATION_UPDATE_MS = 200;
@@ -107,10 +104,10 @@ public class UploadTask extends Worker {
         private static ForegroundInfo cachedInfo;
 
         private static final int notificationId = new Random().nextInt();
-        private static String notificationTitle = "Default title";
-        private static String notificationRetryText = "Some image(s) is left to be uploaded";
+        public static String notificationTitle = "Default title";
+        public static String notificationRetryText = "Some image(s) is left to be uploaded";
         @IntegerRes
-        private static int notificationIconRes = 0;
+        public static int notificationIconRes = 0;
 
         private static void configure(final String title, @IntegerRes final int icon) {
             notificationTitle = title;
@@ -212,6 +209,8 @@ public class UploadTask extends Worker {
 
     private Call currentCall;
 
+    private ConnectivityManager connectivityManager;
+
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
 
@@ -243,6 +242,24 @@ public class UploadTask extends Worker {
         if (id == null) {
             Log.e(TAG, "doWork: ID is invalid !");
             return Result.failure();
+        }
+
+        if (connectivityManager != null) {
+            NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+            if (info != null) {
+                if (info.isConnected()) {
+                    Log.d(TAG, "WIFI is connected");
+                } else {
+                    Log.d(TAG, "WIFI is not connected");
+                    setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+                }
+            } else {
+                Log.d(TAG, "WIFI is not connected");
+                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+            }
+        } else {
+            Log.d(TAG, "WIFI is not connected");
+            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
         }
 
         // Check retry count
@@ -371,6 +388,24 @@ public class UploadTask extends Worker {
             return;
         }
 
+        if (connectivityManager != null) {
+            NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+            if (info != null) {
+                if (info.isConnected()) {
+                    Log.d(TAG, "WIFI is connected");
+                } else {
+                    Log.d(TAG, "WIFI is not connected");
+                    setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+                }
+            } else {
+                Log.d(TAG, "WIFI is not connected");
+                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+            }
+        } else {
+            Log.d(TAG, "WIFI is not connected");
+            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+        }
+
         float percent = (float) bytesWritten / (float) totalBytes;
         UploadForegroundNotification.progress(getId(), percent);
 
@@ -406,6 +441,9 @@ public class UploadTask extends Worker {
         MediaType mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
         File file = new File(filepath);
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
+
+        //Create network manager
+        this.connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
 
         // Build body
         final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
