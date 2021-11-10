@@ -32,6 +32,14 @@ var config = {};
 var uploader = FileTransferManager.init(config, callback);
 ```
 
+**Setting up Work Manager for Parallel Upload**
+Initialises the number of threads for executing uploads in parallel in Work Manager(Android only). To control this config, a config-file tag should be added in config.xml. The tag should include an integer(For e.g.: 1, 2, 3).
+```xml
+<config-file parent="/*" target="res/values/strings.xml">
+    <string name="parallelUploads">2</string>
+</config-file>
+```
+
 **Methods**
 
 ### uploader.init(config, callback)

@@ -113,6 +113,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
+        Log.d(TAG, "ACTION: " + action);
         cordova.getThreadPool().execute(() -> {
             try {
                 switch (action) {

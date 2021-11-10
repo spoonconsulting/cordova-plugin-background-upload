@@ -1,10 +1,15 @@
 package com.spoon.backgroundfileupload;
 
 import android.app.Notification;
+import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
+import android.os.IBinder;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -98,14 +103,15 @@ public final class UploadTask extends Worker {
 
     // Unified notification
     // <editor-fold>
-    public static class UploadForegroundNotification {
+    public static class UploadForegroundNotification extends Service {
         private static final Map<UUID, Float> collectiveProgress = Collections.synchronizedMap(new HashMap<>());
         private static final AtomicLong lastNotificationUpdateMs = new AtomicLong(0);
         private static ForegroundInfo cachedInfo;
+        private static ForegroundInfo retryCachedInfo;
 
         private static final int notificationId = new Random().nextInt();
         public static String notificationTitle = "Default title";
-        public static String notificationRetryText = "Some image(s) is left to be uploaded";
+        public static String notificationRetryText = "Some image(s) has not been uploaded(Due to some network issues)";
         @IntegerRes
         public static int notificationIconRes = 0;
 
@@ -186,21 +192,22 @@ public final class UploadTask extends Worker {
 
         // Foreground notification used to tell user that there is some images left to be uploaded
         public static ForegroundInfo getRetryForegroundInfo(final Context context) {
-            Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+            Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                     .setContentTitle(notificationTitle)
                     .setTicker(notificationTitle)
                     .setContentText(notificationRetryText)
                     .setSmallIcon(notificationIconRes)
-                    .setOngoing(true)
                     .setColor(Color.rgb(57, 100, 150))
                     .build();
 
-            notification.flags |= Notification.FLAG_NO_CLEAR;
-            notification.flags |= Notification.FLAG_ONGOING_EVENT;
-            notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
+            retryCachedInfo = new ForegroundInfo(notificationId, retryNotification);
+            return retryCachedInfo;
+        }
 
-            cachedInfo = new ForegroundInfo(notificationId, notification);
-            return cachedInfo;
+        @Nullable
+        @Override
+        public IBinder onBind(Intent intent) {
+            return null;
         }
     }
     // </editor-fold>
@@ -208,8 +215,6 @@ public final class UploadTask extends Worker {
     private static OkHttpClient httpClient;
 
     private Call currentCall;
-
-    private ConnectivityManager connectivityManager;
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
@@ -244,24 +249,6 @@ public final class UploadTask extends Worker {
             return Result.failure();
         }
 
-        if (connectivityManager != null) {
-            NetworkInfo info = connectivityManager.getActiveNetworkInfo();
-            if (info != null) {
-                if (info.isConnected()) {
-                    Log.d(TAG, "WIFI is connected");
-                } else {
-                    Log.d(TAG, "WIFI is not connected");
-                    setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
-                }
-            } else {
-                Log.d(TAG, "WIFI is not connected");
-                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
-            }
-        } else {
-            Log.d(TAG, "WIFI is not connected");
-            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
-        }
-
         // Check retry count
         if (getRunAttemptCount() > MAX_TRIES) {
             return Result.success(new Data.Builder()
@@ -286,7 +273,7 @@ public final class UploadTask extends Worker {
                     .build()
             );
         } catch (NullPointerException e) {
-            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+//            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
             return Result.retry();
         }
 
@@ -388,24 +375,6 @@ public final class UploadTask extends Worker {
             return;
         }
 
-        if (connectivityManager != null) {
-            NetworkInfo info = connectivityManager.getActiveNetworkInfo();
-            if (info != null) {
-                if (info.isConnected()) {
-                    Log.d(TAG, "WIFI is connected");
-                } else {
-                    Log.d(TAG, "WIFI is not connected");
-                    setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
-                }
-            } else {
-                Log.d(TAG, "WIFI is not connected");
-                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
-            }
-        } else {
-            Log.d(TAG, "WIFI is not connected");
-            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
-        }
-
         float percent = (float) bytesWritten / (float) totalBytes;
         UploadForegroundNotification.progress(getId(), percent);
 
@@ -442,8 +411,11 @@ public final class UploadTask extends Worker {
         File file = new File(filepath);
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
-        //Create network manager
-        this.connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        //Create a BroadcastReceiver to check status of internet connectivity
+        NetworkReceiver networkReceiver = new NetworkReceiver();
+        IntentFilter networkReceiverIntentFilter = new IntentFilter();
+        networkReceiverIntentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        getApplicationContext().registerReceiver(networkReceiver, networkReceiverIntentFilter);
 
         // Build body
         final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
@@ -540,6 +512,17 @@ public final class UploadTask extends Worker {
                     lastProgressTimestamp = now;
                     listener.onProgress(bytesWritten, contentLength);
                 }
+            }
+        }
+    }
+
+    private class NetworkReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnected() == false)) {
+                Log.d(TAG, "WIFI is not connected");
+                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
             }
         }
     }
