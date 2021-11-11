@@ -68,6 +68,10 @@ public final class UploadTask extends Worker {
 
     public static final int MAX_TRIES = 10;
 
+    // Key stuff
+    // <editor-fold>
+
+    // Keys used in the input data
     public static final String KEY_INPUT_ID = "input_id";
     public static final String KEY_INPUT_URL = "input_url";
     public static final String KEY_INPUT_FILEPATH = "input_filepath";
@@ -81,18 +85,24 @@ public final class UploadTask extends Worker {
     public static final String KEY_INPUT_PARAMETER_VALUE_PREFIX = "input_parameter_";
     public static final String KEY_INPUT_NOTIFICATION_TITLE = "input_notification_title";
     public static final String KEY_INPUT_NOTIFICATION_ICON = "input_notification_icon";
+    // Input keys but used for configuring the OkHttp instance
     public static final String KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS = "input_config_concurrent_downloads";
 
+    // Keys used for the progress data
     public static final String KEY_PROGRESS_ID = "progress_id";
     public static final String KEY_PROGRESS_PERCENT = "progress_percent";
 
+    // Keys used for the result
     public static final String KEY_OUTPUT_ID = "output_id";
     public static final String KEY_OUTPUT_IS_ERROR = "output_is_error";
     public static final String KEY_OUTPUT_RESPONSE_FILE = "output_response";
     public static final String KEY_OUTPUT_STATUS_CODE = "output_status_code";
     public static final String KEY_OUTPUT_FAILURE_REASON = "output_failure_reason";
     public static final String KEY_OUTPUT_FAILURE_CANCELED = "output_failure_canceled";
+    // </editor-fold>
 
+    // Unified notification
+    // <editor-fold>
     public static class UploadForegroundNotification extends Service {
         private static final Map<UUID, Float> collectiveProgress = Collections.synchronizedMap(new HashMap<>());
         private static final AtomicLong lastNotificationUpdateMs = new AtomicLong(0);
@@ -120,9 +130,12 @@ public final class UploadTask extends Worker {
 
         private static ForegroundInfo getForegroundInfo(final Context context) {
             final long now = System.currentTimeMillis();
+            // Set to now to ensure other worker will be throttled
             final long lastUpdate = lastNotificationUpdateMs.getAndSet(now);
 
+            // Throttle, 200ms delay
             if (cachedInfo != null && now - lastUpdate <= DELAY_BETWEEN_NOTIFICATION_UPDATE_MS) {
+                // Revert value
                 lastNotificationUpdateMs.set(lastUpdate);
                 return cachedInfo;
             }
@@ -133,6 +146,7 @@ public final class UploadTask extends Worker {
                         .getWorkInfosByTag(FileTransferBackground.WORK_TAG_UPLOAD)
                         .get();
             } catch (ExecutionException | InterruptedException e) {
+                // Bruh, assume there is no work
                 Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
                 workInfo = Collections.emptyList();
             }
@@ -144,7 +158,7 @@ public final class UploadTask extends Worker {
                     final Float progress = collectiveProgress.get(info.getId());
                     if (progress != null) {
                         totalProgress += progress;
-                    }
+                    } // else 'add 0' of sorts
                     uploadCount++;
                 }
             }
@@ -153,6 +167,7 @@ public final class UploadTask extends Worker {
 
             Log.d(TAG, "eventLabel='getForegroundInfo: general (" + totalProgress + ") all (" + collectiveProgress + ")'");
 
+            // TODO: click intent open app
             Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                     .setContentTitle(notificationTitle)
                     .setTicker(notificationTitle)
@@ -195,6 +210,7 @@ public final class UploadTask extends Worker {
             return null;
         }
     }
+    // </editor-fold>
 
     private static OkHttpClient httpClient;
 
@@ -233,6 +249,7 @@ public final class UploadTask extends Worker {
             return Result.failure();
         }
 
+        // Check retry count
         if (getRunAttemptCount() > MAX_TRIES) {
             return Result.success(new Data.Builder()
                     .putString(KEY_OUTPUT_ID, id)
@@ -256,15 +273,18 @@ public final class UploadTask extends Worker {
                     .build()
             );
         } catch (NullPointerException e) {
-            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+//            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
             return Result.retry();
         }
 
+        // Register me
         UploadForegroundNotification.progress(getId(), 0f);
         setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
 
+        // Start call
         currentCall = httpClient.newCall(request);
 
+        // Block until call is finished (or cancelled)
         Response response;
         try {
             if (!DEBUG_SKIP_UPLOAD) {
@@ -286,6 +306,8 @@ public final class UploadTask extends Worker {
                 }
             }
         } catch (IOException | InterruptedException e) {
+            // If it was user cancelled its ok
+            // See #handleProgress for cancel code
             if (isStopped()) {
                 final Data data = new Data.Builder()
                         .putString(KEY_OUTPUT_ID, id)
@@ -296,19 +318,24 @@ public final class UploadTask extends Worker {
                 AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
                 return Result.success(data);
             } else {
+                // But if it was not it must be a connectivity problem or
+                // something similar so we retry later
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
                 setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
                 return Result.retry();
             }
         } finally {
+            // Always remove ourselves from the notification
             UploadForegroundNotification.done(getId());
         }
 
+        // Start building the output data
         final Data.Builder outputData = new Data.Builder()
                 .putString(KEY_OUTPUT_ID, id)
                 .putBoolean(KEY_OUTPUT_IS_ERROR, false)
                 .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
 
+        // Try read the response body, if any
         try {
             final String res;
             if (!DEBUG_SKIP_UPLOAD) {
@@ -325,8 +352,10 @@ public final class UploadTask extends Worker {
             outputData.putString(KEY_OUTPUT_RESPONSE_FILE, filename);
 
         } catch (IOException e) {
+            // Should never happen, but if it does it has something to do with reading the response
             Log.e(TAG, "doWork: Error while reading the response body", e);
 
+            // But recover and replace the body with something else
             outputData.putString(KEY_OUTPUT_RESPONSE_FILE, null);
         }
 
@@ -339,6 +368,8 @@ public final class UploadTask extends Worker {
      * Called internally by the custom request body provider each time 8kio are written.
      */
     private void handleProgress(long bytesWritten, long totalBytes) {
+        // The cancel mechanism is best-effort and wont actually halt work, we need to
+        // take care of it ourselves.
         if (isStopped()) {
             currentCall.cancel();
             return;
@@ -371,8 +402,10 @@ public final class UploadTask extends Worker {
         final String fileKey = getInputData().getString(KEY_INPUT_FILE_KEY);
         assert fileKey != null;
 
+        // Build URL
         HttpUrl url = Objects.requireNonNull(HttpUrl.parse(getInputData().getString(KEY_INPUT_URL))).newBuilder().build();
 
+        // Build file reader
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
         MediaType mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
         File file = new File(filepath);
@@ -384,8 +417,10 @@ public final class UploadTask extends Worker {
         networkReceiverIntentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
         getApplicationContext().registerReceiver(networkReceiver, networkReceiverIntentFilter);
 
+        // Build body
         final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
 
+        // With the parameters
         final int parametersCount = getInputData().getInt(KEY_INPUT_PARAMETERS_COUNT, 0);
         if (parametersCount > 0) {
             final String[] parameterNames = getInputData().getStringArray(KEY_INPUT_PARAMETERS_NAMES);
@@ -401,6 +436,7 @@ public final class UploadTask extends Worker {
 
         bodyBuilder.addFormDataPart(fileKey, filepath, fileRequestBody);
 
+        // Start build request
         String method = getInputData().getString(KEY_INPUT_HTTP_METHOD);
         if (method == null) {
             method = "POST";
@@ -409,6 +445,7 @@ public final class UploadTask extends Worker {
                 .url(url)
                 .method(method.toUpperCase(), bodyBuilder.build());
 
+        // Write headers
         final int headersCount = getInputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);
         final String[] headerNames = getInputData().getStringArray(KEY_INPUT_HEADERS_NAMES);
         assert headerNames != null;
@@ -419,6 +456,7 @@ public final class UploadTask extends Worker {
             requestBuilder.addHeader(key, value.toString());
         }
 
+        // Ok
         return requestBuilder.build();
     }
 
@@ -465,8 +503,10 @@ public final class UploadTask extends Worker {
             while ((read = this.stream.read(buffer)) != -1) {
                 bufferedSink.write(buffer, 0, read);
 
+                // Trigger listener
                 bytesWritten += read;
 
+                // Event throttling
                 long now = System.currentTimeMillis() / 1000;
                 if (now - lastProgressTimestamp >= 1) {
                     lastProgressTimestamp = now;
