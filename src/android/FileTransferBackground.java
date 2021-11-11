@@ -47,10 +47,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private CallbackContext uploadCallback;
     private boolean ready = false;
 
-    private Data httpClientBaseConfig = Data.EMPTY;
-
     public void sendCallback(JSONObject obj) {
-        /* we check the webview has been initialized */
         if (ready) {
             PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
             result.setKeepCallback(true);
@@ -59,8 +56,6 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void sendProgress(final String id, int progressPercent) {
-        // Event throttling is now done in UploadTask$ProgressRequestBody#writeTo()
-
         try {
             sendCallback(new JSONObject()
                     .put("id", id)
@@ -68,7 +63,6 @@ public class FileTransferBackground extends CordovaPlugin {
                     .put("progress", progressPercent)
             );
         } catch (JSONException e) {
-            // Can't really happen but just in case
             e.printStackTrace();
         }
     }
@@ -89,7 +83,6 @@ public class FileTransferBackground extends CordovaPlugin {
                     .put("statusCode", statusCode)
             );
         } catch (JSONException e) {
-            // Can't really happen but just in case
             e.printStackTrace();
         }
     }
@@ -150,18 +143,6 @@ public class FileTransferBackground extends CordovaPlugin {
             throw new IllegalStateException("initManager was called twice");
         }
 
-        try {
-            final JSONObject settings = new JSONObject(options);
-            int ccUpload = settings.getInt("parallelUploadsLimit");
-
-            // Rebuild base HTTP config
-            httpClientBaseConfig = new Data.Builder()
-                    .putInt(UploadTask.KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, ccUpload)
-                    .build();
-        } catch (JSONException e) {
-            logMessage("eventLabel='Uploader could not read parallelUploadsLimit from config' error='" + e.getMessage() + "'");
-        }
-
         // Register notification channel if the android version requires it
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager notificationManager = (NotificationManager) cordova.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
@@ -183,15 +164,12 @@ public class FileTransferBackground extends CordovaPlugin {
             handleAck(ack.getOutputData());
         }
 
-        // Can't use observeForever anywhere else than the main thread
         cordova.getActivity().runOnUiThread(() -> {
-            // Listen for upload progress
             WorkManager.getInstance(cordova.getContext())
                     .getWorkInfosByTagLiveData(WORK_TAG_UPLOAD)
                     .observeForever((tasks) -> {
                         for (WorkInfo info : tasks) {
                             switch (info.getState()) {
-                                // If the upload in not finished, publish its progress
                                 case RUNNING:
                                     if (info.getProgress() != Data.EMPTY) {
                                         String id = info.getProgress().getString(UploadTask.KEY_PROGRESS_ID);
@@ -205,9 +183,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
-                                    // No db in main thread
                                     cordova.getThreadPool().execute(() -> {
-                                        // The corresponding ACK is already in the DB, if it not, the task is just a leftover
                                         String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
                                         if (ackDatabase.uploadEventDao().exists(id)) {
                                             handleAck(info.getOutputData());
@@ -215,7 +191,6 @@ public class FileTransferBackground extends CordovaPlugin {
                                     });
                                     break;
                                 case FAILED:
-                                    // The task can't fail completely so something really bad has happened.
                                     logMessage("eventLabel='Uploader failed inexplicably' error='" + info.getOutputData() + "'");
                                     break;
                             }
@@ -231,7 +206,6 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void addUpload(JSONObject jsonPayload) {
-        // Get payload
         HashMap<String, Object> payload = null;
         try {
             payload = FileTransferBackground.convertToHashMap(jsonPayload);
@@ -240,11 +214,8 @@ public class FileTransferBackground extends CordovaPlugin {
         }
         if (payload == null) return;
 
-        // Prepare task payload
-
         final String uploadId = String.valueOf(payload.get("id"));
 
-        // Create headers
         final Map<String, Object> headers;
         try {
             headers = convertToHashMap((JSONObject) payload.get("headers"));
@@ -260,7 +231,6 @@ public class FileTransferBackground extends CordovaPlugin {
             headersNames.add(entry.getKey());
         }
 
-        // Create parameters
         final Map<String, Object> parameters;
         try {
             parameters = convertToHashMap((JSONObject) payload.get("parameters"));
@@ -298,8 +268,6 @@ public class FileTransferBackground extends CordovaPlugin {
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE, (String) payload.get("notificationTitle"))
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_ICON, cordova.getActivity().getPackageName() + ":drawable/ic_upload")
 
-                // Put config stuff
-                .putAll(httpClientBaseConfig)
                 .build()
         );
     }
@@ -333,7 +301,6 @@ public class FileTransferBackground extends CordovaPlugin {
                     .put("error", error.getMessage())
             );
         } catch (JSONException e) {
-            // Will not happen
             e.printStackTrace();
         }
     }
@@ -341,7 +308,6 @@ public class FileTransferBackground extends CordovaPlugin {
     private void removeUpload(String uploadId, CallbackContext context) {
         logMessage("eventLabel='Remove upload " + uploadId + "'");
 
-        // Cancel the task ...
         WorkManager.getInstance(cordova.getContext())
                 .cancelUniqueWork(uploadId)
                 .getResult()
@@ -358,7 +324,6 @@ public class FileTransferBackground extends CordovaPlugin {
     private void acknowledgeEvent(String eventId, CallbackContext context) {
         logMessage("eventLabel='ACK event " + eventId + "'");
 
-        // Cleanup will delete the ACK.
         cleanupUpload(eventId);
 
         PluginResult result = new PluginResult(PluginResult.Status.OK);
@@ -370,9 +335,7 @@ public class FileTransferBackground extends CordovaPlugin {
      * Handle ACK data and send it to the JS.
      */
     private void handleAck(final Data ackData) {
-        // If upload was successful
         if (!ackData.getBoolean(UploadTask.KEY_OUTPUT_IS_ERROR, false)) {
-            // Read response from file if present
             String response = null;
             if (ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
                 response = readFileToStringNoThrow(ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
@@ -385,7 +348,6 @@ public class FileTransferBackground extends CordovaPlugin {
             );
 
         } else {
-            // The upload was a failure
             sendError(
                     ackData.getString(UploadTask.KEY_OUTPUT_ID),
                     ackData.getString(UploadTask.KEY_OUTPUT_FAILURE_REASON),
@@ -399,16 +361,13 @@ public class FileTransferBackground extends CordovaPlugin {
      */
     private void cleanupUpload(final String uploadId) {
         final UploadEvent ack = AckDatabase.getInstance(cordova.getContext()).uploadEventDao().getById(uploadId);
-        // If the upload is done there is an ACK of it, so get file name from there
         if (ack != null) {
             if (ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
                 cordova.getContext().deleteFile(ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
             }
 
-            // Also delete it from database
             AckDatabase.getInstance(cordova.getContext()).uploadEventDao().delete(ack);
         } else {
-            // Otherwise get the data from the task itself
             final WorkInfo task;
             try {
                 final List<WorkInfo> tasks = WorkManager.getInstance(cordova.getContext())
@@ -440,13 +399,10 @@ public class FileTransferBackground extends CordovaPlugin {
         destroy();
     }
 
-    // Old migrations
-    // <editor-fold>
     private void migrateOldUploads() {
         Storage storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
         String uploadDirectoryName = "FileTransferBackground";
         if (storage.isDirectoryExists(uploadDirectoryName)) {
-            // remove all old uploads
             storage.deleteDirectory(uploadDirectoryName);
         }
     }
@@ -470,7 +426,6 @@ public class FileTransferBackground extends CordovaPlugin {
         }
         return previousUploads;
     }
-    // </editor-fold>
 
     @Nullable
     private String readFileToStringNoThrow(final String filename) {
@@ -482,7 +437,6 @@ public class FileTransferBackground extends CordovaPlugin {
                 builder.append(line).append("\n");
             }
 
-            // Ok
             return builder.toString();
         } catch (IOException e) {
             return null;

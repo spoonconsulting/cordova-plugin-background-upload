@@ -4,6 +4,7 @@ import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,9 +18,9 @@ import java.util.concurrent.Executors;
 public class WorkManagerInit extends ContentProvider {
     @Override
     public boolean onCreate() {
-        Integer parallelUploads = Integer.parseInt(String.valueOf(getContext().getApplicationContext().getResources().getText(R.string.parallelUploads)));
+        Integer concurrentUploads = Integer.parseInt(String.valueOf(getContext().getApplicationContext().getResources().getText(R.string.concurrentUploads)));
         Configuration configuration = new Configuration.Builder()
-                .setExecutor(Executors.newFixedThreadPool(parallelUploads))
+                .setExecutor(Executors.newFixedThreadPool(concurrentUploads))
                 .build();
 
         WorkManager.initialize(getContext().getApplicationContext(), configuration);
