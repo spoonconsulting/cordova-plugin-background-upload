@@ -95,7 +95,7 @@ export class Tab1Page {
       const data = await Promise.all(uris.map((uri) => {
         const pathSplit = uri.split('/');
         const filename = pathSplit.pop();
-        const dir = pathSplit.join('/');
+        const dir = 'file://' + pathSplit.join('/');
         return this.file.readAsDataURL(dir, filename);
       }));
 
