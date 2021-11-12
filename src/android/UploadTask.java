@@ -273,7 +273,7 @@ public final class UploadTask extends Worker {
                     .build()
             );
         } catch (NullPointerException e) {
-//            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
             return Result.retry();
         }
 
@@ -411,7 +411,7 @@ public final class UploadTask extends Worker {
         File file = new File(filepath);
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
-        //Create a BroadcastReceiver to check status of internet connectivity
+        // Create a BroadcastReceiver to check status of internet connectivity
         NetworkReceiver networkReceiver = new NetworkReceiver();
         IntentFilter networkReceiverIntentFilter = new IntentFilter();
         networkReceiverIntentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
@@ -521,7 +521,7 @@ public final class UploadTask extends Worker {
         public void onReceive(Context context, Intent intent) {
             ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
             if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnected() == false)) {
-                Log.d(TAG, "WIFI is not connected");
+                Log.d(TAG, "No internet connection");
                 setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
             }
         }
