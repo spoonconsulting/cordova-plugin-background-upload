@@ -273,7 +273,6 @@ public final class UploadTask extends Worker {
                     .build()
             );
         } catch (NullPointerException e) {
-            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
             return Result.retry();
         }
 
@@ -292,7 +291,6 @@ public final class UploadTask extends Worker {
                     response = currentCall.execute();
                 } catch (SocketException | ProtocolException | SSLException e) {
                     currentCall.cancel();
-                    setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
                     return Result.retry();
                 }
             } else {
@@ -321,7 +319,6 @@ public final class UploadTask extends Worker {
                 // But if it was not it must be a connectivity problem or
                 // something similar so we retry later
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
-                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
                 return Result.retry();
             }
         } finally {
