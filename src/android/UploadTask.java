@@ -111,7 +111,8 @@ public final class UploadTask extends Worker {
 
         private static final int notificationId = new Random().nextInt();
         public static String notificationTitle = "Default title";
-        public static String notificationRetryText = "Some image(s) has not been uploaded(Due to some network issues)";
+        public static String notificationRetryTitle = "Upload interrupted";
+        public static String notificationRetryText = "Please check your internet connection or try to connect to another network to see if your upload resumes";
         @IntegerRes
         public static int notificationIconRes = 0;
 
@@ -193,8 +194,8 @@ public final class UploadTask extends Worker {
         // Foreground notification used to tell user that there is some images left to be uploaded
         public static ForegroundInfo getRetryForegroundInfo(final Context context) {
             Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-                    .setContentTitle(notificationTitle)
-                    .setTicker(notificationTitle)
+                    .setContentTitle(notificationRetryTitle)
+                    .setTicker(notificationRetryTitle)
                     .setContentText(notificationRetryText)
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
