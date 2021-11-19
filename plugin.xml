@@ -44,14 +44,6 @@
             <meta-data android:name="VERSION" android:value="1" />
             <meta-data android:name="QUERY_LOG" android:value="false" />
             <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
-            <provider
-                android:name="androidx.work.impl.WorkManagerInitializer"
-                android:authorities="${applicationId}.workmanager-init"
-                android:exported="false"
-                android:enabled="false"/>
-            <provider
-                android:name="com.spoon.backgroundfileupload.WorkManagerInit"
-                android:authorities="${applicationId}.WorkManagerInit"/>
         </config-file>
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadTask.java" target-dir="src/com/spoon/backgroundfileupload" />

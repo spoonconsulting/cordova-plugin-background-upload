@@ -41,8 +41,10 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 
 import javax.net.ssl.SSLException;
 
@@ -217,8 +219,24 @@ public final class UploadTask extends Worker {
 
     private Call currentCall;
 
+    private static int concurency = 1;
+
+    private static Semaphore concurrentUploads = new Semaphore(concurency, true);
+
+    private static Semaphore concurrencyLock = new Semaphore(1);
+
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+
         super(context, workerParams);
+
+        int concurrencyConfig = workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
+
+        concurrencyLock.acquireUninterruptibly();
+        if (concurency != concurrencyConfig) {
+            concurency = concurrencyConfig;
+            concurrentUploads = new Semaphore(concurrencyConfig, true);
+        }
+        concurrencyLock.release();
 
         if (httpClient == null) {
             httpClient = new OkHttpClient.Builder()
@@ -230,9 +248,9 @@ public final class UploadTask extends Worker {
                     .readTimeout(30, TimeUnit.SECONDS)
                     .cache(null)
                     .build();
-
-            httpClient.dispatcher().setMaxRequests(workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
         }
+
+        httpClient.dispatcher().setMaxRequests(workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
 
         UploadForegroundNotification.configure(
                 workerParams.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
@@ -243,6 +261,7 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        Log.d("ZAFIR", "INNN");
         final String id = getInputData().getString(KEY_INPUT_ID);
 
         if (id == null) {
@@ -285,11 +304,23 @@ public final class UploadTask extends Worker {
         currentCall = httpClient.newCall(request);
 
         // Block until call is finished (or cancelled)
-        Response response;
+        Response response = null;
         try {
             if (!DEBUG_SKIP_UPLOAD) {
                 try {
-                    response = currentCall.execute();
+                    try {
+                        Log.d("ZAFIR", String.valueOf(concurrentUploads.availablePermits()));
+                        concurrentUploads.acquire();
+                        try {
+                            response = currentCall.execute();
+                        } finally {
+                            Log.d("ZAFIR", "One upload finished");
+                            concurrentUploads.release();
+                        }
+                    } catch (InterruptedException e) {
+                        Log.d("ZAFIR", "Not finished");
+                        e.printStackTrace();
+                    }
                 } catch (SocketException | ProtocolException | SSLException e) {
                     currentCall.cancel();
                     return Result.retry();

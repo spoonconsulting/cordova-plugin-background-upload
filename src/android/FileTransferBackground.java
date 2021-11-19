@@ -47,6 +47,8 @@ public class FileTransferBackground extends CordovaPlugin {
     private CallbackContext uploadCallback;
     private boolean ready = false;
 
+    private Data httpClientBaseConfig = Data.EMPTY;
+
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
         if (ready) {
@@ -123,6 +125,7 @@ public class FileTransferBackground extends CordovaPlugin {
                         break;
                     case "startUpload":
                         addUpload(args.getJSONObject(0));
+                        Log.d("ZAFIR", args.getJSONObject(0).toString());
                         break;
                     case "removeUpload":
                         removeUpload(args.get(0).toString(), callbackContext);
@@ -147,6 +150,19 @@ public class FileTransferBackground extends CordovaPlugin {
         if (this.ready) {
             throw new IllegalStateException("initManager was called twice");
         }
+
+        try {
+            final JSONObject settings = new JSONObject(options);
+            int ccUpload = settings.getInt("parallelUploadsLimit");
+
+            // Rebuild base HTTP config
+            httpClientBaseConfig = new Data.Builder()
+                    .putInt(UploadTask.KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, ccUpload)
+                    .build();
+        } catch (JSONException e) {
+            logMessage("eventLabel='Uploader could not read parallelUploadsLimit from config' error='" + e.getMessage() + "'");
+        }
+
 
         // Register notification channel if the android version requires it
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -284,6 +300,8 @@ public class FileTransferBackground extends CordovaPlugin {
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE, (String) payload.get("notificationTitle"))
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_ICON, cordova.getActivity().getPackageName() + ":drawable/ic_upload")
 
+                // Put config stuff
+                .putAll(httpClientBaseConfig)
                 .build()
         );
     }
