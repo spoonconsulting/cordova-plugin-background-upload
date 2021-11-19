@@ -240,7 +240,7 @@ public final class UploadTask extends Worker {
 
         if (httpClient == null) {
             httpClient = new OkHttpClient.Builder()
-                    .followRedirects(true)""
+                    .followRedirects(true)
                     .followSslRedirects(true)
                     .retryOnConnectionFailure(true)
                     .connectTimeout(15, TimeUnit.SECONDS)
