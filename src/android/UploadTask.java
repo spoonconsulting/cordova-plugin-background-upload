@@ -261,7 +261,6 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        Log.d("ZAFIR", "INNN");
         final String id = getInputData().getString(KEY_INPUT_ID);
 
         if (id == null) {
@@ -309,16 +308,13 @@ public final class UploadTask extends Worker {
             if (!DEBUG_SKIP_UPLOAD) {
                 try {
                     try {
-                        Log.d("ZAFIR", String.valueOf(concurrentUploads.availablePermits()));
                         concurrentUploads.acquire();
                         try {
                             response = currentCall.execute();
                         } finally {
-                            Log.d("ZAFIR", "One upload finished");
                             concurrentUploads.release();
                         }
                     } catch (InterruptedException e) {
-                        Log.d("ZAFIR", "Not finished");
                         e.printStackTrace();
                     }
                 } catch (SocketException | ProtocolException | SSLException e) {

@@ -125,7 +125,6 @@ public class FileTransferBackground extends CordovaPlugin {
                         break;
                     case "startUpload":
                         addUpload(args.getJSONObject(0));
-                        Log.d("ZAFIR", args.getJSONObject(0).toString());
                         break;
                     case "removeUpload":
                         removeUpload(args.get(0).toString(), callbackContext);
