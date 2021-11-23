@@ -113,7 +113,6 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
-        Log.d(TAG, "ACTION: " + action);
         cordova.getThreadPool().execute(() -> {
             try {
                 switch (action) {
@@ -161,7 +160,6 @@ public class FileTransferBackground extends CordovaPlugin {
         } catch (JSONException e) {
             logMessage("eventLabel='Uploader could not read parallelUploadsLimit from config' error='" + e.getMessage() + "'");
         }
-
 
         // Register notification channel if the android version requires it
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

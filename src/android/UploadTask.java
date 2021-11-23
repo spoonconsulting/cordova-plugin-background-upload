@@ -109,7 +109,6 @@ public final class UploadTask extends Worker {
         private static final Map<UUID, Float> collectiveProgress = Collections.synchronizedMap(new HashMap<>());
         private static final AtomicLong lastNotificationUpdateMs = new AtomicLong(0);
         private static ForegroundInfo cachedInfo;
-        private static ForegroundInfo retryCachedInfo;
 
         private static final int notificationId = new Random().nextInt();
         public static String notificationTitle = "Default title";
@@ -176,17 +175,12 @@ public final class UploadTask extends Worker {
                     .setTicker(notificationTitle)
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
-                    // Notify device that the notification is for an ongoing process
                     .setOngoing(true)
                     .setProgress(100, (int) (totalProgress * 100f), false)
                     .build();
 
-            // Not allow user to clear
             notification.flags |= Notification.FLAG_NO_CLEAR;
-            // Notify device that the notification is for an ongoing process
-            // Some device support this flag
             notification.flags |= Notification.FLAG_ONGOING_EVENT;
-            // Notify device that the notification is for a currently running foreground service
             notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
 
             cachedInfo = new ForegroundInfo(notificationId, notification);
@@ -203,8 +197,7 @@ public final class UploadTask extends Worker {
                     .setColor(Color.rgb(57, 100, 150))
                     .build();
 
-            retryCachedInfo = new ForegroundInfo(notificationId, retryNotification);
-            return retryCachedInfo;
+            return new ForegroundInfo(notificationId, retryNotification);
         }
 
         @Nullable
@@ -220,9 +213,7 @@ public final class UploadTask extends Worker {
     private Call currentCall;
 
     private static int concurency = 1;
-
     private static Semaphore concurrentUploads = new Semaphore(concurency, true);
-
     private static Semaphore concurrencyLock = new Semaphore(1);
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
