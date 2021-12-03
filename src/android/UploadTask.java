@@ -1,6 +1,8 @@
 package com.spoon.backgroundfileupload;
 
+import android.app.Activity;
 import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -89,6 +91,8 @@ public final class UploadTask extends Worker {
     public static final String KEY_INPUT_NOTIFICATION_ICON = "input_notification_icon";
     // Input keys but used for configuring the OkHttp instance
     public static final String KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS = "input_config_concurrent_downloads";
+    public static final String KEY_INPUT_CONFIG_INTENT_ACTIVITY = "input_config_intent_activity";
+
 
     // Keys used for the progress data
     public static final String KEY_PROGRESS_ID = "progress_id";
@@ -112,14 +116,16 @@ public final class UploadTask extends Worker {
 
         private static final int notificationId = new Random().nextInt();
         public static String notificationTitle = "Default title";
-        public static String notificationRetryTitle = "Upload interrupted";
+        public static String notificationRetryTitle = "Upload paused";
         public static String notificationRetryText = "Please check your internet connection or try to connect to another network to see if your upload resumes";
         @IntegerRes
         public static int notificationIconRes = 0;
+        public static String notificationIntentActivity;
 
-        private static void configure(final String title, @IntegerRes final int icon) {
+        private static void configure(final String title, @IntegerRes final int icon, final String intentActivity) {
             notificationTitle = title;
             notificationIconRes = icon;
+            notificationIntentActivity = intentActivity;
         }
 
         private static void progress(final UUID uuid, final float progress) {
@@ -169,6 +175,16 @@ public final class UploadTask extends Worker {
 
             Log.d(TAG, "eventLabel='getForegroundInfo: general (" + totalProgress + ") all (" + collectiveProgress + ")'");
 
+            Class<?> myClass = null;
+            try {
+                myClass = Class.forName(notificationIntentActivity);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            Intent notificationIntent = new Intent(context, myClass);
+            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
+
+
             // TODO: click intent open app
             Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                     .setContentTitle(notificationTitle)
@@ -177,6 +193,7 @@ public final class UploadTask extends Worker {
                     .setColor(Color.rgb(57, 100, 150))
                     .setOngoing(true)
                     .setProgress(100, (int) (totalProgress * 100f), false)
+                    .setContentIntent(pendingIntent)
                     .build();
 
             notification.flags |= Notification.FLAG_NO_CLEAR;
@@ -189,12 +206,22 @@ public final class UploadTask extends Worker {
 
         // Foreground notification used to tell user that there is some images left to be uploaded
         public static ForegroundInfo getRetryForegroundInfo(final Context context) {
+            Class<?> myClass = null;
+            try {
+                myClass = Class.forName(notificationIntentActivity);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            Intent notificationIntent = new Intent(context, myClass);
+            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
+
             Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                     .setContentTitle(notificationRetryTitle)
                     .setTicker(notificationRetryTitle)
                     .setContentText(notificationRetryText)
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
+                    .setContentIntent(pendingIntent)
                     .build();
 
             return new ForegroundInfo(notificationId, retryNotification);
@@ -245,7 +272,8 @@ public final class UploadTask extends Worker {
 
         UploadForegroundNotification.configure(
                 workerParams.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
-                getApplicationContext().getResources().getIdentifier(workerParams.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null)
+                getApplicationContext().getResources().getIdentifier(workerParams.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
+                workerParams.getInputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
         );
     }
 
@@ -306,7 +334,7 @@ public final class UploadTask extends Worker {
                             concurrentUploads.release();
                         }
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        return Result.retry();
                     }
                 } catch (SocketException | ProtocolException | SSLException e) {
                     currentCall.cancel();

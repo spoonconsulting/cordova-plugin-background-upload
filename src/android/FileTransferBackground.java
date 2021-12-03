@@ -3,6 +3,7 @@ package com.spoon.backgroundfileupload;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
 
@@ -275,6 +276,13 @@ public class FileTransferBackground extends CordovaPlugin {
             parameterNames.add(entry.getKey());
         }
 
+        String intentActivity = null;
+        try {
+            intentActivity = cordova.getActivity().getPackageManager().getActivityInfo(cordova.getActivity().getComponentName(), 0).name.toString();
+        } catch(PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+
         startUpload(uploadId, new Data.Builder()
                 // Put base info
                 .putString(UploadTask.KEY_INPUT_ID, uploadId)
@@ -296,6 +304,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 // Put notification stuff
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE, (String) payload.get("notificationTitle"))
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_ICON, cordova.getActivity().getPackageName() + ":drawable/ic_upload")
+                .putString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY, intentActivity)
 
                 // Put config stuff
                 .putAll(httpClientBaseConfig)
