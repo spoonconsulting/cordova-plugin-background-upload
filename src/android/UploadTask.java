@@ -117,7 +117,7 @@ public final class UploadTask extends Worker {
         private static final int notificationId = new Random().nextInt();
         public static String notificationTitle = "Default title";
         public static String notificationRetryTitle = "Upload paused";
-        public static String notificationRetryText = "Please check your internet connection or try to connect to another network to see if your upload resumes";
+        public static String notificationRetryText = "Please check your internet connection";
         @IntegerRes
         public static int notificationIconRes = 0;
         public static String notificationIntentActivity;
@@ -175,13 +175,13 @@ public final class UploadTask extends Worker {
 
             Log.d(TAG, "eventLabel='getForegroundInfo: general (" + totalProgress + ") all (" + collectiveProgress + ")'");
 
-            Class<?> myClass = null;
+            Class<?> mainActivityClass = null;
             try {
-                myClass = Class.forName(notificationIntentActivity);
+                mainActivityClass = Class.forName(notificationIntentActivity);
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            Intent notificationIntent = new Intent(context, myClass);
+            Intent notificationIntent = new Intent(context, mainActivityClass);
             PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
 
 
@@ -206,14 +206,17 @@ public final class UploadTask extends Worker {
 
         // Foreground notification used to tell user that there is some images left to be uploaded
         public static ForegroundInfo getRetryForegroundInfo(final Context context) {
-            Class<?> myClass = null;
-            try {
-                myClass = Class.forName(notificationIntentActivity);
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+            Class<?> mainActivityClass = null;
+            PendingIntent pendingIntent = null;
+            if(mainActivityClass != null) {
+                try {
+                    mainActivityClass = Class.forName(notificationIntentActivity);
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+                Intent notificationIntent = new Intent(context, mainActivityClass);
+                pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
             }
-            Intent notificationIntent = new Intent(context, myClass);
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
 
             Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                     .setContentTitle(notificationRetryTitle)
@@ -311,12 +314,13 @@ public final class UploadTask extends Worker {
                     .build()
             );
         } catch (NullPointerException e) {
+            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
             return Result.retry();
         }
 
         // Register me
         UploadForegroundNotification.progress(getId(), 0f);
-        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+        setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
 
         // Start call
         currentCall = httpClient.newCall(request);
@@ -334,10 +338,12 @@ public final class UploadTask extends Worker {
                             concurrentUploads.release();
                         }
                     } catch (InterruptedException e) {
+                        setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
                         return Result.retry();
                     }
                 } catch (SocketException | ProtocolException | SSLException e) {
                     currentCall.cancel();
+                    setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
                     return Result.retry();
                 }
             } else {
@@ -366,6 +372,7 @@ public final class UploadTask extends Worker {
                 // But if it was not it must be a connectivity problem or
                 // something similar so we retry later
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
+                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
                 return Result.retry();
             }
         } finally {
