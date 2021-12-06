@@ -11,7 +11,6 @@
         <engine name="cordova" version=">=8.0.0" />
         <engine name="cordova-android" version=">=8.0.0" />
     </engines>
-   <preference name="android-minSdkVersion" value="21" />
    <dependency id="cordova-plugin-androidx" version="1.0.2"/>
    <dependency id="cordova-plugin-androidx-adapter" version="1.1.0"/>
    <dependency id="cordova-plugin-file" version="6.0.2"/>
@@ -53,6 +52,9 @@
         <source-file src="src/android/PendingUpload.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEvent.java" target-dir="src/com/spoon/backgroundfileupload" />
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
+        <config-file target="res/xml/config.xml" parent="/*">
+            <preference name="android-minSdkVersion" value="21" />
+        </config-file>
     </platform>
     <platform name="ios">
         <framework src="AFNetworking" type="podspec" spec="~> 4.0.1" />
