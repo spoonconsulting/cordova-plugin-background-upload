@@ -1,3 +1,6 @@
+## [2.0.6](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/2.0.5...2.0.6) (2021-12-08)
+* **android:** modified config.gradle to support cordova-android 10.x.x
+
 ## [2.0.5](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/2.0.4...2.0.5) (2021-07-07)
 
 * **android:** update demo project
