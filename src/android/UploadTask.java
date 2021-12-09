@@ -160,18 +160,14 @@ public final class UploadTask extends Worker {
             }
 
             float totalProgress = 0f;
-            int uploadCount = 0;
             for (WorkInfo info : workInfo) {
                 if (!info.getState().isFinished()) {
                     final Float progress = collectiveProgress.get(info.getId());
                     if (progress != null) {
                         totalProgress += progress;
-                    } // else 'add 0' of sorts
-                    uploadCount++;
+                    }
                 }
             }
-
-            totalProgress /= (float) uploadCount;
 
             Log.d(TAG, "eventLabel='getForegroundInfo: general (" + totalProgress + ") all (" + collectiveProgress + ")'");
 
@@ -207,16 +203,13 @@ public final class UploadTask extends Worker {
         // Foreground notification used to tell user that there is some images left to be uploaded
         public static ForegroundInfo getRetryForegroundInfo(final Context context) {
             Class<?> mainActivityClass = null;
-            PendingIntent pendingIntent = null;
-            if(mainActivityClass != null) {
-                try {
-                    mainActivityClass = Class.forName(notificationIntentActivity);
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-                Intent notificationIntent = new Intent(context, mainActivityClass);
-                pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
+            try {
+                mainActivityClass = Class.forName(notificationIntentActivity);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
+            Intent notificationIntent = new Intent(context, mainActivityClass);
+            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
 
             Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                     .setContentTitle(notificationRetryTitle)
@@ -320,7 +313,7 @@ public final class UploadTask extends Worker {
 
         // Register me
         UploadForegroundNotification.progress(getId(), 0f);
-        setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
 
         // Start call
         currentCall = httpClient.newCall(request);
