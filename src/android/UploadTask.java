@@ -314,6 +314,11 @@ public final class UploadTask extends Worker {
         // Register me
         UploadForegroundNotification.progress(getId(), 0f);
         setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+        ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnected() == false)) {
+            Log.d(TAG, "No internet connection");
+            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+        }
 
         // Start call
         currentCall = httpClient.newCall(request);
