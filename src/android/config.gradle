@@ -1,6 +1,8 @@
 def minSdkVersion = 21
-if(cordovaConfig.MIN_SDK_VERSION < minSdkVersion){
-    ext.cdvMinSdkVersion = minSdkVersion
+if(cdvMinSdkVersion == null) {
+    ext.cdvMinSdkVersion = minSdkVersion;
+} else if (cdvMinSdkVersion.toInteger() < minSdkVersion) {
+    ext.cdvMinSdkVersion = minSdkVersion;
 }
 
 dependencies {
