@@ -202,6 +202,9 @@ public class FileTransferBackground extends CordovaPlugin {
                                     }
                                     break;
                                 case CANCELLED:
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        UploadTask.UploadForegroundNotification.getRetryNotification(cordova.getContext());
+                                    }
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:

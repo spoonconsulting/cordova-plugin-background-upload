@@ -2,6 +2,8 @@ package com.spoon.backgroundfileupload;
 
 import android.app.Activity;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -11,6 +13,7 @@ import android.content.IntentFilter;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -18,6 +21,7 @@ import android.webkit.MimeTypeMap;
 import androidx.annotation.IntegerRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
 import androidx.work.ForegroundInfo;
@@ -72,6 +76,8 @@ public final class UploadTask extends Worker {
 
     public static final int MAX_TRIES = 10;
 
+    public static NetworkReceiver networkReceiver = null;
+
     // Key stuff
     // <editor-fold>
 
@@ -109,7 +115,7 @@ public final class UploadTask extends Worker {
 
     // Unified notification
     // <editor-fold>
-    public static class UploadForegroundNotification extends Service {
+    public static class UploadForegroundNotification {
         private static final Map<UUID, Float> collectiveProgress = Collections.synchronizedMap(new HashMap<>());
         private static final AtomicLong lastNotificationUpdateMs = new AtomicLong(0);
         private static ForegroundInfo cachedInfo;
@@ -201,7 +207,7 @@ public final class UploadTask extends Worker {
         }
 
         // Foreground notification used to tell user that there is some images left to be uploaded
-        public static ForegroundInfo getRetryForegroundInfo(final Context context) {
+        public static void getRetryNotification(final Context context) {
             Class<?> mainActivityClass = null;
             try {
                 mainActivityClass = Class.forName(notificationIntentActivity);
@@ -220,13 +226,15 @@ public final class UploadTask extends Worker {
                     .setContentIntent(pendingIntent)
                     .build();
 
-            return new ForegroundInfo(notificationId, retryNotification);
-        }
-
-        @Nullable
-        @Override
-        public IBinder onBind(Intent intent) {
-            return null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                notificationManager.createNotificationChannel(new NotificationChannel(
+                        UploadTask.NOTIFICATION_CHANNEL_ID,
+                        UploadTask.NOTIFICATION_CHANNEL_NAME,
+                        NotificationManager.IMPORTANCE_LOW
+                ));
+                notificationManager.notify(1, retryNotification);
+            }
         }
     }
     // </editor-fold>
@@ -307,18 +315,14 @@ public final class UploadTask extends Worker {
                     .build()
             );
         } catch (NullPointerException e) {
-            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                UploadForegroundNotification.getRetryNotification(getApplicationContext());
+            }
             return Result.retry();
         }
 
         // Register me
         UploadForegroundNotification.progress(getId(), 0f);
-        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
-        ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnected() == false)) {
-            Log.d(TAG, "No internet connection");
-            setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
-        }
 
         // Start call
         currentCall = httpClient.newCall(request);
@@ -336,12 +340,16 @@ public final class UploadTask extends Worker {
                             concurrentUploads.release();
                         }
                     } catch (InterruptedException e) {
-                        setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            UploadForegroundNotification.getRetryNotification(getApplicationContext());
+                        }
                         return Result.retry();
                     }
                 } catch (SocketException | ProtocolException | SSLException e) {
                     currentCall.cancel();
-                    setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        UploadForegroundNotification.getRetryNotification(getApplicationContext());
+                    }
                     return Result.retry();
                 }
             } else {
@@ -370,7 +378,9 @@ public final class UploadTask extends Worker {
                 // But if it was not it must be a connectivity problem or
                 // something similar so we retry later
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
-                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    UploadForegroundNotification.getRetryNotification(getApplicationContext());
+                }
                 return Result.retry();
             }
         } finally {
@@ -461,10 +471,12 @@ public final class UploadTask extends Worker {
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
         // Create a BroadcastReceiver to check status of internet connectivity
-        NetworkReceiver networkReceiver = new NetworkReceiver();
-        IntentFilter networkReceiverIntentFilter = new IntentFilter();
-        networkReceiverIntentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
-        getApplicationContext().registerReceiver(networkReceiver, networkReceiverIntentFilter);
+        if(networkReceiver == null) {
+            networkReceiver = new NetworkReceiver();
+            IntentFilter networkReceiverIntentFilter = new IntentFilter();
+            networkReceiverIntentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+            getApplicationContext().registerReceiver(networkReceiver, networkReceiverIntentFilter);
+        }
 
         // Build body
         final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
@@ -566,12 +578,13 @@ public final class UploadTask extends Worker {
     }
 
     private class NetworkReceiver extends BroadcastReceiver {
+        @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         public void onReceive(Context context, Intent intent) {
             ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnected() == false)) {
+            if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
                 Log.d(TAG, "No internet connection");
-                setForegroundAsync(UploadForegroundNotification.getRetryForegroundInfo(getApplicationContext()));
+                UploadForegroundNotification.getRetryNotification(getApplicationContext());
             }
         }
     }
