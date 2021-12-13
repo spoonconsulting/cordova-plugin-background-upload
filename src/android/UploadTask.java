@@ -77,6 +77,7 @@ public final class UploadTask extends Worker {
     public static final int MAX_TRIES = 10;
 
     public static NetworkReceiver networkReceiver = null;
+    public static boolean blockRetryNotificationFlag = false;
 
     // Key stuff
     // <editor-fold>
@@ -175,6 +176,9 @@ public final class UploadTask extends Worker {
                 }
             }
 
+            // Release lock on retry notification
+            blockRetryNotificationFlag = false;
+
             Log.d(TAG, "eventLabel='getForegroundInfo: general (" + totalProgress + ") all (" + collectiveProgress + ")'");
 
             Class<?> mainActivityClass = null;
@@ -208,32 +212,36 @@ public final class UploadTask extends Worker {
 
         // Foreground notification used to tell user that there is some images left to be uploaded
         public static void getRetryNotification(final Context context) {
-            Class<?> mainActivityClass = null;
-            try {
-                mainActivityClass = Class.forName(notificationIntentActivity);
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            Intent notificationIntent = new Intent(context, mainActivityClass);
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
+            if (!blockRetryNotificationFlag) {
+                // Added lock on retry notification
+                blockRetryNotificationFlag = true;
+                Class<?> mainActivityClass = null;
+                try {
+                    mainActivityClass = Class.forName(notificationIntentActivity);
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+                Intent notificationIntent = new Intent(context, mainActivityClass);
+                PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
 
-            Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-                    .setContentTitle(notificationRetryTitle)
-                    .setTicker(notificationRetryTitle)
-                    .setContentText(notificationRetryText)
-                    .setSmallIcon(notificationIconRes)
-                    .setColor(Color.rgb(57, 100, 150))
-                    .setContentIntent(pendingIntent)
-                    .build();
+                Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+                        .setContentTitle(notificationRetryTitle)
+                        .setTicker(notificationRetryTitle)
+                        .setContentText(notificationRetryText)
+                        .setSmallIcon(notificationIconRes)
+                        .setColor(Color.rgb(57, 100, 150))
+                        .setContentIntent(pendingIntent)
+                        .build();
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationManager.createNotificationChannel(new NotificationChannel(
-                        UploadTask.NOTIFICATION_CHANNEL_ID,
-                        UploadTask.NOTIFICATION_CHANNEL_NAME,
-                        NotificationManager.IMPORTANCE_LOW
-                ));
-                notificationManager.notify(1, retryNotification);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                    notificationManager.createNotificationChannel(new NotificationChannel(
+                            UploadTask.NOTIFICATION_CHANNEL_ID,
+                            UploadTask.NOTIFICATION_CHANNEL_NAME,
+                            NotificationManager.IMPORTANCE_LOW
+                    ));
+                    notificationManager.notify(1, retryNotification);
+                }
             }
         }
     }
