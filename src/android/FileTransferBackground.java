@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.util.Log;
 
 import com.github.pwittchen.reactivenetwork.library.rx2.ReactiveNetwork;
@@ -347,7 +348,12 @@ public class FileTransferBackground extends CordovaPlugin {
         Resources activityRes = mainActivity.getResources();
         int iconId = activityRes.getIdentifier("ic_upload", "drawable", mainActivity.getPackageName());
         Intent intent = new Intent(cordova.getContext(), mainActivity.getClass());
-        PendingIntent clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent clickIntent;
+        if (Build.VERSION.SDK_INT >= 23) {
+            clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        }
         return new UploadNotificationStatusConfig(
                 title != null ? title : "",
                 "",
