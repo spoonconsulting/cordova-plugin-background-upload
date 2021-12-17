@@ -347,7 +347,7 @@ public class FileTransferBackground extends CordovaPlugin {
         Resources activityRes = mainActivity.getResources();
         int iconId = activityRes.getIdentifier("ic_upload", "drawable", mainActivity.getPackageName());
         Intent intent = new Intent(cordova.getContext(), mainActivity.getClass());
-        PendingIntent clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent clickIntent = PendingIntent.getActivity(cordova.getContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE);
         return new UploadNotificationStatusConfig(
                 title != null ? title : "",
                 "",
