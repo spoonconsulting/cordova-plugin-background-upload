@@ -188,8 +188,13 @@ public final class UploadTask extends Worker {
                 e.printStackTrace();
             }
             Intent notificationIntent = new Intent(context, mainActivityClass);
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
-
+            int pendingIntentFlag;
+            if (Build.VERSION.SDK_INT >= 23) {
+                pendingIntentFlag = PendingIntent.FLAG_IMMUTABLE;
+            } else {
+                pendingIntentFlag = 0;
+            }
+            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
 
             // TODO: click intent open app
             Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
@@ -222,7 +227,13 @@ public final class UploadTask extends Worker {
                     e.printStackTrace();
                 }
                 Intent notificationIntent = new Intent(context, mainActivityClass);
-                PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
+                int pendingIntentFlag;
+                if (Build.VERSION.SDK_INT >= 23) {
+                    pendingIntentFlag = PendingIntent.FLAG_IMMUTABLE;
+                } else {
+                    pendingIntentFlag = 0;
+                }
+                PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
 
                 Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                         .setContentTitle(notificationRetryTitle)
