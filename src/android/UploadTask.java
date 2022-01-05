@@ -1,11 +1,9 @@
 package com.spoon.backgroundfileupload;
 
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -14,7 +12,6 @@ import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
-import android.os.IBinder;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -38,7 +35,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ProtocolException;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -50,7 +49,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 
 import javax.net.ssl.SSLException;
 
@@ -78,6 +76,8 @@ public final class UploadTask extends Worker {
 
     public static NetworkReceiver networkReceiver = null;
     public static boolean blockRetryNotificationFlag = false;
+
+    public static List<UUID> finishedUploads = new ArrayList<UUID>();
 
     // Key stuff
     // <editor-fold>
@@ -167,6 +167,7 @@ public final class UploadTask extends Worker {
             }
 
             float totalProgress = 0f;
+            int uploadCount = 1;
             for (WorkInfo info : workInfo) {
                 if (!info.getState().isFinished()) {
                     final Float progress = collectiveProgress.get(info.getId());
@@ -174,7 +175,13 @@ public final class UploadTask extends Worker {
                         totalProgress += progress;
                     }
                 }
+                if (!finishedUploads.contains(info.getId())) {
+                    uploadCount++;
+                    finishedUploads.add(info.getId());
+                }
             }
+
+            totalProgress = totalProgress / 3;
 
             // Release lock on retry notification
             blockRetryNotificationFlag = false;
@@ -217,7 +224,7 @@ public final class UploadTask extends Worker {
 
         // Foreground notification used to tell user that there is some images left to be uploaded
         public static void getRetryNotification(final Context context) {
-            if (!blockRetryNotificationFlag) {
+            if (!blockRetryNotificationFlag && notificationIntentActivity != null) {
                 // Added lock on retry notification
                 blockRetryNotificationFlag = true;
                 Class<?> mainActivityClass = null;
@@ -334,14 +341,12 @@ public final class UploadTask extends Worker {
                     .build()
             );
         } catch (NullPointerException e) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                UploadForegroundNotification.getRetryNotification(getApplicationContext());
-            }
             return Result.retry();
         }
 
         // Register me
         UploadForegroundNotification.progress(getId(), 0f);
+        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
 
         // Start call
         currentCall = httpClient.newCall(request);
@@ -355,20 +360,17 @@ public final class UploadTask extends Worker {
                         concurrentUploads.acquire();
                         try {
                             response = currentCall.execute();
-                        } finally {
+                        } catch (SocketTimeoutException e) {
+                            e.printStackTrace();
+                        }
+                        finally {
                             concurrentUploads.release();
                         }
                     } catch (InterruptedException e) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            UploadForegroundNotification.getRetryNotification(getApplicationContext());
-                        }
                         return Result.retry();
                     }
                 } catch (SocketException | ProtocolException | SSLException e) {
                     currentCall.cancel();
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        UploadForegroundNotification.getRetryNotification(getApplicationContext());
-                    }
                     return Result.retry();
                 }
             } else {
@@ -397,9 +399,6 @@ public final class UploadTask extends Worker {
                 // But if it was not it must be a connectivity problem or
                 // something similar so we retry later
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    UploadForegroundNotification.getRetryNotification(getApplicationContext());
-                }
                 return Result.retry();
             }
         } finally {
