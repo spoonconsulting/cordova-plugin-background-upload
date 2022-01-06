@@ -76,8 +76,8 @@ public final class UploadTask extends Worker {
 
     public static NetworkReceiver networkReceiver = null;
     public static boolean blockRetryNotificationFlag = false;
-
-    public static List<UUID> finishedUploads = new ArrayList<UUID>();
+    public static float previousProgress = 0;
+    public static int previousUploadCount = 0;
 
     // Key stuff
     // <editor-fold>
@@ -167,21 +167,18 @@ public final class UploadTask extends Worker {
             }
 
             float totalProgress = 0f;
-            int uploadCount = 1;
+            int uploadCount = 0;
             for (WorkInfo info : workInfo) {
                 if (!info.getState().isFinished()) {
                     final Float progress = collectiveProgress.get(info.getId());
                     if (progress != null) {
                         totalProgress += progress;
                     }
-                }
-                if (!finishedUploads.contains(info.getId())) {
                     uploadCount++;
-                    finishedUploads.add(info.getId());
                 }
             }
 
-            totalProgress = totalProgress / 3;
+            Log.d("ZAF", String.valueOf(totalProgress));
 
             // Release lock on retry notification
             blockRetryNotificationFlag = false;
@@ -210,7 +207,7 @@ public final class UploadTask extends Worker {
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
                     .setOngoing(true)
-                    .setProgress(100, (int) (totalProgress * 100f), false)
+                    .setProgress(100, (int) ((totalProgress / uploadCount) * 100f), false)
                     .setContentIntent(pendingIntent)
                     .build();
 
