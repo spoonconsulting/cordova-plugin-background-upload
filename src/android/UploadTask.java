@@ -1,5 +1,6 @@
 package com.spoon.backgroundfileupload;
 
+import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -10,7 +11,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
-import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -27,6 +27,8 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import org.apache.cordova.CordovaPlugin;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -37,7 +39,6 @@ import java.net.ProtocolException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -76,8 +77,6 @@ public final class UploadTask extends Worker {
 
     public static NetworkReceiver networkReceiver = null;
     public static boolean blockRetryNotificationFlag = false;
-    public static float previousProgress = 0;
-    public static int previousUploadCount = 0;
 
     // Key stuff
     // <editor-fold>
@@ -114,6 +113,11 @@ public final class UploadTask extends Worker {
     public static final String KEY_OUTPUT_FAILURE_CANCELED = "output_failure_canceled";
     // </editor-fold>
 
+    public static class Mutex {
+        public void acquire() throws InterruptedException { }
+        public void release() { }
+    }
+
     // Unified notification
     // <editor-fold>
     public static class UploadForegroundNotification {
@@ -129,10 +133,17 @@ public final class UploadTask extends Worker {
         public static int notificationIconRes = 0;
         public static String notificationIntentActivity;
 
+        public static boolean foregroundInfoStarted = true;
+        public static int previousUploadCount = 0;
+        public static float totalProgressStore = 0;
+
         private static void configure(final String title, @IntegerRes final int icon, final String intentActivity) {
             notificationTitle = title;
             notificationIconRes = icon;
             notificationIntentActivity = intentActivity;
+            foregroundInfoStarted = true;
+            previousUploadCount = 0;
+            totalProgressStore = 0;
         }
 
         private static void progress(final UUID uuid, final float progress) {
@@ -172,13 +183,24 @@ public final class UploadTask extends Worker {
                 if (!info.getState().isFinished()) {
                     final Float progress = collectiveProgress.get(info.getId());
                     if (progress != null) {
+                        Log.d("IN:::", String.valueOf(progress));
                         totalProgress += progress;
                     }
                     uploadCount++;
                 }
             }
 
-            Log.d("ZAF", String.valueOf(totalProgress));
+            if (uploadCount > previousUploadCount) {
+                totalProgressStore += totalProgress / uploadCount;
+                previousUploadCount = uploadCount + (uploadCount - previousUploadCount);
+            } else if (uploadCount == previousUploadCount) {
+                totalProgressStore += totalProgress / previousUploadCount;
+            }
+            else {
+                totalProgressStore += totalProgress / (previousUploadCount - uploadCount);
+            }
+
+            foregroundInfoStarted = false;
 
             // Release lock on retry notification
             blockRetryNotificationFlag = false;
@@ -207,7 +229,7 @@ public final class UploadTask extends Worker {
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
                     .setOngoing(true)
-                    .setProgress(100, (int) ((totalProgress / uploadCount) * 100f), false)
+                    .setProgress(100, (int) (totalProgressStore * 100f), false)
                     .setContentIntent(pendingIntent)
                     .build();
 
@@ -230,7 +252,8 @@ public final class UploadTask extends Worker {
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
-                Intent notificationIntent = new Intent(context, mainActivityClass);
+                Intent notificationIntent = new Intent(context, NotificationActionService.class);
+                notificationIntent.setAction(NotificationActionService.OPEN_MAIN_PAGE);
                 int pendingIntentFlag;
                 if (Build.VERSION.SDK_INT >= 23) {
                     pendingIntentFlag = PendingIntent.FLAG_IMMUTABLE;
@@ -259,6 +282,23 @@ public final class UploadTask extends Worker {
                 }
             }
         }
+
+        public static class NotificationActionService extends IntentService {
+
+            public static final String OPEN_MAIN_PAGE = "open_main_page";
+
+            public NotificationActionService() {
+                super(NotificationActionService.class.getSimpleName());
+            }
+
+            @Override
+            protected void onHandleIntent(Intent intent) {
+                String action = intent.getAction();
+                if (OPEN_MAIN_PAGE.equals(action)) {
+                    new LoadMainPage().x();
+                }
+            }
+        }
     }
     // </editor-fold>
 
@@ -266,9 +306,9 @@ public final class UploadTask extends Worker {
 
     private Call currentCall;
 
-    private static int concurency = 1;
-    private static Semaphore concurrentUploads = new Semaphore(concurency, true);
-    private static Semaphore concurrencyLock = new Semaphore(1);
+    private static int concurrency = 1;
+    private static Semaphore concurrentUploads = new Semaphore(concurrency, true);
+    private static Mutex concurrencyLock = new Mutex();
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
 
@@ -276,12 +316,16 @@ public final class UploadTask extends Worker {
 
         int concurrencyConfig = workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
 
-        concurrencyLock.acquireUninterruptibly();
-        if (concurency != concurrencyConfig) {
-            concurency = concurrencyConfig;
-            concurrentUploads = new Semaphore(concurrencyConfig, true);
+        try {
+            concurrencyLock.acquire();
+            if (concurrency != concurrencyConfig) {
+                concurrency = concurrencyConfig;
+                concurrentUploads = new Semaphore(concurrencyConfig, true);
+            }
+            concurrencyLock.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        concurrencyLock.release();
 
         if (httpClient == null) {
             httpClient = new OkHttpClient.Builder()
@@ -489,7 +533,7 @@ public final class UploadTask extends Worker {
         if(networkReceiver == null) {
             networkReceiver = new NetworkReceiver();
             IntentFilter networkReceiverIntentFilter = new IntentFilter();
-            networkReceiverIntentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+            networkReceiverIntentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
             getApplicationContext().registerReceiver(networkReceiver, networkReceiverIntentFilter);
         }
 
@@ -596,11 +640,33 @@ public final class UploadTask extends Worker {
         @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         public void onReceive(Context context, Intent intent) {
+            UploadForegroundNotification.done(getId());
             ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
-                Log.d(TAG, "No internet connection");
-                UploadForegroundNotification.getRetryNotification(getApplicationContext());
+            List<WorkInfo> workInfo;
+            try {
+                workInfo = WorkManager.getInstance(context)
+                        .getWorkInfosByTag(FileTransferBackground.WORK_TAG_UPLOAD)
+                        .get();
+            } catch (ExecutionException | InterruptedException e) {
+                // Bruh, assume there is no work
+                Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
+                workInfo = Collections.emptyList();
             }
+            for (WorkInfo info : workInfo) {
+                if (!info.getState().isFinished()) {
+                    if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
+                        Log.d(TAG, "No internet connection");
+                        UploadForegroundNotification.getRetryNotification(getApplicationContext());
+                    }
+                }
+            }
+
+        }
+    }
+
+    public static class LoadMainPage extends CordovaPlugin {
+        public void x() {
+            webView.loadUrl("www.google.com");
         }
     }
 }
