@@ -1,5 +1,6 @@
 package com.spoon.backgroundfileupload;
 
+import android.app.Activity;
 import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -12,13 +13,16 @@ import android.content.IntentFilter;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
+import android.webkit.WebView;
 
 import androidx.annotation.IntegerRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
 import androidx.work.ForegroundInfo;
@@ -27,7 +31,15 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.sharinpix.SharinPix.R;
+
+import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaActivity;
+import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.CordovaWebView;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -47,6 +59,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -95,6 +108,7 @@ public final class UploadTask extends Worker {
     public static final String KEY_INPUT_PARAMETER_VALUE_PREFIX = "input_parameter_";
     public static final String KEY_INPUT_NOTIFICATION_TITLE = "input_notification_title";
     public static final String KEY_INPUT_NOTIFICATION_ICON = "input_notification_icon";
+    public static final String KEY_INPUT_WEB_VIEW = "web_view";
     // Input keys but used for configuring the OkHttp instance
     public static final String KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS = "input_config_concurrent_downloads";
     public static final String KEY_INPUT_CONFIG_INTENT_ACTIVITY = "input_config_intent_activity";
@@ -132,6 +146,7 @@ public final class UploadTask extends Worker {
         @IntegerRes
         public static int notificationIconRes = 0;
         public static String notificationIntentActivity;
+        public static int notificationWebView;
 
         public static boolean foregroundInfoStarted = true;
         public static int previousUploadCount = 0;
@@ -190,15 +205,27 @@ public final class UploadTask extends Worker {
                 }
             }
 
+            Log.d("ZAFM", String.valueOf(collectiveProgress.size()));
+
+            Log.d("ZAF1", String.valueOf(totalProgress));
+
+            Log.d("ZAF2", String.valueOf(uploadCount));
+
+            Log.d("ZAFIRH", String.valueOf(previousUploadCount));
+
             if (uploadCount > previousUploadCount) {
+                Log.d("ZAFIR - in1", "HII");
                 totalProgressStore += totalProgress / uploadCount;
                 previousUploadCount = uploadCount + (uploadCount - previousUploadCount);
             } else if (uploadCount == previousUploadCount) {
                 totalProgressStore += totalProgress / previousUploadCount;
             }
             else {
+                Log.d("ZAFIR - in2", "HII");
                 totalProgressStore += totalProgress / (previousUploadCount - uploadCount);
             }
+
+            Log.d("ZAFIR2", String.valueOf(totalProgressStore));
 
             foregroundInfoStarted = false;
 
@@ -252,8 +279,7 @@ public final class UploadTask extends Worker {
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
-                Intent notificationIntent = new Intent(context, NotificationActionService.class);
-                notificationIntent.setAction(NotificationActionService.OPEN_MAIN_PAGE);
+                Intent notificationIntent = new Intent(context, mainActivityClass);
                 int pendingIntentFlag;
                 if (Build.VERSION.SDK_INT >= 23) {
                     pendingIntentFlag = PendingIntent.FLAG_IMMUTABLE;
@@ -279,23 +305,6 @@ public final class UploadTask extends Worker {
                             NotificationManager.IMPORTANCE_LOW
                     ));
                     notificationManager.notify(1, retryNotification);
-                }
-            }
-        }
-
-        public static class NotificationActionService extends IntentService {
-
-            public static final String OPEN_MAIN_PAGE = "open_main_page";
-
-            public NotificationActionService() {
-                super(NotificationActionService.class.getSimpleName());
-            }
-
-            @Override
-            protected void onHandleIntent(Intent intent) {
-                String action = intent.getAction();
-                if (OPEN_MAIN_PAGE.equals(action)) {
-                    new LoadMainPage().x();
                 }
             }
         }
@@ -661,12 +670,6 @@ public final class UploadTask extends Worker {
                 }
             }
 
-        }
-    }
-
-    public static class LoadMainPage extends CordovaPlugin {
-        public void x() {
-            webView.loadUrl("www.google.com");
         }
     }
 }
