@@ -205,27 +205,14 @@ public final class UploadTask extends Worker {
                 }
             }
 
-            Log.d("ZAFM", String.valueOf(collectiveProgress.size()));
-
-            Log.d("ZAF1", String.valueOf(totalProgress));
-
-            Log.d("ZAF2", String.valueOf(uploadCount));
-
-            Log.d("ZAFIRH", String.valueOf(previousUploadCount));
-
             if (uploadCount > previousUploadCount) {
-                Log.d("ZAFIR - in1", "HII");
                 totalProgressStore += totalProgress / uploadCount;
                 previousUploadCount = uploadCount + (uploadCount - previousUploadCount);
             } else if (uploadCount == previousUploadCount) {
                 totalProgressStore += totalProgress / previousUploadCount;
-            }
-            else {
-                Log.d("ZAFIR - in2", "HII");
+            } else {
                 totalProgressStore += totalProgress / (previousUploadCount - uploadCount);
             }
-
-            Log.d("ZAFIR2", String.valueOf(totalProgressStore));
 
             foregroundInfoStarted = false;
 
@@ -327,9 +314,13 @@ public final class UploadTask extends Worker {
 
         try {
             concurrencyLock.acquire();
-            if (concurrency != concurrencyConfig) {
-                concurrency = concurrencyConfig;
-                concurrentUploads = new Semaphore(concurrencyConfig, true);
+            try {
+                if (concurrency != concurrencyConfig) {
+                    concurrency = concurrencyConfig;
+                    concurrentUploads = new Semaphore(concurrencyConfig, true);
+                }
+            } finally {
+                concurrencyLock.release();
             }
             concurrencyLock.release();
         } catch (InterruptedException e) {
@@ -412,8 +403,7 @@ public final class UploadTask extends Worker {
                             response = currentCall.execute();
                         } catch (SocketTimeoutException e) {
                             e.printStackTrace();
-                        }
-                        finally {
+                        } finally {
                             concurrentUploads.release();
                         }
                     } catch (InterruptedException e) {
