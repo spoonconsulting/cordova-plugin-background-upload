@@ -108,7 +108,6 @@ public final class UploadTask extends Worker {
     public static final String KEY_INPUT_PARAMETER_VALUE_PREFIX = "input_parameter_";
     public static final String KEY_INPUT_NOTIFICATION_TITLE = "input_notification_title";
     public static final String KEY_INPUT_NOTIFICATION_ICON = "input_notification_icon";
-    public static final String KEY_INPUT_WEB_VIEW = "web_view";
     // Input keys but used for configuring the OkHttp instance
     public static final String KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS = "input_config_concurrent_downloads";
     public static final String KEY_INPUT_CONFIG_INTENT_ACTIVITY = "input_config_intent_activity";
@@ -146,9 +145,7 @@ public final class UploadTask extends Worker {
         @IntegerRes
         public static int notificationIconRes = 0;
         public static String notificationIntentActivity;
-        public static int notificationWebView;
 
-        public static boolean foregroundInfoStarted = true;
         public static int previousUploadCount = 0;
         public static float totalProgressStore = 0;
 
@@ -156,7 +153,6 @@ public final class UploadTask extends Worker {
             notificationTitle = title;
             notificationIconRes = icon;
             notificationIntentActivity = intentActivity;
-            foregroundInfoStarted = true;
             previousUploadCount = 0;
             totalProgressStore = 0;
         }
@@ -198,7 +194,6 @@ public final class UploadTask extends Worker {
                 if (!info.getState().isFinished()) {
                     final Float progress = collectiveProgress.get(info.getId());
                     if (progress != null) {
-                        Log.d("IN:::", String.valueOf(progress));
                         totalProgress += progress;
                     }
                     uploadCount++;
@@ -213,8 +208,6 @@ public final class UploadTask extends Worker {
             } else {
                 totalProgressStore += totalProgress / (previousUploadCount - uploadCount);
             }
-
-            foregroundInfoStarted = false;
 
             // Release lock on retry notification
             blockRetryNotificationFlag = false;
@@ -322,7 +315,6 @@ public final class UploadTask extends Worker {
             } finally {
                 concurrencyLock.release();
             }
-            concurrencyLock.release();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
