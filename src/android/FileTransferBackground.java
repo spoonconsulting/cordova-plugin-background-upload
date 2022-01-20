@@ -16,6 +16,7 @@ import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
+import androidx.work.WorkQuery;
 
 import com.sromku.simple.storage.SimpleStorage;
 import com.sromku.simple.storage.Storage;
@@ -33,10 +34,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +53,9 @@ public class FileTransferBackground extends CordovaPlugin {
     private boolean ready = false;
 
     private Data httpClientBaseConfig = Data.EMPTY;
+
+    private static String currentTag;
+    private static long currentTagFetchedAt;
 
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
@@ -187,7 +194,7 @@ public class FileTransferBackground extends CordovaPlugin {
         cordova.getActivity().runOnUiThread(() -> {
             // Listen for upload progress
             WorkManager.getInstance(cordova.getContext())
-                    .getWorkInfosByTagLiveData(WORK_TAG_UPLOAD)
+                    .getWorkInfosByTagLiveData(FileTransferBackground.WORK_TAG_UPLOAD)
                     .observeForever((tasks) -> {
                         for (WorkInfo info : tasks) {
                             switch (info.getState()) {
@@ -325,12 +332,13 @@ public class FileTransferBackground extends CordovaPlugin {
                 )
                 .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
-                .addTag(WORK_TAG_UPLOAD)
+                .addTag(FileTransferBackground.WORK_TAG_UPLOAD)
+                .addTag(getCurrentTag(cordova.getContext()))
                 .setInputData(payload)
                 .build();
 
         WorkManager.getInstance(cordova.getContext())
-                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.KEEP, workRequest);
+                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.APPEND, workRequest);
 
         logMessage("eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
     }
@@ -511,6 +519,43 @@ public class FileTransferBackground extends CordovaPlugin {
             }
         }
         return hashMap;
+    }
+
+    public static String getCurrentTag(Context context) {
+        final long now = System.currentTimeMillis();
+        if (currentTag != null && now - currentTagFetchedAt <= 5000) {
+            return currentTag;
+        }
+        currentTagFetchedAt = now;
+        currentTag = fetchCurrentTag(context);
+        return currentTag;
+    }
+
+    public static String fetchCurrentTag(Context context) {
+        WorkQuery workQuery = WorkQuery.Builder
+                .fromTags(Arrays.asList(FileTransferBackground.WORK_TAG_UPLOAD))
+                .addStates(Arrays.asList(WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED))
+                .build();
+        List<WorkInfo> workInfo;
+        try {
+            workInfo = WorkManager.getInstance(context)
+                    .getWorkInfos(workQuery)
+                    .get();
+        } catch (ExecutionException | InterruptedException e) {
+            Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
+            workInfo = Collections.emptyList();
+        }
+        String prefix = "packet_";
+        for (WorkInfo info : workInfo) {
+            if (!info.getState().isFinished()) {
+                for (String tag : info.getTags()) {
+                    if (tag.startsWith(prefix)) {
+                        return tag;
+                    }
+                }
+            }
+        }
+        return prefix + UUID.randomUUID().toString();
     }
 
     public static void logMessage(String message) {

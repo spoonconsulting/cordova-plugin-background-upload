@@ -1,7 +1,5 @@
 package com.spoon.backgroundfileupload;
 
-import android.app.Activity;
-import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -13,16 +11,13 @@ import android.content.IntentFilter;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.os.Build;
-import android.os.Bundle;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
-import android.webkit.WebView;
 
 import androidx.annotation.IntegerRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
 import androidx.work.ForegroundInfo;
@@ -30,16 +25,6 @@ import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
-
-import com.sharinpix.SharinPix.R;
-
-import org.apache.cordova.CallbackContext;
-import org.apache.cordova.CordovaActivity;
-import org.apache.cordova.CordovaInterface;
-import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.CordovaWebView;
-import org.json.JSONArray;
-import org.json.JSONException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,7 +44,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -146,15 +130,10 @@ public final class UploadTask extends Worker {
         public static int notificationIconRes = 0;
         public static String notificationIntentActivity;
 
-        public static int previousUploadCount = 0;
-        public static float totalProgressStore = 0;
-
         private static void configure(final String title, @IntegerRes final int icon, final String intentActivity) {
             notificationTitle = title;
             notificationIconRes = icon;
             notificationIntentActivity = intentActivity;
-            previousUploadCount = 0;
-            totalProgressStore = 0;
         }
 
         private static void progress(final UUID uuid, final float progress) {
@@ -180,7 +159,7 @@ public final class UploadTask extends Worker {
             List<WorkInfo> workInfo;
             try {
                 workInfo = WorkManager.getInstance(context)
-                        .getWorkInfosByTag(FileTransferBackground.WORK_TAG_UPLOAD)
+                        .getWorkInfosByTag(FileTransferBackground.getCurrentTag(context))
                         .get();
             } catch (ExecutionException | InterruptedException e) {
                 // Bruh, assume there is no work
@@ -188,31 +167,27 @@ public final class UploadTask extends Worker {
                 workInfo = Collections.emptyList();
             }
 
-            float totalProgress = 0f;
+            float uploadingProgress = 0f;
+            int uploadDone = 0;
             int uploadCount = 0;
             for (WorkInfo info : workInfo) {
                 if (!info.getState().isFinished()) {
                     final Float progress = collectiveProgress.get(info.getId());
                     if (progress != null) {
-                        totalProgress += progress;
+                        uploadingProgress += progress;
                     }
-                    uploadCount++;
+                } else {
+                    uploadDone++;
                 }
+                uploadCount++;
             }
 
-            if (uploadCount > previousUploadCount) {
-                totalProgressStore += totalProgress / uploadCount;
-                previousUploadCount = uploadCount + (uploadCount - previousUploadCount);
-            } else if (uploadCount == previousUploadCount) {
-                totalProgressStore += totalProgress / previousUploadCount;
-            } else {
-                totalProgressStore += totalProgress / (previousUploadCount - uploadCount);
-            }
+            float totalProgressStore = ((float) uploadDone) / uploadCount;
 
             // Release lock on retry notification
             blockRetryNotificationFlag = false;
 
-            Log.d(TAG, "eventLabel='getForegroundInfo: general (" + totalProgress + ") all (" + collectiveProgress + ")'");
+            Log.d(TAG, "eventLabel='getForegroundInfo: general (" + uploadingProgress + ") all (" + collectiveProgress + ")'");
 
             Class<?> mainActivityClass = null;
             try {
@@ -633,25 +608,10 @@ public final class UploadTask extends Worker {
         public void onReceive(Context context, Intent intent) {
             UploadForegroundNotification.done(getId());
             ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            List<WorkInfo> workInfo;
-            try {
-                workInfo = WorkManager.getInstance(context)
-                        .getWorkInfosByTag(FileTransferBackground.WORK_TAG_UPLOAD)
-                        .get();
-            } catch (ExecutionException | InterruptedException e) {
-                // Bruh, assume there is no work
-                Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
-                workInfo = Collections.emptyList();
+            if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
+                Log.d(TAG, "No internet connection");
+                UploadForegroundNotification.getRetryNotification(getApplicationContext());
             }
-            for (WorkInfo info : workInfo) {
-                if (!info.getState().isFinished()) {
-                    if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
-                        Log.d(TAG, "No internet connection");
-                        UploadForegroundNotification.getRetryNotification(getApplicationContext());
-                    }
-                }
-            }
-
         }
     }
 }
