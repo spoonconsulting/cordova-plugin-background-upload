@@ -26,6 +26,8 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.sharinpix.SharinPix.R;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -213,6 +215,7 @@ public final class UploadTask extends Worker {
                     .setOngoing(true)
                     .setProgress(100, (int) (totalProgressStore * 100f), false)
                     .setContentIntent(pendingIntent)
+                    .addAction(R.drawable.ic_upload, "Open", pendingIntent)
                     .build();
 
             notification.flags |= Notification.FLAG_NO_CLEAR;
@@ -250,6 +253,7 @@ public final class UploadTask extends Worker {
                         .setSmallIcon(notificationIconRes)
                         .setColor(Color.rgb(57, 100, 150))
                         .setContentIntent(pendingIntent)
+                        .addAction(R.drawable.ic_upload, "Open", pendingIntent)
                         .build();
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
