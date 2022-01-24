@@ -4,12 +4,9 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.graphics.Color;
-import android.net.ConnectivityManager;
 import android.os.Build;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -17,7 +14,6 @@ import android.webkit.MimeTypeMap;
 import androidx.annotation.IntegerRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
 import androidx.work.ForegroundInfo;
@@ -74,7 +70,6 @@ public final class UploadTask extends Worker {
 
     public static final int MAX_TRIES = 10;
 
-    public static NetworkReceiver networkReceiver = null;
     public static boolean blockRetryNotificationFlag = false;
 
     // Key stuff
@@ -499,14 +494,6 @@ public final class UploadTask extends Worker {
         File file = new File(filepath);
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
-        // Create a BroadcastReceiver to check status of internet connectivity
-        if(networkReceiver == null) {
-            networkReceiver = new NetworkReceiver();
-            IntentFilter networkReceiverIntentFilter = new IntentFilter();
-            networkReceiverIntentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-            getApplicationContext().registerReceiver(networkReceiver, networkReceiverIntentFilter);
-        }
-
         // Build body
         final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
 
@@ -602,19 +589,6 @@ public final class UploadTask extends Worker {
                     lastProgressTimestamp = now;
                     listener.onProgress(bytesWritten, contentLength);
                 }
-            }
-        }
-    }
-
-    private class NetworkReceiver extends BroadcastReceiver {
-        @RequiresApi(api = Build.VERSION_CODES.O)
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            UploadForegroundNotification.done(getId());
-            ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
-                Log.d(TAG, "No internet connection");
-                UploadForegroundNotification.getRetryNotification(getApplicationContext());
             }
         }
     }
