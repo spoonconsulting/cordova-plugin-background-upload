@@ -1,5 +1,6 @@
 package com.spoon.backgroundfileupload;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -7,6 +8,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -14,9 +16,9 @@ import android.webkit.MimeTypeMap;
 import androidx.annotation.IntegerRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
@@ -35,16 +37,12 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLException;
 
@@ -61,7 +59,6 @@ import okio.BufferedSink;
 public final class UploadTask extends Worker {
 
     private static final boolean DEBUG_SKIP_UPLOAD = false;
-    private static final long DELAY_BETWEEN_NOTIFICATION_UPDATE_MS = 200;
 
     private static final String TAG = "CordovaBackgroundUpload";
 
@@ -70,7 +67,7 @@ public final class UploadTask extends Worker {
 
     public static final int MAX_TRIES = 10;
 
-    public static boolean blockRetryNotificationFlag = false;
+    private static UploadNotification uploadNotification = null;
 
     // Key stuff
     // <editor-fold>
@@ -114,45 +111,33 @@ public final class UploadTask extends Worker {
 
     // Unified notification
     // <editor-fold>
-    public static class UploadForegroundNotification {
-        private static final Map<UUID, Float> collectiveProgress = Collections.synchronizedMap(new HashMap<>());
-        private static final AtomicLong lastNotificationUpdateMs = new AtomicLong(0);
-        private static ForegroundInfo cachedInfo;
+    public static class UploadNotification extends AsyncTask<String, String, String> {
+        private Context context;
 
         private static final int notificationId = new Random().nextInt();
         public static String notificationTitle = "Default title";
-        public static String notificationRetryTitle = "Upload paused";
         public static String notificationRetryText = "Please check your internet connection";
         @IntegerRes
         public static int notificationIconRes = 0;
         public static String notificationIntentActivity;
 
-        private static void configure(final String title, @IntegerRes final int icon, final String intentActivity) {
-            notificationTitle = title;
-            notificationIconRes = icon;
-            notificationIntentActivity = intentActivity;
+        public static NotificationManager notificationManager = null;
+        public static NotificationCompat.Builder notificationBuilder = null;
+
+        @RequiresApi(api = Build.VERSION_CODES.O)
+        UploadNotification(Context context) {
+            this.context = context;
+            notificationBuilder = getUploadNotification(context);
+            notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.createNotificationChannel(new NotificationChannel(
+                    UploadTask.NOTIFICATION_CHANNEL_ID,
+                    UploadTask.NOTIFICATION_CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_LOW
+            ));
         }
 
-        private static void progress(final UUID uuid, final float progress) {
-            collectiveProgress.put(uuid, progress);
-        }
-
-        private static void done(final UUID uuid) {
-            collectiveProgress.remove(uuid);
-        }
-
-        private static ForegroundInfo getForegroundInfo(final Context context) {
-            final long now = System.currentTimeMillis();
-            // Set to now to ensure other worker will be throttled
-            final long lastUpdate = lastNotificationUpdateMs.getAndSet(now);
-
-            // Throttle, 200ms delay
-            if (cachedInfo != null && now - lastUpdate <= DELAY_BETWEEN_NOTIFICATION_UPDATE_MS) {
-                // Revert value
-                lastNotificationUpdateMs.set(lastUpdate);
-                return cachedInfo;
-            }
-
+        @Override
+        protected String doInBackground(String... strings) {
             List<WorkInfo> workInfo;
             try {
                 workInfo = WorkManager.getInstance(context)
@@ -164,16 +149,10 @@ public final class UploadTask extends Worker {
                 workInfo = Collections.emptyList();
             }
 
-            float uploadingProgress = 0f;
             int uploadDone = 0;
             int uploadCount = 0;
             for (WorkInfo info : workInfo) {
-                if (!info.getState().isFinished()) {
-                    final Float progress = collectiveProgress.get(info.getId());
-                    if (progress != null) {
-                        uploadingProgress += progress;
-                    }
-                } else {
+                if (info.getState().isFinished()) {
                     uploadDone++;
                 }
                 uploadCount++;
@@ -181,11 +160,32 @@ public final class UploadTask extends Worker {
 
             float totalProgressStore = ((float) uploadDone) / uploadCount;
 
-            // Release lock on retry notification
-            blockRetryNotificationFlag = false;
+            publishProgress(String.valueOf(totalProgressStore));
 
-            Log.d(TAG, "eventLabel='getForegroundInfo: general (" + uploadingProgress + ") all (" + collectiveProgress + ")'");
+            return "";
+        }
 
+        protected void onProgressUpdate(String... progress) {
+            float totalProgressStore = Float.parseFloat(progress[0]);
+            notificationBuilder.setProgress(100, (int) (totalProgressStore * 100f), false);
+            notificationManager.notify(UploadNotification.notificationId, notificationBuilder.build());
+        }
+
+        private static void configure(final String title, @IntegerRes final int icon, final String intentActivity) {
+            notificationTitle = title;
+            notificationIconRes = icon;
+            notificationIntentActivity = intentActivity;
+        }
+
+        public static Notification createNotification(NotificationCompat.Builder notificationBuilder) {
+            Notification notification = notificationBuilder.build();
+            notification.flags |= Notification.FLAG_NO_CLEAR;
+            notification.flags |= Notification.FLAG_ONGOING_EVENT;
+            return  notification;
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.O)
+        private static NotificationCompat.Builder getUploadNotification(final Context context) {
             Class<?> mainActivityClass = null;
             try {
                 mainActivityClass = Class.forName(notificationIntentActivity);
@@ -202,65 +202,19 @@ public final class UploadTask extends Worker {
             PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
 
             // TODO: click intent open app
-            Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+            @SuppressLint("ResourceType") NotificationCompat.Builder uploadNotificationBuilder = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                     .setContentTitle(notificationTitle)
                     .setTicker(notificationTitle)
                     .setSmallIcon(notificationIconRes)
                     .setColor(Color.rgb(57, 100, 150))
-                    .setOngoing(true)
-                    .setProgress(100, (int) (totalProgressStore * 100f), false)
                     .setContentIntent(pendingIntent)
-                    .addAction(R.drawable.ic_upload, "Open", pendingIntent)
-                    .build();
+                    .setOngoing(true)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setProgress(100, 0, false)
+                    .setChannelId(UploadTask.NOTIFICATION_CHANNEL_ID)
+                    .addAction(R.drawable.ic_upload, "Open", pendingIntent);
 
-            notification.flags |= Notification.FLAG_NO_CLEAR;
-            notification.flags |= Notification.FLAG_ONGOING_EVENT;
-            notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
-
-            cachedInfo = new ForegroundInfo(notificationId, notification);
-            return cachedInfo;
-        }
-
-        // Foreground notification used to tell user that there is some images left to be uploaded
-        public static void getRetryNotification(final Context context) {
-            if (!blockRetryNotificationFlag && notificationIntentActivity != null) {
-                // Added lock on retry notification
-                blockRetryNotificationFlag = true;
-                Class<?> mainActivityClass = null;
-                try {
-                    mainActivityClass = Class.forName(notificationIntentActivity);
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-                Intent notificationIntent = new Intent(context, mainActivityClass);
-                int pendingIntentFlag;
-                if (Build.VERSION.SDK_INT >= 23) {
-                    pendingIntentFlag = PendingIntent.FLAG_IMMUTABLE;
-                } else {
-                    pendingIntentFlag = 0;
-                }
-                PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
-
-                Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-                        .setContentTitle(notificationRetryTitle)
-                        .setTicker(notificationRetryTitle)
-                        .setContentText(notificationRetryText)
-                        .setSmallIcon(notificationIconRes)
-                        .setColor(Color.rgb(57, 100, 150))
-                        .setContentIntent(pendingIntent)
-                        .addAction(R.drawable.ic_upload, "Open", pendingIntent)
-                        .build();
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                    notificationManager.createNotificationChannel(new NotificationChannel(
-                            UploadTask.NOTIFICATION_CHANNEL_ID,
-                            UploadTask.NOTIFICATION_CHANNEL_NAME,
-                            NotificationManager.IMPORTANCE_LOW
-                    ));
-                    notificationManager.notify(1, retryNotification);
-                }
-            }
+            return uploadNotificationBuilder;
         }
     }
     // </editor-fold>
@@ -274,7 +228,6 @@ public final class UploadTask extends Worker {
     private static Mutex concurrencyLock = new Mutex();
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
-
         super(context, workerParams);
 
         int concurrencyConfig = workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
@@ -307,11 +260,16 @@ public final class UploadTask extends Worker {
 
         httpClient.dispatcher().setMaxRequests(workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
 
-        UploadForegroundNotification.configure(
+        UploadNotification.configure(
                 workerParams.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
                 getApplicationContext().getResources().getIdentifier(workerParams.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
                 workerParams.getInputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
         );
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && uploadNotification == null) {
+            uploadNotification = new UploadNotification(getApplicationContext());
+            uploadNotification.execute("Upload Task");
+        }
     }
 
     @NonNull
@@ -350,10 +308,6 @@ public final class UploadTask extends Worker {
         } catch (NullPointerException e) {
             return Result.retry();
         }
-
-        // Register me
-        UploadForegroundNotification.progress(getId(), 0f);
-        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
 
         // Start call
         currentCall = httpClient.newCall(request);
@@ -407,9 +361,6 @@ public final class UploadTask extends Worker {
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
                 return Result.retry();
             }
-        } finally {
-            // Always remove ourselves from the notification
-            UploadForegroundNotification.done(getId());
         }
 
         // Start building the output data
@@ -450,7 +401,7 @@ public final class UploadTask extends Worker {
     /**
      * Called internally by the custom request body provider each time 8kio are written.
      */
-    private void handleProgress(long bytesWritten, long totalBytes) {
+    private void  handleProgress(long bytesWritten, long totalBytes) {
         // The cancel mechanism is best-effort and wont actually halt work, we need to
         // take care of it ourselves.
         if (isStopped()) {
@@ -459,7 +410,6 @@ public final class UploadTask extends Worker {
         }
 
         float percent = (float) bytesWritten / (float) totalBytes;
-        UploadForegroundNotification.progress(getId(), percent);
 
         Log.i(TAG, "handleProgress: " + getId() + " Progress: " + (int) (percent * 100f));
 
@@ -469,7 +419,8 @@ public final class UploadTask extends Worker {
                 .build();
         Log.d(TAG, "handleProgress: Progress data: " + data);
         setProgressAsync(data);
-        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+
+        uploadNotification.doInBackground();
     }
 
     /**
