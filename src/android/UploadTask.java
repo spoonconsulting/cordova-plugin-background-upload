@@ -4,9 +4,12 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
 import android.os.Build;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -14,6 +17,7 @@ import android.webkit.MimeTypeMap;
 import androidx.annotation.IntegerRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
 import androidx.work.ForegroundInfo;
@@ -70,8 +74,6 @@ public final class UploadTask extends Worker {
 
     public static final int MAX_TRIES = 10;
 
-    public static boolean blockRetryNotificationFlag = false;
-
     // Key stuff
     // <editor-fold>
 
@@ -122,7 +124,7 @@ public final class UploadTask extends Worker {
         private static final int notificationId = new Random().nextInt();
         public static String notificationTitle = "Default title";
         public static String notificationRetryTitle = "Upload paused";
-        public static String notificationRetryText = "Please check your internet connection";
+        public static String notificationRetryText = "Tap to open app to resume uploads";
         @IntegerRes
         public static int notificationIconRes = 0;
         public static String notificationIntentActivity;
@@ -181,9 +183,6 @@ public final class UploadTask extends Worker {
 
             float totalProgressStore = ((float) uploadDone) / uploadCount;
 
-            // Release lock on retry notification
-            blockRetryNotificationFlag = false;
-
             Log.d(TAG, "eventLabel='getForegroundInfo: general (" + uploadingProgress + ") all (" + collectiveProgress + ")'");
 
             Class<?> mainActivityClass = null;
@@ -221,11 +220,8 @@ public final class UploadTask extends Worker {
             return cachedInfo;
         }
 
-        // Foreground notification used to tell user that there is some images left to be uploaded
-        public static void getRetryNotification(final Context context) {
-            if (!blockRetryNotificationFlag && notificationIntentActivity != null) {
-                // Added lock on retry notification
-                blockRetryNotificationFlag = true;
+        public static void createAppOpenNotification(final Context context) {
+            if (notificationIntentActivity != null) {
                 Class<?> mainActivityClass = null;
                 try {
                     mainActivityClass = Class.forName(notificationIntentActivity);
@@ -241,7 +237,7 @@ public final class UploadTask extends Worker {
                 }
                 PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
 
-                Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+                Notification appOpenNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                         .setContentTitle(notificationRetryTitle)
                         .setTicker(notificationRetryTitle)
                         .setContentText(notificationRetryText)
@@ -251,6 +247,8 @@ public final class UploadTask extends Worker {
                         .addAction(R.drawable.ic_upload, "Open", pendingIntent)
                         .build();
 
+                appOpenNotification.flags |= Notification.FLAG_NO_CLEAR;
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
                     notificationManager.createNotificationChannel(new NotificationChannel(
@@ -258,7 +256,7 @@ public final class UploadTask extends Worker {
                             UploadTask.NOTIFICATION_CHANNEL_NAME,
                             NotificationManager.IMPORTANCE_LOW
                     ));
-                    notificationManager.notify(1, retryNotification);
+                    notificationManager.notify(notificationId + 1, appOpenNotification);
                 }
             }
         }
@@ -317,6 +315,10 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        FileTransferBackground.uploadConnectionFlag = true;
+        NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancelAll();
+
         final String id = getInputData().getString(KEY_INPUT_ID);
 
         if (id == null) {

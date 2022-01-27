@@ -1,9 +1,5 @@
 package com.spoon.backgroundfileupload;
 
-import static android.content.Context.POWER_SERVICE;
-
-import android.app.Activity;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
@@ -12,10 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
-import android.net.Uri;
 import android.os.Build;
-import android.os.PowerManager;
-import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -26,7 +19,6 @@ import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
-import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.WorkQuery;
@@ -71,6 +63,13 @@ public class FileTransferBackground extends CordovaPlugin {
     private static long currentTagFetchedAt;
 
     public static NetworkReceiver networkReceiver = null;
+    public static boolean uploadConnectionFlag = true;
+
+    @Override
+    public void onResume(boolean multitasking) {
+        super.onResume(multitasking);
+        Log.d("ZAFIUR", "HELLO");
+    }
 
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
@@ -172,6 +171,14 @@ public class FileTransferBackground extends CordovaPlugin {
             throw new IllegalStateException("initManager was called twice");
         }
 
+        // Create a BroadcastReceiver to check status of internet connectivity
+        if(networkReceiver == null) {
+            networkReceiver = new NetworkReceiver();
+            IntentFilter networkReceiverIntentFilter = new IntentFilter();
+            networkReceiverIntentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+            cordova.getContext().registerReceiver(networkReceiver, networkReceiverIntentFilter);
+        }
+
         try {
             final JSONObject settings = new JSONObject(options);
             int ccUpload = settings.getInt("parallelUploadsLimit");
@@ -224,9 +231,6 @@ public class FileTransferBackground extends CordovaPlugin {
                                     }
                                     break;
                                 case CANCELLED:
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                        UploadTask.UploadForegroundNotification.getRetryNotification(cordova.getContext());
-                                    }
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
@@ -338,31 +342,24 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void startUpload(final String uploadId, final Data payload) {
-        // Create a BroadcastReceiver to check status of internet connectivity
-        if(networkReceiver == null) {
-            networkReceiver = new NetworkReceiver();
-            IntentFilter networkReceiverIntentFilter = new IntentFilter();
-            networkReceiverIntentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-            cordova.getContext().registerReceiver(networkReceiver, networkReceiverIntentFilter);
-        }
-
         Log.d(TAG, "startUpload: Starting work via work manager");
 
-        OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(UploadTask.class)
-                .setConstraints(new Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                )
-                .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
-                .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
-                .addTag(FileTransferBackground.WORK_TAG_UPLOAD)
-                .addTag(getCurrentTag(cordova.getContext()))
-                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                .setInputData(payload)
-                .build();
+        if (uploadConnectionFlag) {
+            OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(UploadTask.class)
+                    .setConstraints(new Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()
+                    )
+                    .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
+                    .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
+                    .addTag(FileTransferBackground.WORK_TAG_UPLOAD)
+                    .addTag(getCurrentTag(cordova.getContext()))
+                    .setInputData(payload)
+                    .build();
 
-        WorkManager.getInstance(cordova.getContext())
-                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.APPEND, workRequest);
+            WorkManager.getInstance(cordova.getContext())
+                    .enqueueUniqueWork(uploadId, ExistingWorkPolicy.APPEND, workRequest);
+        }
 
         logMessage("eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
     }
@@ -593,10 +590,10 @@ public class FileTransferBackground extends CordovaPlugin {
             ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
             if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
                 Log.d(TAG, "No internet connection");
-                UploadTask.UploadForegroundNotification.getRetryNotification(context);
-            } else {
-                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationManager.cancelAll();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    uploadConnectionFlag = false;
+                    UploadTask.UploadForegroundNotification.createAppOpenNotification(cordova.getContext().getApplicationContext());
+                }
             }
         }
     }
