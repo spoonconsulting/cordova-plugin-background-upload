@@ -54,7 +54,9 @@
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
     </platform>
     <platform name="ios">
-        <framework src="AFNetworking" type="podspec" spec="~> 4.0.1" />
+        <pods use-frameworks="true">
+            <pod name="AFNetworking" spec="~> 4.0.1" />
+        </pods>
         <config-file target="config.xml" parent="/*">
             <feature name="FileTransferBackground">
                 <param name="ios-package" value="FileTransferBackground" />
