@@ -58,7 +58,7 @@
             <config>
               <source url="https://cdn.cocoapods.org/"/>
             </config>
-            <pods use-frameworks="true">
+            <pods>
                 <pod name="AFNetworking" spec="~> 4.0.1" />
             </pods>
         </podspec>
