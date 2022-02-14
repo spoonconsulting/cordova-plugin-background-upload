@@ -216,45 +216,6 @@ public final class UploadTask extends Worker {
             cachedInfo = new ForegroundInfo(notificationId, notification);
             return cachedInfo;
         }
-
-        public static void triggerAndroid12Notification(final Context context) {
-            Class<?> mainActivityClass = null;
-            try {
-                mainActivityClass = Class.forName(notificationIntentActivity);
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            Intent notificationIntent = new Intent(context, mainActivityClass);
-            int pendingIntentFlag;
-            if (Build.VERSION.SDK_INT >= 23) {
-                pendingIntentFlag = PendingIntent.FLAG_IMMUTABLE;
-            } else {
-                pendingIntentFlag = 0;
-            }
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
-
-            Notification appOpenNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-                    .setContentTitle("Test Android 12")
-                    .setTicker("Test Android 12")
-                    .setContentText("Your images is being uploaded. Open app to view.")
-                    .setSmallIcon(notificationIconRes)
-                    .setColor(Color.rgb(57, 100, 150))
-                    .setContentIntent(pendingIntent)
-                    .addAction(R.drawable.ic_upload, "Open", pendingIntent)
-                    .build();
-
-            appOpenNotification.flags |= Notification.FLAG_NO_CLEAR;
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationManager.createNotificationChannel(new NotificationChannel(
-                        UploadTask.NOTIFICATION_CHANNEL_ID,
-                        UploadTask.NOTIFICATION_CHANNEL_NAME,
-                        NotificationManager.IMPORTANCE_LOW
-                ));
-                notificationManager.notify(notificationId, appOpenNotification);
-            }
-        }
     }
     // </editor-fold>
 
