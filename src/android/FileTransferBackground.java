@@ -1,25 +1,13 @@
 package com.spoon.backgroundfileupload;
 
-import static android.content.Context.POWER_SERVICE;
-
-import android.app.Activity;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.Uri;
 import android.os.Build;
-import android.os.PowerManager;
-import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
 import androidx.work.Data;
@@ -69,8 +57,6 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private static String currentTag;
     private static long currentTagFetchedAt;
-
-    public static NetworkReceiver networkReceiver = null;
 
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
@@ -224,9 +210,6 @@ public class FileTransferBackground extends CordovaPlugin {
                                     }
                                     break;
                                 case CANCELLED:
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                        UploadTask.UploadForegroundNotification.getRetryNotification(cordova.getContext());
-                                    }
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
@@ -307,7 +290,6 @@ public class FileTransferBackground extends CordovaPlugin {
         } catch(PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-
         startUpload(uploadId, new Data.Builder()
                 // Put base info
                 .putString(UploadTask.KEY_INPUT_ID, uploadId)
@@ -338,14 +320,6 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void startUpload(final String uploadId, final Data payload) {
-        // Create a BroadcastReceiver to check status of internet connectivity
-        if(networkReceiver == null) {
-            networkReceiver = new NetworkReceiver();
-            IntentFilter networkReceiverIntentFilter = new IntentFilter();
-            networkReceiverIntentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-            cordova.getContext().registerReceiver(networkReceiver, networkReceiverIntentFilter);
-        }
-
         Log.d(TAG, "startUpload: Starting work via work manager");
 
         OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(UploadTask.class)
@@ -584,20 +558,5 @@ public class FileTransferBackground extends CordovaPlugin {
 
     public static void logMessage(String message) {
         Log.d("CordovaBackgroundUpload", message);
-    }
-
-    private class NetworkReceiver extends BroadcastReceiver {
-        @RequiresApi(api = Build.VERSION_CODES.O)
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
-                Log.d(TAG, "No internet connection");
-                UploadTask.UploadForegroundNotification.getRetryNotification(context);
-            } else {
-                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationManager.cancelAll();
-            }
-        }
     }
 }

@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
 import android.os.Build;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -70,8 +71,6 @@ public final class UploadTask extends Worker {
 
     public static final int MAX_TRIES = 10;
 
-    public static boolean blockRetryNotificationFlag = false;
-
     // Key stuff
     // <editor-fold>
 
@@ -121,8 +120,7 @@ public final class UploadTask extends Worker {
 
         private static final int notificationId = new Random().nextInt();
         public static String notificationTitle = "Default title";
-        public static String notificationRetryTitle = "Upload paused";
-        public static String notificationRetryText = "Please check your internet connection";
+
         @IntegerRes
         public static int notificationIconRes = 0;
         public static String notificationIntentActivity;
@@ -181,9 +179,6 @@ public final class UploadTask extends Worker {
 
             float totalProgressStore = ((float) uploadDone) / uploadCount;
 
-            // Release lock on retry notification
-            blockRetryNotificationFlag = false;
-
             Log.d(TAG, "eventLabel='getForegroundInfo: general (" + uploadingProgress + ") all (" + collectiveProgress + ")'");
 
             Class<?> mainActivityClass = null;
@@ -217,49 +212,47 @@ public final class UploadTask extends Worker {
             notification.flags |= Notification.FLAG_ONGOING_EVENT;
             notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
 
+
             cachedInfo = new ForegroundInfo(notificationId, notification);
             return cachedInfo;
         }
 
-        // Foreground notification used to tell user that there is some images left to be uploaded
-        public static void getRetryNotification(final Context context) {
-            if (!blockRetryNotificationFlag && notificationIntentActivity != null) {
-                // Added lock on retry notification
-                blockRetryNotificationFlag = true;
-                Class<?> mainActivityClass = null;
-                try {
-                    mainActivityClass = Class.forName(notificationIntentActivity);
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-                Intent notificationIntent = new Intent(context, mainActivityClass);
-                int pendingIntentFlag;
-                if (Build.VERSION.SDK_INT >= 23) {
-                    pendingIntentFlag = PendingIntent.FLAG_IMMUTABLE;
-                } else {
-                    pendingIntentFlag = 0;
-                }
-                PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
+        public static void triggerAndroid12Notification(final Context context) {
+            Class<?> mainActivityClass = null;
+            try {
+                mainActivityClass = Class.forName(notificationIntentActivity);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            Intent notificationIntent = new Intent(context, mainActivityClass);
+            int pendingIntentFlag;
+            if (Build.VERSION.SDK_INT >= 23) {
+                pendingIntentFlag = PendingIntent.FLAG_IMMUTABLE;
+            } else {
+                pendingIntentFlag = 0;
+            }
+            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
 
-                Notification retryNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-                        .setContentTitle(notificationRetryTitle)
-                        .setTicker(notificationRetryTitle)
-                        .setContentText(notificationRetryText)
-                        .setSmallIcon(notificationIconRes)
-                        .setColor(Color.rgb(57, 100, 150))
-                        .setContentIntent(pendingIntent)
-                        .addAction(R.drawable.ic_upload, "Open", pendingIntent)
-                        .build();
+            Notification appOpenNotification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+                    .setContentTitle("Test Android 12")
+                    .setTicker("Test Android 12")
+                    .setContentText("Your images is being uploaded. Open app to view.")
+                    .setSmallIcon(notificationIconRes)
+                    .setColor(Color.rgb(57, 100, 150))
+                    .setContentIntent(pendingIntent)
+                    .addAction(R.drawable.ic_upload, "Open", pendingIntent)
+                    .build();
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                    notificationManager.createNotificationChannel(new NotificationChannel(
-                            UploadTask.NOTIFICATION_CHANNEL_ID,
-                            UploadTask.NOTIFICATION_CHANNEL_NAME,
-                            NotificationManager.IMPORTANCE_LOW
-                    ));
-                    notificationManager.notify(1, retryNotification);
-                }
+            appOpenNotification.flags |= Notification.FLAG_NO_CLEAR;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                notificationManager.createNotificationChannel(new NotificationChannel(
+                        UploadTask.NOTIFICATION_CHANNEL_ID,
+                        UploadTask.NOTIFICATION_CHANNEL_NAME,
+                        NotificationManager.IMPORTANCE_LOW
+                ));
+                notificationManager.notify(notificationId, appOpenNotification);
             }
         }
     }
@@ -317,6 +310,10 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        if(!checkNetworkConnection()) {
+            return Result.retry();
+        }
+
         final String id = getInputData().getString(KEY_INPUT_ID);
 
         if (id == null) {
@@ -353,7 +350,7 @@ public final class UploadTask extends Worker {
 
         // Register me
         UploadForegroundNotification.progress(getId(), 0f);
-        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+        handleNotification();
 
         // Start call
         currentCall = httpClient.newCall(request);
@@ -469,7 +466,7 @@ public final class UploadTask extends Worker {
                 .build();
         Log.d(TAG, "handleProgress: Progress data: " + data);
         setProgressAsync(data);
-        setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+        handleNotification();
     }
 
     /**
@@ -535,6 +532,23 @@ public final class UploadTask extends Worker {
 
         // Ok
         return requestBuilder.build();
+    }
+
+    private void handleNotification() {
+        Log.d("Sharinpix", "Upload Notification 1");
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+        }
+        Log.d("Sharinpix", "Upload Notification Exit");
+    }
+
+    private synchronized boolean checkNetworkConnection() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
+            Log.d(TAG, "No internet connection");
+            return false;
+        }
+        return true;
     }
 
     /**
