@@ -111,7 +111,7 @@ public final class UploadTask extends Worker {
 
     // Unified notification
     // <editor-fold>
-    public static class UploadNotification extends AsyncTask<String, String, String> {
+    public static class UploadNotification {
         private Context context;
 
         private static final int notificationId = new Random().nextInt();
@@ -136,8 +136,7 @@ public final class UploadTask extends Worker {
             ));
         }
 
-        @Override
-        protected String doInBackground(String... strings) {
+        private void updateProgress() {
             List<WorkInfo> workInfo;
             try {
                 workInfo = WorkManager.getInstance(context)
@@ -159,14 +158,6 @@ public final class UploadTask extends Worker {
             }
 
             float totalProgressStore = ((float) uploadDone) / uploadCount;
-
-            publishProgress(String.valueOf(totalProgressStore));
-
-            return "";
-        }
-
-        protected void onProgressUpdate(String... progress) {
-            float totalProgressStore = Float.parseFloat(progress[0]);
             notificationBuilder.setProgress(100, (int) (totalProgressStore * 100f), false);
             notificationManager.notify(UploadNotification.notificationId, notificationBuilder.build());
         }
@@ -268,7 +259,6 @@ public final class UploadTask extends Worker {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && uploadNotification == null) {
             uploadNotification = new UploadNotification(getApplicationContext());
-            uploadNotification.execute("Upload Task");
         }
     }
 
@@ -420,7 +410,7 @@ public final class UploadTask extends Worker {
         Log.d(TAG, "handleProgress: Progress data: " + data);
         setProgressAsync(data);
 
-        uploadNotification.doInBackground();
+        uploadNotification.updateProgress();
     }
 
     /**
