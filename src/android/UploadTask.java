@@ -58,9 +58,9 @@ import okio.BufferedSink;
 public final class UploadTask extends Worker {
 
     private static final boolean DEBUG_SKIP_UPLOAD = false;
-    private static final long DELAY_BETWEEN_NOTIFICATION_UPDATE_MS = 200;
+    public static final long DELAY_BETWEEN_NOTIFICATION_UPDATE_MS = 200;
 
-    private static final String TAG = "CordovaBackgroundUpload";
+    public static final String TAG = "CordovaBackgroundUpload";
 
     public static final String NOTIFICATION_CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
     public static final String NOTIFICATION_CHANNEL_NAME = "upload channel";
@@ -102,118 +102,13 @@ public final class UploadTask extends Worker {
     public static final String KEY_OUTPUT_FAILURE_CANCELED = "output_failure_canceled";
     // </editor-fold>
 
+    private static UploadNotification uploadNotification = null;
+    private static UploadForegroundNotification uploadForegroundNotification = null;
+
     public static class Mutex {
         public void acquire() throws InterruptedException { }
         public void release() { }
     }
-
-    // Unified notification
-    // <editor-fold>
-    public static class UploadForegroundNotification {
-        private static final Map<UUID, Float> collectiveProgress = Collections.synchronizedMap(new HashMap<>());
-        private static final AtomicLong lastNotificationUpdateMs = new AtomicLong(0);
-        private static ForegroundInfo cachedInfo;
-
-        private static final int notificationId = new Random().nextInt();
-        public static String notificationTitle = "Default title";
-
-        @IntegerRes
-        public static int notificationIconRes = 0;
-        public static String notificationIntentActivity;
-
-        private static void configure(final String title, @IntegerRes final int icon, final String intentActivity) {
-            notificationTitle = title;
-            notificationIconRes = icon;
-            notificationIntentActivity = intentActivity;
-        }
-
-        private static void progress(final UUID uuid, final float progress) {
-            collectiveProgress.put(uuid, progress);
-        }
-
-        private static void done(final UUID uuid) {
-            collectiveProgress.remove(uuid);
-        }
-
-        private static ForegroundInfo getForegroundInfo(final Context context) {
-            final long now = System.currentTimeMillis();
-            // Set to now to ensure other worker will be throttled
-            final long lastUpdate = lastNotificationUpdateMs.getAndSet(now);
-
-            // Throttle, 200ms delay
-            if (cachedInfo != null && now - lastUpdate <= DELAY_BETWEEN_NOTIFICATION_UPDATE_MS) {
-                // Revert value
-                lastNotificationUpdateMs.set(lastUpdate);
-                return cachedInfo;
-            }
-
-            List<WorkInfo> workInfo;
-            try {
-                workInfo = WorkManager.getInstance(context)
-                        .getWorkInfosByTag(FileTransferBackground.getCurrentTag(context))
-                        .get();
-            } catch (ExecutionException | InterruptedException e) {
-                // Bruh, assume there is no work
-                Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
-                workInfo = Collections.emptyList();
-            }
-
-            float uploadingProgress = 0f;
-            int uploadDone = 0;
-            int uploadCount = 0;
-            for (WorkInfo info : workInfo) {
-                if (!info.getState().isFinished()) {
-                    final Float progress = collectiveProgress.get(info.getId());
-                    if (progress != null) {
-                        uploadingProgress += progress;
-                    }
-                } else {
-                    uploadDone++;
-                }
-                uploadCount++;
-            }
-
-            float totalProgressStore = ((float) uploadDone) / uploadCount;
-
-            Log.d(TAG, "eventLabel='getForegroundInfo: general (" + uploadingProgress + ") all (" + collectiveProgress + ")'");
-
-            Class<?> mainActivityClass = null;
-            try {
-                mainActivityClass = Class.forName(notificationIntentActivity);
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            Intent notificationIntent = new Intent(context, mainActivityClass);
-            int pendingIntentFlag;
-            if (Build.VERSION.SDK_INT >= 23) {
-                pendingIntentFlag = PendingIntent.FLAG_IMMUTABLE;
-            } else {
-                pendingIntentFlag = 0;
-            }
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
-
-            // TODO: click intent open app
-            Notification notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-                    .setContentTitle(notificationTitle)
-                    .setTicker(notificationTitle)
-                    .setSmallIcon(notificationIconRes)
-                    .setColor(Color.rgb(57, 100, 150))
-                    .setOngoing(true)
-                    .setProgress(100, (int) (totalProgressStore * 100f), false)
-                    .setContentIntent(pendingIntent)
-                    .addAction(notificationIconRes, "Open", pendingIntent)
-                    .build();
-
-            notification.flags |= Notification.FLAG_NO_CLEAR;
-            notification.flags |= Notification.FLAG_ONGOING_EVENT;
-            notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
-
-
-            cachedInfo = new ForegroundInfo(notificationId, notification);
-            return cachedInfo;
-        }
-    }
-    // </editor-fold>
 
     private static OkHttpClient httpClient;
 
@@ -257,11 +152,21 @@ public final class UploadTask extends Worker {
 
         httpClient.dispatcher().setMaxRequests(workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
 
-        UploadForegroundNotification.configure(
-                workerParams.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
-                getApplicationContext().getResources().getIdentifier(workerParams.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
-                workerParams.getInputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
-        );
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            UploadForegroundNotification.configure(
+                    workerParams.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
+                    getApplicationContext().getResources().getIdentifier(workerParams.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
+                    workerParams.getInputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
+            );
+            uploadForegroundNotification = new UploadForegroundNotification();
+        } else {
+            UploadNotification.configure(
+                    workerParams.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
+                    getApplicationContext().getResources().getIdentifier(workerParams.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
+                    workerParams.getInputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
+            );
+            uploadNotification = new UploadNotification(getApplicationContext());
+        }
     }
 
     @NonNull
@@ -306,7 +211,7 @@ public final class UploadTask extends Worker {
         }
 
         // Register me
-        UploadForegroundNotification.progress(getId(), 0f);
+        uploadForegroundNotification.progress(getId(), 0f);
         handleNotification();
 
         // Start call
@@ -363,7 +268,7 @@ public final class UploadTask extends Worker {
             }
         } finally {
             // Always remove ourselves from the notification
-            UploadForegroundNotification.done(getId());
+            uploadForegroundNotification.done(getId());
         }
 
         // Start building the output data
@@ -492,9 +397,11 @@ public final class UploadTask extends Worker {
     }
 
     private void handleNotification() {
-        Log.d(TAG, "Upload Notification 1");
+        Log.d(TAG, "Upload Notification");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+            setForegroundAsync(uploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+        } else  {
+            uploadNotification.updateProgress();
         }
         Log.d(TAG, "Upload Notification Exit");
     }
@@ -506,61 +413,5 @@ public final class UploadTask extends Worker {
             return false;
         }
         return true;
-    }
-
-    /**
-     * Custom request body provider that will notify the progress of the read for each 8kio of data
-     */
-    private static class ProgressRequestBody extends RequestBody {
-
-        @FunctionalInterface
-        public interface ProgressListener {
-            void onProgress(long bytesWritten, long totalBytes);
-        }
-
-        private final MediaType mediaType;
-        private final long contentLength;
-        private final InputStream stream;
-        private final ProgressListener listener;
-
-        private long bytesWritten = 0;
-        private long lastProgressTimestamp = 0;
-
-        private ProgressRequestBody(final MediaType mediaType, long contentLength, final InputStream stream, final ProgressListener listener) {
-            this.mediaType = mediaType;
-            this.contentLength = contentLength;
-            this.stream = stream;
-            this.listener = listener;
-        }
-
-        @Nullable
-        @Override
-        public MediaType contentType() {
-            return mediaType;
-        }
-
-        @Override
-        public long contentLength() {
-            return contentLength;
-        }
-
-        @Override
-        public void writeTo(@NonNull BufferedSink bufferedSink) throws IOException {
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = this.stream.read(buffer)) != -1) {
-                bufferedSink.write(buffer, 0, read);
-
-                // Trigger listener
-                bytesWritten += read;
-
-                // Event throttling
-                long now = System.currentTimeMillis() / 1000;
-                if (now - lastProgressTimestamp >= 1) {
-                    lastProgressTimestamp = now;
-                    listener.onProgress(bytesWritten, contentLength);
-                }
-            }
-        }
     }
 }

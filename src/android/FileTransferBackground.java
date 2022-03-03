@@ -4,8 +4,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.util.Log;
 
@@ -45,10 +43,6 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private static final String TAG = "FileTransferBackground";
     public static final String WORK_TAG_UPLOAD = "work_tag_upload";
-
-    // Old Migrations
-    public final String DATABASE_NAME = "cordova-plugin-background-upload.db";
-    public final String TABLE_NAME = "PENDING_UPLOAD";
 
     private CallbackContext uploadCallback;
     private boolean ready = false;
@@ -197,6 +191,7 @@ public class FileTransferBackground extends CordovaPlugin {
             WorkManager.getInstance(cordova.getContext())
                     .getWorkInfosByTagLiveData(FileTransferBackground.WORK_TAG_UPLOAD)
                     .observeForever((tasks) -> {
+                        int completedTasks = 0;
                         for (WorkInfo info : tasks) {
                             switch (info.getState()) {
                                 // If the upload in not finished, publish its progress
@@ -213,6 +208,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
+                                    completedTasks = completedTasks + 1;
                                     // No db in main thread
                                     cordova.getThreadPool().execute(() -> {
                                         // The corresponding ACK is already in the DB, if it not, the task is just a leftover
@@ -228,13 +224,17 @@ public class FileTransferBackground extends CordovaPlugin {
                                     break;
                             }
                         }
+                        Log.d(TAG, "HELLO");
+                        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) && (completedTasks == tasks.size())) {
+                            Log.d(TAG, "HELLO 2");
+                            NotificationManager notificationManager = (NotificationManager) cordova.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+                            notificationManager.cancelAll();
+                        }
                     });
         });
 
         this.uploadCallback = callbackContext;
         this.ready = true;
-
-        migrateOldPendingUploads();
     }
 
     private void addUpload(JSONObject jsonPayload) {
@@ -453,27 +453,6 @@ public class FileTransferBackground extends CordovaPlugin {
     public void onDestroy() {
         logMessage("eventLabel='Uploader plugin onDestroy'");
         destroy();
-    }
-
-    // Old Migrations
-    private void migrateOldPendingUploads() {
-        String databasePath = "/data/data/" + cordova.getContext().getPackageName() + "/databases/" + DATABASE_NAME;
-        SQLiteDatabase sqLiteDatabase = SQLiteDatabase.openDatabase(databasePath, null, 0);
-        Cursor cursor = sqLiteDatabase.rawQuery("SELECT * FROM " + TABLE_NAME, null);
-        if (cursor.getCount() > 0) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        addUpload(new JSONObject(cursor.getString(1)));
-                    } while (cursor.moveToNext());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            sqLiteDatabase.delete(TABLE_NAME, null, null);
-        }
-        cursor.close();
-        sqLiteDatabase.close();
     }
 
     @Nullable
