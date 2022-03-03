@@ -462,8 +462,10 @@ public class FileTransferBackground extends CordovaPlugin {
         Cursor cursor = sqLiteDatabase.rawQuery("SELECT * FROM " + TABLE_NAME, null);
         if (cursor.getCount() > 0) {
             try {
-                while (cursor.moveToNext()) {
-                    addUpload(new JSONObject(cursor.getString(1)));
+                if (cursor.moveToFirst()) {
+                    do {
+                        addUpload(new JSONObject(cursor.getString(1)));
+                    } while (cursor.moveToNext());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
