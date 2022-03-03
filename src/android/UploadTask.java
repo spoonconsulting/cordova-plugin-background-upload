@@ -21,8 +21,6 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.sharinpix.SharinPix.R;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -203,7 +201,7 @@ public final class UploadTask extends Worker {
                     .setOngoing(true)
                     .setProgress(100, (int) (totalProgressStore * 100f), false)
                     .setContentIntent(pendingIntent)
-                    .addAction(R.drawable.ic_upload, "Open", pendingIntent)
+                    .addAction(notificationIconRes, "Open", pendingIntent)
                     .build();
 
             notification.flags |= Notification.FLAG_NO_CLEAR;
@@ -269,7 +267,7 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        if(!checkNetworkConnection()) {
+        if(!hasNetworkConnection()) {
             return Result.retry();
         }
 
@@ -494,14 +492,14 @@ public final class UploadTask extends Worker {
     }
 
     private void handleNotification() {
-        Log.d("Sharinpix", "Upload Notification 1");
+        Log.d(TAG, "Upload Notification 1");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             setForegroundAsync(UploadForegroundNotification.getForegroundInfo(getApplicationContext()));
         }
-        Log.d("Sharinpix", "Upload Notification Exit");
+        Log.d(TAG, "Upload Notification Exit");
     }
 
-    private synchronized boolean checkNetworkConnection() {
+    private synchronized boolean hasNetworkConnection() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
         if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
             Log.d(TAG, "No internet connection");

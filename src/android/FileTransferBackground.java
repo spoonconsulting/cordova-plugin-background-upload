@@ -4,6 +4,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.util.Log;
 
@@ -18,10 +20,6 @@ import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.WorkQuery;
 
-import com.sromku.simple.storage.SimpleStorage;
-import com.sromku.simple.storage.Storage;
-import com.sromku.simple.storage.helpers.OrderType;
-
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
@@ -30,7 +28,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -48,6 +45,10 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private static final String TAG = "FileTransferBackground";
     public static final String WORK_TAG_UPLOAD = "work_tag_upload";
+
+    // Old Migrations
+    public final String DATABASE_NAME = "cordova-plugin-background-upload.db";
+    public final String TABLE_NAME = "PENDING_UPLOAD";
 
     private CallbackContext uploadCallback;
     private boolean ready = false;
@@ -233,8 +234,7 @@ public class FileTransferBackground extends CordovaPlugin {
         this.uploadCallback = callbackContext;
         this.ready = true;
 
-        // mark v1 uploads as failed
-        migrateOldUploads();
+        migrateOldPendingUploads();
     }
 
     private void addUpload(JSONObject jsonPayload) {
@@ -455,37 +455,24 @@ public class FileTransferBackground extends CordovaPlugin {
         destroy();
     }
 
-    // Old migrations
-    // <editor-fold>
-    private void migrateOldUploads() {
-        Storage storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
-        String uploadDirectoryName = "FileTransferBackground";
-        if (storage.isDirectoryExists(uploadDirectoryName)) {
-            // remove all old uploads
-            storage.deleteDirectory(uploadDirectoryName);
-        }
-    }
-
-    private ArrayList<String> getOldUploadIds() {
-        Storage storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
-        String uploadDirectoryName = "FileTransferBackground";
-        ArrayList<String> previousUploads = new ArrayList();
-        List<File> files = storage.getFiles(uploadDirectoryName, OrderType.DATE);
-        for (File file : files) {
-            if (file.getName().endsWith(".json")) {
-                String content = storage.readTextFile(uploadDirectoryName, file.getName());
-                if (content != null) {
-                    try {
-                        previousUploads.add(new JSONObject(content).getString("id"));
-                    } catch (JSONException exception) {
-                        logMessage("eventLabel='Uploader could not read old uploads' error='" + exception.getMessage() + "'");
-                    }
+    // Old Migrations
+    private void migrateOldPendingUploads() {
+        String databasePath = "/data/data/" + cordova.getContext().getPackageName() + "/databases/" + DATABASE_NAME;
+        SQLiteDatabase sqLiteDatabase = SQLiteDatabase.openDatabase(databasePath, null, 0);
+        Cursor cursor = sqLiteDatabase.rawQuery("SELECT * FROM " + TABLE_NAME, null);
+        if (cursor.getCount() > 0) {
+            try {
+                while (cursor.moveToNext()) {
+                    addUpload(new JSONObject(cursor.getString(1)));
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+            sqLiteDatabase.delete(TABLE_NAME, null, null);
         }
-        return previousUploads;
+        cursor.close();
+        sqLiteDatabase.close();
     }
-    // </editor-fold>
 
     @Nullable
     private String readFileToStringNoThrow(final String filename) {
