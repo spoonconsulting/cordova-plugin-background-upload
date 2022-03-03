@@ -1,23 +1,13 @@
 package com.spoon.backgroundfileupload;
 
-import android.app.Notification;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
-import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.os.Build;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
-import androidx.annotation.IntegerRes;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
-import androidx.work.WorkInfo;
-import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -26,22 +16,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ProtocolException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLException;
 
@@ -51,9 +32,7 @@ import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
-import okio.BufferedSink;
 
 public final class UploadTask extends Worker {
 
