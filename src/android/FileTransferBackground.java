@@ -224,9 +224,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                     break;
                             }
                         }
-                        Log.d(TAG, "HELLO");
                         if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) && (completedTasks == tasks.size())) {
-                            Log.d(TAG, "HELLO 2");
                             NotificationManager notificationManager = (NotificationManager) cordova.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
                             notificationManager.cancelAll();
                         }
