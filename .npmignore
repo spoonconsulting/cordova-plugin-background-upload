@@ -6,3 +6,5 @@ webpack.config.js
 dist/demo*
 .git*
 .npmignore
+node_modules
+demo/node_modules
