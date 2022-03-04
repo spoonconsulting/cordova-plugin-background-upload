@@ -50,6 +50,9 @@
         <source-file src="src/android/AckDatabase.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEventDao.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEvent.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/ProgressRequestBody.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/UploadForegroundNotification.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/UploadNotification.java" target-dir="src/com/spoon/backgroundfileupload" />
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
     </platform>
     <platform name="ios">
