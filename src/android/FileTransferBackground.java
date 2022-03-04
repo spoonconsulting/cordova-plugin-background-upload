@@ -239,6 +239,9 @@ public class FileTransferBackground extends CordovaPlugin {
 
         this.uploadCallback = callbackContext;
         this.ready = true;
+
+        // Old Migrations
+        migrateOldPendingUploads();
     }
 
     private void addUpload(JSONObject jsonPayload) {
