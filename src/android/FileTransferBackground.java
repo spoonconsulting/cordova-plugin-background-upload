@@ -52,6 +52,10 @@ public class FileTransferBackground extends CordovaPlugin {
     private static String currentTag;
     private static long currentTagFetchedAt;
 
+    // Old Migrations
+    public final String DATABASE_NAME = "cordova-plugin-background-upload.db";
+    public final String TABLE_NAME = "PENDING_UPLOAD";
+
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
         if (ready) {
@@ -520,6 +524,27 @@ public class FileTransferBackground extends CordovaPlugin {
             }
         }
         return prefix + UUID.randomUUID().toString();
+    }
+
+    // Old Migrations
+    private void migrateOldPendingUploads() {
+        String databasePath = "/data/data/" + cordova.getContext().getPackageName() + "/databases/" + DATABASE_NAME;
+        SQLiteDatabase sqLiteDatabase = SQLiteDatabase.openDatabase(databasePath, null, 0);
+        Cursor cursor = sqLiteDatabase.rawQuery("SELECT * FROM " + TABLE_NAME, null);
+        if (cursor.getCount() > 0) {
+            try {
+                if (cursor.moveToFirst()) {
+                    do {
+                        addUpload(new JSONObject(cursor.getString(1)));
+                    } while (cursor.moveToNext());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            sqLiteDatabase.delete(TABLE_NAME, null, null);
+        }
+        cursor.close();
+        sqLiteDatabase.close();
     }
 
     public static void logMessage(String message) {
