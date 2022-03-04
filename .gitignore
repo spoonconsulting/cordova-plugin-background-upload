@@ -14,11 +14,4 @@ Thumbs.db
 *.vscode
 
 node_modules
-
-
-
-
-
-
-
- 
+demo/node_modules
