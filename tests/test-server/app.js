@@ -1,48 +1,40 @@
 const PORT = process.env.PORT || 3000
-var express = require('express')
-var multer = require('multer')
-var storage = multer.diskStorage({
-  destination: function (req, file, next) {
-    next(null, './uploads')
-  },
-  filename: function (req, file, next) {
-    next(null, file.originalname)
+const express = require('express')
+const Busboy = require('busboy')
+const fs = require('fs')
+const path = require('path')
+
+const handleUpload = (req, res, next) => {
+  const busboy = new Busboy({ headers: req.headers })
+  let response = {
+    originalFilename: null,
+    accessMode: 'public',
+    height: 4048,
+    grayscale: false,
+    width: 3036,
+    headers: req.headers,
+    parameters: {}
   }
-})
-var upload = multer({
-  storage: storage
-})
-var fUpload = upload.fields([{
-  name: 'file',
-  maxCount: 1
-}])
-var app = express()
 
-app.get('/', (req, res) => {
-  res.send('Welcome to test server')
-})
+  busboy.on('file', function(fieldName, file, fileName) {
+    response.originalFilename = fileName
+    file.pipe(fs.createWriteStream(path.join('./uploads', fileName)));
+  });
 
-app.post('/upload', fUpload, (req, res, next) => {
-  const params = req.body
-  const fileName = req.files.file[0].originalname
-  fUpload(req, res, (err) => {
-    if (err) {
-      console.log('An error occurred when uploading')
-    } else {
-      var toSend = {
-        receivedInfo: {
-          originalFilename: fileName,
-          accessMode: 'public',
-          height: 4032,
-          grayscale: false,
-          width: 3024,
-          headers: req.headers,
-          parameters: params
-        }
-      }
-      res.status(210).send(JSON.stringify(toSend))
-    }
-  })
-})
+  busboy.on('field', function(fieldName, value) {
+    response.parameters[fieldName] = value;
+  });
+
+  busboy.on('finish', function() {
+    res.status(req.method == 'POST' ? 201 : 200).send(JSON.stringify({ receivedInfo: response }))
+  });
+
+  return req.pipe(busboy);
+}
+
+const app = express()
+
+app.post('/upload', handleUpload)
+app.put('/upload', handleUpload)
 
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))

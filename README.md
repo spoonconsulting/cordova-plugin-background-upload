@@ -5,6 +5,8 @@ This plugin provides a file upload functionality that can continue to run even w
 [![npm version](https://badge.fury.io/js/cordova-plugin-background-upload.svg)](https://badge.fury.io/js/cordova-plugin-background-upload)
 [![Build Status](https://travis-ci.com/spoonconsulting/cordova-plugin-background-upload.svg?branch=master)](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload)
 
+**See tag 2.0.3 for latest stable version.**
+
 **Supported Platforms**
 - iOS
 - Android
@@ -149,6 +151,7 @@ On Android Oreo and above, there are strict limitations on background services a
     ```
 - Events need to be acknowledged to be removed. Failure to do so will result in all saved events being broadcast on `init`.
 -`showNotification` parameter has been removed (A notification will always be shown on Android during upload)
+
 
 ## README for v1.0
 The README for the previous version can be found [here](https://github.com/spoonconsulting/cordova-plugin-background-upload/blob/eacce4385ae497188307a9944c2f353571a463a2/README.md).

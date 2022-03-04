@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="@spoonconsulting/cordova-plugin-background-upload" version="2.0.5">
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="@spoonconsulting/cordova-plugin-background-upload" version="4.0.0">
     <name>Cordova Background Upload Plugin</name>
     <description>Background Upload plugin for Cordova</description>
     <license>ISC</license>
-    <keywords>cordova,background,file,download</keywords>
+    <keywords>cordova,background,file,download,workmanager</keywords>
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
         <clobbers target="FileTransferManager" />
     </js-module>
