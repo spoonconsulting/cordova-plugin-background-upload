@@ -3,6 +3,7 @@ package com.spoon.backgroundfileupload;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
 
@@ -15,10 +16,7 @@ import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
-
-import com.sromku.simple.storage.SimpleStorage;
-import com.sromku.simple.storage.Storage;
-import com.sromku.simple.storage.helpers.OrderType;
+import androidx.work.WorkQuery;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -28,14 +26,16 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -48,6 +48,9 @@ public class FileTransferBackground extends CordovaPlugin {
     private boolean ready = false;
 
     private Data httpClientBaseConfig = Data.EMPTY;
+
+    private static String currentTag;
+    private static long currentTagFetchedAt;
 
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
@@ -186,8 +189,9 @@ public class FileTransferBackground extends CordovaPlugin {
         cordova.getActivity().runOnUiThread(() -> {
             // Listen for upload progress
             WorkManager.getInstance(cordova.getContext())
-                    .getWorkInfosByTagLiveData(WORK_TAG_UPLOAD)
+                    .getWorkInfosByTagLiveData(FileTransferBackground.WORK_TAG_UPLOAD)
                     .observeForever((tasks) -> {
+                        int completedTasks = 0;
                         for (WorkInfo info : tasks) {
                             switch (info.getState()) {
                                 // If the upload in not finished, publish its progress
@@ -200,9 +204,11 @@ public class FileTransferBackground extends CordovaPlugin {
                                         sendProgress(id, progress);
                                     }
                                     break;
+                                case CANCELLED:
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
+                                    completedTasks = completedTasks + 1;
                                     // No db in main thread
                                     cordova.getThreadPool().execute(() -> {
                                         // The corresponding ACK is already in the DB, if it not, the task is just a leftover
@@ -218,14 +224,15 @@ public class FileTransferBackground extends CordovaPlugin {
                                     break;
                             }
                         }
+                        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) && (completedTasks == tasks.size())) {
+                            NotificationManager notificationManager = (NotificationManager) cordova.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+                            notificationManager.cancelAll();
+                        }
                     });
         });
 
         this.uploadCallback = callbackContext;
         this.ready = true;
-
-        // mark v1 uploads as failed
-        migrateOldUploads();
     }
 
     private void addUpload(JSONObject jsonPayload) {
@@ -274,6 +281,12 @@ public class FileTransferBackground extends CordovaPlugin {
             parameterNames.add(entry.getKey());
         }
 
+        String intentActivity = null;
+        try {
+            intentActivity = cordova.getActivity().getPackageManager().getActivityInfo(cordova.getActivity().getComponentName(), 0).name.toString();
+        } catch(PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
         startUpload(uploadId, new Data.Builder()
                 // Put base info
                 .putString(UploadTask.KEY_INPUT_ID, uploadId)
@@ -295,6 +308,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 // Put notification stuff
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE, (String) payload.get("notificationTitle"))
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_ICON, cordova.getActivity().getPackageName() + ":drawable/ic_upload")
+                .putString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY, intentActivity)
 
                 // Put config stuff
                 .putAll(httpClientBaseConfig)
@@ -311,13 +325,14 @@ public class FileTransferBackground extends CordovaPlugin {
                         .build()
                 )
                 .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
-                .addTag(WORK_TAG_UPLOAD)
+                .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
+                .addTag(FileTransferBackground.WORK_TAG_UPLOAD)
+                .addTag(getCurrentTag(cordova.getContext()))
                 .setInputData(payload)
                 .build();
 
         WorkManager.getInstance(cordova.getContext())
-                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.KEEP, workRequest);
+                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.APPEND, workRequest);
 
         logMessage("eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
     }
@@ -438,38 +453,6 @@ public class FileTransferBackground extends CordovaPlugin {
         destroy();
     }
 
-    // Old migrations
-    // <editor-fold>
-    private void migrateOldUploads() {
-        Storage storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
-        String uploadDirectoryName = "FileTransferBackground";
-        if (storage.isDirectoryExists(uploadDirectoryName)) {
-            // remove all old uploads
-            storage.deleteDirectory(uploadDirectoryName);
-        }
-    }
-
-    private ArrayList<String> getOldUploadIds() {
-        Storage storage = SimpleStorage.getInternalStorage(this.cordova.getActivity().getApplicationContext());
-        String uploadDirectoryName = "FileTransferBackground";
-        ArrayList<String> previousUploads = new ArrayList();
-        List<File> files = storage.getFiles(uploadDirectoryName, OrderType.DATE);
-        for (File file : files) {
-            if (file.getName().endsWith(".json")) {
-                String content = storage.readTextFile(uploadDirectoryName, file.getName());
-                if (content != null) {
-                    try {
-                        previousUploads.add(new JSONObject(content).getString("id"));
-                    } catch (JSONException exception) {
-                        logMessage("eventLabel='Uploader could not read old uploads' error='" + exception.getMessage() + "'");
-                    }
-                }
-            }
-        }
-        return previousUploads;
-    }
-    // </editor-fold>
-
     @Nullable
     private String readFileToStringNoThrow(final String filename) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(cordova.getContext().openFileInput(filename)))) {
@@ -498,6 +481,43 @@ public class FileTransferBackground extends CordovaPlugin {
             }
         }
         return hashMap;
+    }
+
+    public static String getCurrentTag(Context context) {
+        final long now = System.currentTimeMillis();
+        if (currentTag != null && now - currentTagFetchedAt <= 5000) {
+            return currentTag;
+        }
+        currentTagFetchedAt = now;
+        currentTag = fetchCurrentTag(context);
+        return currentTag;
+    }
+
+    public static String fetchCurrentTag(Context context) {
+        WorkQuery workQuery = WorkQuery.Builder
+                .fromTags(Arrays.asList(FileTransferBackground.WORK_TAG_UPLOAD))
+                .addStates(Arrays.asList(WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED))
+                .build();
+        List<WorkInfo> workInfo;
+        try {
+            workInfo = WorkManager.getInstance(context)
+                    .getWorkInfos(workQuery)
+                    .get();
+        } catch (ExecutionException | InterruptedException e) {
+            Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
+            workInfo = Collections.emptyList();
+        }
+        String prefix = "packet_";
+        for (WorkInfo info : workInfo) {
+            if (!info.getState().isFinished()) {
+                for (String tag : info.getTags()) {
+                    if (tag.startsWith(prefix)) {
+                        return tag;
+                    }
+                }
+            }
+        }
+        return prefix + UUID.randomUUID().toString();
     }
 
     public static void logMessage(String message) {

@@ -5,8 +5,6 @@ This plugin provides a file upload functionality that can continue to run even w
 [![npm version](https://badge.fury.io/js/cordova-plugin-background-upload.svg)](https://badge.fury.io/js/cordova-plugin-background-upload)
 [![Build Status](https://travis-ci.com/spoonconsulting/cordova-plugin-background-upload.svg?branch=master)](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload)
 
-**See tag 2.0.3 for latest stable version.**
-
 **Supported Platforms**
 - iOS
 - Android
@@ -17,12 +15,12 @@ This plugin provides a file upload functionality that can continue to run even w
 To install the plugin:
 
 ```
-cordova plugin add cordova-plugin-background-upload --save
+cordova plugin add @spoonconsulting/cordova-plugin-background-upload --save
 ```
 
 To uninstall this plugin:
 ```
-cordova plugin rm cordova-plugin-background-upload
+cordova plugin rm @spoonconsulting/cordova-plugin-background-upload
 ```
 
 **Sample usage**
@@ -136,9 +134,9 @@ eventId | id of the event
 The plugin runs on ios 10.0 and above and internally uses [AFNetworking](https://github.com/AFNetworking/AFNetworking). AFNetworking uses [NSURLSession](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/URLLoadingSystem/Articles/UsingNSURLSession.html#//apple_ref/doc/uid/TP40013509-SW44) under the hood to perform the upload in a background session. When an upload is initiated, it will continue until it has been completed successfully or until the user kills the application. If the application is terminated by the OS, the uploads will still continue. When the user relaunches the application, after calling the init method, events will be emitted with the ids of these uploads. If the user kills the application by swiping it up from the multitasking pane, the uploads will not be continued. Upload tasks in background sessions are automatically retried by the URL loading system after network errors as decided by the OS.
 
 ## Android
-The minimum API level required is 21 and the background file upload is handled by the [android-upload-service](https://github.com/gotev/android-upload-service) library. If you have configured a notification to appear in the notifications area, the uploads will continue even if the user kills the app manually. If an upload is added when there is no network connection, it will be retried as soon as the network becomes reachable unless the app has already been killed.
+The minimum API level required is 21 and the background file upload is handled by the WorkMananger library. If you have configured a notification to appear in the notifications area, the uploads will continue even if the user kills the app manually. If an upload is added when there is no network connection, it will be retried as soon as the network becomes reachable unless the app has already been killed.
 
-On Android Oreo and above, there are strict limitations on background services and it's recommended to use a foreground service with an ongoing notification to get more OS time for service execution: https://developer.android.com/about/versions/oreo/background. Hence to prevent the service from being killed, a progress notification is needed on Android 8+.
+On Android 12 and above, there are strict limitations on background services that does not allow to start a Foreground Service when the app is processing in background(https://developer.android.com/guide/components/foreground-services). Hence to prevent this on Android 12 and above, we have a classic notification. On Android 11 and below, we are still using foreground service along with WorkManager to start the notification.
 
 ## Migration notes for v2.0
 - When v2 of the plugin is launched on an app containing uploads still in progress from v1 version, it will mark all of them as `FAILED` with `errorCode` 500 so that they can be retried.
@@ -157,7 +155,7 @@ On Android Oreo and above, there are strict limitations on background services a
 The README for the previous version can be found [here](https://github.com/spoonconsulting/cordova-plugin-background-upload/blob/eacce4385ae497188307a9944c2f353571a463a2/README.md).
 
 ## License
-Cordova-plugin-background-upload is licensed under the Apache v2 License.
+cordova-plugin-background-upload is licensed under the Apache v2 License.
 
 ## Credits
-Cordova-plugin-background-upload is brought to you by [Spoon Consulting Ltd](http://www.spoonconsulting.com/).
+cordova-plugin-background-upload is brought to you by [Spoon Consulting Ltd] (http://www.spoonconsulting.com/).
