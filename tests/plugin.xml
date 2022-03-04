@@ -16,8 +16,12 @@
      <dependency id="cordova-plugin-file" version="6.0.2" />
      <platform name="android">
         <resource-file src="tree.jpg" target="assets/tree.jpg" />
+        <resource-file src="tree2.jpg" target="assets/tree2.jpg" />
+        <resource-file src="tree3.jpg" target="assets/tree3.jpg" />
      </platform>
       <platform name="ios">
         <resource-file src="tree.jpg" target="Resources/tree.jpg" />
+        <resource-file src="tree2.jpg" target="Resources/tree2.jpg" />
+        <resource-file src="tree3.jpg" target="Resources/tree3.jpg" />
      </platform>
 </plugin>
