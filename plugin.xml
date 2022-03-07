@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="@spoonconsulting/cordova-plugin-background-upload" version="3.0.3">
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="@spoonconsulting/cordova-plugin-background-upload" version="4.0.0-beta.2">
     <name>Cordova Background Upload Plugin</name>
     <description>Background Upload plugin for Cordova</description>
     <license>ISC</license>
-    <keywords>cordova,background,file,download</keywords>
+    <keywords>cordova,background,file,download,workmanager</keywords>
     <js-module src="www/FileTransferManager.js" name="FileTransferManager">
         <clobbers target="FileTransferManager" />
     </js-module>
@@ -15,14 +15,11 @@
    <dependency id="cordova-plugin-androidx-adapter" version="1.1.0"/>
    <dependency id="cordova-plugin-file" version="6.0.2"/>
     <platform name="android">
-        <framework src="net.gotev:uploadservice:4.3.0" />
-        <framework src="net.gotev:uploadservice-okhttp:4.0.0" />
         <framework src="com.sromku:simple-storage:1.2.0" />
-        <framework src="com.github.satyan:sugar:1.5" />
-        <framework src="com.github.pwittchen:reactivenetwork-rx2:3.0.6" />
-         <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application">
-            <application android:name="com.orm.SugarApp" />
-        </edit-config>
+        <framework src="androidx.work:work-runtime:2.7.1" />
+        <framework src="io.reactivex.rxjava3:rxjava:3.0.13" />
+        <framework src="com.squareup.okhttp3:okhttp:4.9.0" />
+        <framework src="androidx.room:room-runtime:2.3.0" />
         <framework src="src/android/config.gradle" custom="true" type="gradleReference"/>
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
@@ -34,31 +31,29 @@
             <feature name="PendingUpload">
                 <param name="android-package" value="com.spoon.backgroundfileupload.PendingUpload" />
             </feature>
-            <feature name="NotificationHandler">
-                <param name="android-package" value="com.spoon.backgroundfileupload.NotificationHandler" />
-            </feature>
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+            <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <meta-data android:name="DATABASE" android:value="cordova-plugin-background-upload.db" />
             <meta-data android:name="VERSION" android:value="1" />
             <meta-data android:name="QUERY_LOG" android:value="false" />
             <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="com.spoon.backgroundfileupload" />
-            <service android:name="com.spoon.backgroundfileupload.ManagerService" />
         </config-file>
         <source-file src="src/android/FileTransferBackground.java" target-dir="src/com/spoon/backgroundfileupload" />
-        <source-file src="src/android/PendingUpload.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/UploadTask.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/AckDatabase.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/UploadEventDao.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEvent.java" target-dir="src/com/spoon/backgroundfileupload" />
-        <source-file src="src/android/NotificationHandler.java" target-dir="src/com/spoon/backgroundfileupload" />
-        <source-file src="src/android/ManagerService.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/ProgressRequestBody.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/UploadForegroundNotification.java" target-dir="src/com/spoon/backgroundfileupload" />
+        <source-file src="src/android/UploadNotification.java" target-dir="src/com/spoon/backgroundfileupload" />
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
-        <resource-file src="src/android/res/notification_small.xml" target="res/layout/notification_small.xml" />
     </platform>
     <platform name="ios">
         <framework src="AFNetworking" type="podspec" spec="~> 4.0.1" />

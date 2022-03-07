@@ -1,6 +1,6 @@
 {
   "name": "@spoonconsulting/cordova-plugin-background-upload",
-  "version": "3.0.3",
+  "version": "4.0.0-beta.2",
   "description": "Cordova plugin for uploading file in the background",
   "cordova": {
     "id": "@spoonconsulting/cordova-plugin-background-upload",
@@ -18,6 +18,7 @@
     "background",
     "file",
     "upload",
+    "workmanager",
     "ecosystem:cordova",
     "cordova-android",
     "cordova-ios"
@@ -29,17 +30,48 @@
     "test:ios": "cordova-paramedic --platform ios --plugin . --cleanUpAfterRun"
   },
   "dependencies": {},
-  "author": "Mevin Dhunnooa",
+  "author": "Mevin Dhunnooa & Spoon Consulting Ltd",
   "contributors": [
     {
       "name": "Luc Boissaye",
       "email": "luc@boissaye.fr",
       "url": "https://github.com/ombr",
       "hireable": true
+    },
+    {
+      "name": "Lucas Malandrino",
+      "url": "https://github.com/icanwalkonwater",
+      "hireable": true
+    },
+    {
+      "name": "Azhar Beebeejaun",
+      "email": "azhar.beebeejaun@spoonconsulting.com",
+      "url": "https://github.com/azharbeebeejaun",
+      "hireable": true
+    },
+    {
+      "name": "Dinitri Ragoo ",
+      "email": "dimitriragoo@gmail.com",
+      "url": "https://github.com/dinitri-ragoo",
+      "hireable": true
+    },
+    {
+      "name": "Nick ANDRIANAHARIMALALA",
+      "email": "nick.andrianaharimalala@spoonconsulting.com",
+      "url": "https://github.com/sc-nick",
+      "hireable": true
+    },
+    {
+      "name": "Zafir Sk Heerah",
+      "email": "zafir.heerah@spoonconsulting.com",
+      "url": "https://github.com/zafirskthelifehacker",
+      "hireable": true
     }
   ],
   "license": "Apache-2.0",
   "engines": {
+    "node": "14.x",
+    "npm": "6.x",
     "cordova": ">=8.0.0"
   },
   "standard": {

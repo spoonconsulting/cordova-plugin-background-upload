@@ -86,7 +86,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                                headers: payload[@"headers"]
                             parameters:payload[@"parameters"]
                                fileKey:payload[@"fileKey"]
-                         requestMethod:payload[@"requestMethod"]
                      completionHandler:^(NSError *error, NSMutableURLRequest *request) {
         if (error)
             return handler(error);
@@ -125,12 +124,11 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                             headers:(NSDictionary*)headers
                          parameters:(NSDictionary*)parameters
                             fileKey:(NSString*)fileKey
-                      requestMethod:(NSString*)requestMethod
                   completionHandler:(void (^)(NSError* error, NSMutableURLRequest* request))handler{
     AFHTTPRequestSerializer *serializer = [AFHTTPRequestSerializer serializer];
     NSError *error;
     NSMutableURLRequest *request =
-    [serializer multipartFormRequestWithMethod:requestMethod
+    [serializer multipartFormRequestWithMethod:@"POST"
                                      URLString:url.absoluteString
                                     parameters:parameters
                      constructingBodyWithBlock:^(id<AFMultipartFormData> formData)

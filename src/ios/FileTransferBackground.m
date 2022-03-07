@@ -16,11 +16,6 @@
         }
 
         [FileUploader sharedInstance].delegate = self;
-
-        [self sendCallback:@{
-            @"state" : @"INITIALIZED"
-        }];
-
         //mark all old uploads as failed to be retried
         for (NSString* uploadId in [self getV1Uploads]){
             [self sendCallback:@{
@@ -51,9 +46,6 @@
                 }];
             }
         }];
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-        [pluginResult setKeepCallback:@YES];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     } forCommand:command];
 }
 
