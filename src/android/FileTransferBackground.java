@@ -221,14 +221,11 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case SUCCEEDED:
                                     completedTasks = completedTasks + 1;
                                     // No db in main thread
-                                    executorService.execute(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            // The corresponding ACK is already in the DB, if it not, the task is just a leftover
-                                            String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
-                                            if (ackDatabase.uploadEventDao().exists(id)) {
-                                                handleAck(info.getOutputData());
-                                            }
+                                    executorService.execute(() -> {
+                                        // The corresponding ACK is already in the DB, if it not, the task is just a leftover
+                                        String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
+                                        if (ackDatabase.uploadEventDao().exists(id)) {
+                                            handleAck(info.getOutputData());
                                         }
                                     });
                                     break;
