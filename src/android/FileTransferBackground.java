@@ -1,5 +1,8 @@
 package com.spoon.backgroundfileupload;
 
+import static android.content.Context.ACTIVITY_SERVICE;
+
+import android.app.ActivityManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
@@ -37,6 +40,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class FileTransferBackground extends CordovaPlugin {
@@ -51,6 +57,8 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private static String currentTag;
     private static long currentTagFetchedAt;
+
+    private ExecutorService executorService = null;
 
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
@@ -116,7 +124,11 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
-        cordova.getThreadPool().execute(() -> {
+        if (executorService == null) {
+            executorService = Executors.newFixedThreadPool(4);
+        }
+
+        executorService.execute(() -> {
             try {
                 switch (action) {
                     case "initManager":
@@ -210,11 +222,14 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case SUCCEEDED:
                                     completedTasks = completedTasks + 1;
                                     // No db in main thread
-                                    cordova.getThreadPool().execute(() -> {
-                                        // The corresponding ACK is already in the DB, if it not, the task is just a leftover
-                                        String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
-                                        if (ackDatabase.uploadEventDao().exists(id)) {
-                                            handleAck(info.getOutputData());
+                                    executorService.execute(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            // The corresponding ACK is already in the DB, if it not, the task is just a leftover
+                                            String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
+                                            if (ackDatabase.uploadEventDao().exists(id)) {
+                                                handleAck(info.getOutputData());
+                                            }
                                         }
                                     });
                                     break;
@@ -228,6 +243,7 @@ public class FileTransferBackground extends CordovaPlugin {
                             NotificationManager notificationManager = (NotificationManager) cordova.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
                             notificationManager.cancelAll();
                         }
+                        getMemoryInfo();
                     });
         });
 
@@ -365,7 +381,7 @@ public class FileTransferBackground extends CordovaPlugin {
                     PluginResult result = new PluginResult(PluginResult.Status.OK);
                     result.setKeepCallback(true);
                     context.sendPluginResult(result);
-                }, cordova.getThreadPool());
+                }, executorService);
     }
 
     private void acknowledgeEvent(String eventId, CallbackContext context) {
@@ -518,6 +534,23 @@ public class FileTransferBackground extends CordovaPlugin {
             }
         }
         return prefix + UUID.randomUUID().toString();
+    }
+
+    private void getMemoryInfo() {
+        ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
+        ActivityManager activityManager = (ActivityManager) cordova.getContext().getSystemService(ACTIVITY_SERVICE);
+        activityManager.getMemoryInfo(memoryInfo);
+
+        Runtime runtime = Runtime.getRuntime();
+
+        String strMemInfo =
+                "Available Memory = " + memoryInfo.availMem / (1024 * 1024) + "\n"
+                        + "Total Memory = " + memoryInfo.totalMem / (1024 * 1024) + "\n"
+                        + "Runtime Max Memory = " + runtime.maxMemory() / (1024 * 1024 * 1024) + "\n"
+                        + "Runtime Total Memory = " + runtime.totalMemory() / (1024 * 1024 * 1024) + "\n"
+                        + "Runtime Free Memory = " + runtime.freeMemory() / (1024 * 1024 * 1024) + "\n";
+
+        Log.d("Yushra: ", strMemInfo);
     }
 
     public static void logMessage(String message) {
