@@ -1,8 +1,5 @@
 package com.spoon.backgroundfileupload;
 
-import static android.content.Context.ACTIVITY_SERVICE;
-
-import android.app.ActivityManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
