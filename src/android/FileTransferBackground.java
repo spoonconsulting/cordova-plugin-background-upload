@@ -239,7 +239,6 @@ public class FileTransferBackground extends CordovaPlugin {
                             NotificationManager notificationManager = (NotificationManager) cordova.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
                             notificationManager.cancelAll();
                         }
-                        getMemoryInfo();
                     });
         });
 
@@ -530,23 +529,6 @@ public class FileTransferBackground extends CordovaPlugin {
             }
         }
         return prefix + UUID.randomUUID().toString();
-    }
-
-    private void getMemoryInfo() {
-        ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
-        ActivityManager activityManager = (ActivityManager) cordova.getContext().getSystemService(ACTIVITY_SERVICE);
-        activityManager.getMemoryInfo(memoryInfo);
-
-        Runtime runtime = Runtime.getRuntime();
-
-        String strMemInfo =
-                "Available Memory = " + memoryInfo.availMem / (1024 * 1024) + "\n"
-                        + "Total Memory = " + memoryInfo.totalMem / (1024 * 1024) + "\n"
-                        + "Runtime Max Memory = " + runtime.maxMemory() / (1024 * 1024 * 1024) + "\n"
-                        + "Runtime Total Memory = " + runtime.totalMemory() / (1024 * 1024 * 1024) + "\n"
-                        + "Runtime Free Memory = " + runtime.freeMemory() / (1024 * 1024 * 1024) + "\n";
-
-        Log.d("Yushra: ", strMemInfo);
     }
 
     public static void logMessage(String message) {
