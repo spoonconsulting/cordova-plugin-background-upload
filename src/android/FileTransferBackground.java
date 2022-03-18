@@ -190,9 +190,19 @@ public class FileTransferBackground extends CordovaPlugin {
                 .uploadEventDao()
                 .getAll();
 
-        for (UploadEvent ack : uploadEvents) {
-            handleAck(ack.getOutputData());
-        }
+        new Thread() {
+            @Override
+            public void run() {
+                for (UploadEvent ack : uploadEvents) {
+                    handleAck(ack.getOutputData());
+                }
+                try {
+                    sleep(250);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
 
         // Can't use observeForever anywhere else than the main thread
         cordova.getActivity().runOnUiThread(() -> {
