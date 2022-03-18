@@ -268,7 +268,6 @@ public final class UploadTask extends Worker {
 
             try (FileOutputStream fos = getApplicationContext().openFileOutput(filename, Context.MODE_PRIVATE)) {
                 fos.write(res.getBytes(StandardCharsets.UTF_8));
-                fos.close();
             }
 
             outputData.putString(KEY_OUTPUT_RESPONSE_FILE, filename);
@@ -331,13 +330,7 @@ public final class UploadTask extends Worker {
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
         MediaType mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
         File file = new File(filepath);
-        FileInputStream fileInputStream = new FileInputStream(file);
-        ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), fileInputStream, this::handleProgress);
-        try {
-            fileInputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
         // Build body
         final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
