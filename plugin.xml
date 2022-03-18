@@ -15,11 +15,9 @@
    <dependency id="cordova-plugin-androidx-adapter" version="1.1.0"/>
    <dependency id="cordova-plugin-file" version="6.0.2"/>
     <platform name="android">
-        <framework src="com.sromku:simple-storage:1.2.0" />
         <framework src="androidx.work:work-runtime:2.7.1" />
-        <framework src="io.reactivex.rxjava3:rxjava:3.0.13" />
         <framework src="com.squareup.okhttp3:okhttp:4.9.0" />
-        <framework src="androidx.room:room-runtime:2.3.0" />
+        <framework src="androidx.room:room-runtime:2.4.2" />
         <framework src="src/android/config.gradle" custom="true" type="gradleReference"/>
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
