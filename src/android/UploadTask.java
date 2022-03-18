@@ -206,7 +206,7 @@ public final class UploadTask extends Worker {
                         try {
                             response = currentCall.execute();
                         } catch (SocketTimeoutException e) {
-                            e.printStackTrace();
+                            return Result.retry();
                         } finally {
                             concurrentUploads.release();
                         }
