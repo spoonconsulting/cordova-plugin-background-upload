@@ -208,46 +208,46 @@ public class FileTransferBackground extends CordovaPlugin {
         cordova.getActivity().runOnUiThread(() -> {
             // Listen for upload progress
             WorkManager.getInstance(cordova.getContext())
-                .getWorkInfosByTagLiveData(FileTransferBackground.WORK_TAG_UPLOAD)
-                .observeForever((tasks) -> {
-                    int completedTasks = 0;
-                    for (WorkInfo info : tasks) {
-                        switch (info.getState()) {
-                            // If the upload in not finished, publish its progress
-                            case RUNNING:
-                                if (info.getProgress() != Data.EMPTY) {
-                                    String id = info.getProgress().getString(UploadTask.KEY_PROGRESS_ID);
-                                    int progress = info.getProgress().getInt(UploadTask.KEY_PROGRESS_PERCENT, 0);
+                    .getWorkInfosByTagLiveData(FileTransferBackground.WORK_TAG_UPLOAD)
+                    .observeForever((tasks) -> {
+                        int completedTasks = 0;
+                        for (WorkInfo info : tasks) {
+                            switch (info.getState()) {
+                                // If the upload in not finished, publish its progress
+                                case RUNNING:
+                                    if (info.getProgress() != Data.EMPTY) {
+                                        String id = info.getProgress().getString(UploadTask.KEY_PROGRESS_ID);
+                                        int progress = info.getProgress().getInt(UploadTask.KEY_PROGRESS_PERCENT, 0);
 
-                                    Log.d(TAG, "initManager: " + info.getId() + " (" + info.getState() + ") Progress: " + progress);
-                                    sendProgress(id, progress);
-                                }
-                                break;
-                            case CANCELLED:
-                            case BLOCKED:
-                            case ENQUEUED:
-                            case SUCCEEDED:
-                                completedTasks++;
-                                // No db in main thread
-                                executorService.execute(() -> {
-                                    // The corresponding ACK is already in the DB, if it not, the task is just a leftover
-                                    String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
-                                    if (ackDatabase.uploadEventDao().exists(id)) {
-                                        handleAck(info.getOutputData());
+                                        Log.d(TAG, "initManager: " + info.getId() + " (" + info.getState() + ") Progress: " + progress);
+                                        sendProgress(id, progress);
                                     }
-                                });
-                                break;
-                            case FAILED:
-                                // The task can't fail completely so something really bad has happened.
-                                logMessage("eventLabel='Uploader failed inexplicably' error='" + info.getOutputData() + "'");
-                                break;
+                                    break;
+                                case CANCELLED:
+                                case BLOCKED:
+                                case ENQUEUED:
+                                case SUCCEEDED:
+                                    completedTasks++;
+                                    // No db in main thread
+                                    executorService.execute(() -> {
+                                        // The corresponding ACK is already in the DB, if it not, the task is just a leftover
+                                        String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
+                                        if (ackDatabase.uploadEventDao().exists(id)) {
+                                            handleAck(info.getOutputData());
+                                        }
+                                    });
+                                    break;
+                                case FAILED:
+                                    // The task can't fail completely so something really bad has happened.
+                                    logMessage("eventLabel='Uploader failed inexplicably' error='" + info.getOutputData() + "'");
+                                    break;
+                            }
                         }
-                    }
-                    if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) && (completedTasks == tasks.size())) {
-                        NotificationManager notificationManager = (NotificationManager) cordova.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
-                        notificationManager.cancelAll();
-                    }
-                });
+                        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) && (completedTasks == tasks.size())) {
+                            NotificationManager notificationManager = (NotificationManager) cordova.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+                            notificationManager.cancelAll();
+                        }
+                    });
         });
 
         this.uploadCallback = callbackContext;
@@ -469,9 +469,11 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     public void destroy() {
+        AckDatabase.closeInstance();
         this.ready = false;
     }
 
+    @Override
     public void onDestroy() {
         logMessage("eventLabel='Uploader plugin onDestroy'");
         destroy();
@@ -541,7 +543,6 @@ public class FileTransferBackground extends CordovaPlugin {
                 }
             }
         }
-        AckDatabase.closeInstance();
         return prefix + UUID.randomUUID().toString();
     }
 
