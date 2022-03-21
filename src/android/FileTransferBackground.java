@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class FileTransferBackground extends CordovaPlugin {
@@ -56,6 +57,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private static long currentTagFetchedAt;
 
     private ExecutorService executorService = null;
+    private ScheduledExecutorService scheduledExecutorService = null;
 
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
@@ -124,6 +126,9 @@ public class FileTransferBackground extends CordovaPlugin {
         if (executorService == null) {
             executorService = Executors.newFixedThreadPool(4);
         }
+        if(scheduledExecutorService == null) {
+            scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        }
 
         executorService.execute(() -> {
             try {
@@ -190,24 +195,19 @@ public class FileTransferBackground extends CordovaPlugin {
                 .uploadEventDao()
                 .getAll();
 
-        new Thread() {
+        scheduledExecutorService.schedule(new Runnable() {
             @Override
             public void run() {
                 for (UploadEvent ack : uploadEvents) {
                     handleAck(ack.getOutputData());
                 }
-                try {
-                    sleep(250);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
             }
-        };
+        }, 250, TimeUnit.MILLISECONDS);
 
         // Can't use observeForever anywhere else than the main thread
         cordova.getActivity().runOnUiThread(() -> {
-        // Listen for upload progress
-        WorkManager.getInstance(cordova.getContext())
+            // Listen for upload progress
+            WorkManager.getInstance(cordova.getContext())
                 .getWorkInfosByTagLiveData(FileTransferBackground.WORK_TAG_UPLOAD)
                 .observeForever((tasks) -> {
                     int completedTasks = 0;
@@ -227,7 +227,7 @@ public class FileTransferBackground extends CordovaPlugin {
                             case BLOCKED:
                             case ENQUEUED:
                             case SUCCEEDED:
-                                completedTasks = completedTasks + 1;
+                                completedTasks++;
                                 // No db in main thread
                                 executorService.execute(() -> {
                                     // The corresponding ACK is already in the DB, if it not, the task is just a leftover
@@ -541,6 +541,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 }
             }
         }
+        AckDatabase.closeInstance();
         return prefix + UUID.randomUUID().toString();
     }
 
