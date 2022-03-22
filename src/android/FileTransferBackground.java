@@ -190,11 +190,12 @@ public class FileTransferBackground extends CordovaPlugin {
                 .uploadEventDao()
                 .getAll();
 
-        int acknowledgeScheduler = 0;
+        int ackDelay = 0;
         for (UploadEvent ack : uploadEvents) {
             executorService.schedule(() -> {
                 handleAck(ack.getOutputData());
-            }, acknowledgeScheduler += 250, TimeUnit.MILLISECONDS);
+            }, ackDelay, TimeUnit.MILLISECONDS);
+            ackDelay += 200;
         }
 
         // Can't use observeForever anywhere else than the main thread
