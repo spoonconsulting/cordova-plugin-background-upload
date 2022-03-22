@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -56,8 +55,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private static String currentTag;
     private static long currentTagFetchedAt;
 
-    private ExecutorService executorService = null;
-    private ScheduledExecutorService scheduledExecutorService = null;
+    private ScheduledExecutorService executorService = null;
 
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
@@ -123,14 +121,11 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
-        if (executorService == null) {
-            executorService = Executors.newFixedThreadPool(4);
-        }
-        if(scheduledExecutorService == null) {
-            scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        if(executorService == null) {
+            executorService = Executors.newScheduledThreadPool(4);
         }
 
-        executorService.execute(() -> {
+        executorService.schedule(() -> {
             try {
                 switch (action) {
                     case "initManager":
@@ -156,7 +151,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 callbackContext.sendPluginResult(result);
                 exception.printStackTrace();
             }
-        });
+        } , 0, TimeUnit.MILLISECONDS);
 
         return true;
     }
@@ -195,13 +190,11 @@ public class FileTransferBackground extends CordovaPlugin {
                 .uploadEventDao()
                 .getAll();
 
+        int acknowledgeScheduler = 0;
         for (UploadEvent ack : uploadEvents) {
-            scheduledExecutorService.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    handleAck(ack.getOutputData());
-                }
-            }, 250, TimeUnit.MILLISECONDS);
+            executorService.schedule(() -> {
+                handleAck(ack.getOutputData());
+            }, acknowledgeScheduler += 250, TimeUnit.MILLISECONDS);
         }
 
         // Can't use observeForever anywhere else than the main thread
@@ -229,13 +222,13 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case SUCCEEDED:
                                     completedTasks++;
                                     // No db in main thread
-                                    executorService.execute(() -> {
+                                    executorService.schedule(() -> {
                                         // The corresponding ACK is already in the DB, if it not, the task is just a leftover
                                         String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
                                         if (ackDatabase.uploadEventDao().exists(id)) {
                                             handleAck(info.getOutputData());
                                         }
-                                    });
+                                    }, 0, TimeUnit.MILLISECONDS);
                                     break;
                                 case FAILED:
                                     // The task can't fail completely so something really bad has happened.
@@ -471,7 +464,7 @@ public class FileTransferBackground extends CordovaPlugin {
     public void destroy() {
         this.ready = false;
     }
-    
+
     public void onDestroy() {
         logMessage("eventLabel='Uploader plugin onDestroy'");
         destroy();
