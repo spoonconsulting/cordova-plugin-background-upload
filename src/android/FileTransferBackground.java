@@ -14,6 +14,7 @@ import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
+import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.WorkQuery;
@@ -37,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class FileTransferBackground extends CordovaPlugin {
@@ -51,6 +54,8 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private static String currentTag;
     private static long currentTagFetchedAt;
+
+    private ScheduledExecutorService executorService = null;
 
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
@@ -116,7 +121,11 @@ public class FileTransferBackground extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
-        cordova.getThreadPool().execute(() -> {
+        if(executorService == null) {
+            executorService = Executors.newScheduledThreadPool(4);
+        }
+
+        executorService.schedule(() -> {
             try {
                 switch (action) {
                     case "initManager":
@@ -142,7 +151,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 callbackContext.sendPluginResult(result);
                 exception.printStackTrace();
             }
-        });
+        } , 0, TimeUnit.MILLISECONDS);
 
         return true;
     }
@@ -181,8 +190,12 @@ public class FileTransferBackground extends CordovaPlugin {
                 .uploadEventDao()
                 .getAll();
 
+        int ackDelay = 0;
         for (UploadEvent ack : uploadEvents) {
-            handleAck(ack.getOutputData());
+            executorService.schedule(() -> {
+                handleAck(ack.getOutputData());
+            }, ackDelay, TimeUnit.MILLISECONDS);
+            ackDelay += 200;
         }
 
         // Can't use observeForever anywhere else than the main thread
@@ -208,15 +221,15 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
-                                    completedTasks = completedTasks + 1;
+                                    completedTasks++;
                                     // No db in main thread
-                                    cordova.getThreadPool().execute(() -> {
+                                    executorService.schedule(() -> {
                                         // The corresponding ACK is already in the DB, if it not, the task is just a leftover
                                         String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
                                         if (ackDatabase.uploadEventDao().exists(id)) {
                                             handleAck(info.getOutputData());
                                         }
-                                    });
+                                    }, 0, TimeUnit.MILLISECONDS);
                                     break;
                                 case FAILED:
                                     // The task can't fail completely so something really bad has happened.
@@ -319,7 +332,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private void startUpload(final String uploadId, final Data payload) {
         Log.d(TAG, "startUpload: Starting work via work manager");
 
-        OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(UploadTask.class)
+        OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
                 .setConstraints(new Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
@@ -328,8 +341,13 @@ public class FileTransferBackground extends CordovaPlugin {
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
                 .addTag(FileTransferBackground.WORK_TAG_UPLOAD)
                 .addTag(getCurrentTag(cordova.getContext()))
-                .setInputData(payload)
-                .build();
+                .setInputData(payload);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
+        }
+
+        OneTimeWorkRequest workRequest = workRequestBuilder.build();
 
         WorkManager.getInstance(cordova.getContext())
                 .enqueueUniqueWork(uploadId, ExistingWorkPolicy.APPEND, workRequest);
@@ -365,7 +383,7 @@ public class FileTransferBackground extends CordovaPlugin {
                     PluginResult result = new PluginResult(PluginResult.Status.OK);
                     result.setKeepCallback(true);
                     context.sendPluginResult(result);
-                }, cordova.getThreadPool());
+                }, executorService);
     }
 
     private void acknowledgeEvent(String eventId, CallbackContext context) {

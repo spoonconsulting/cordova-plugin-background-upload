@@ -23,5 +23,11 @@ public abstract class AckDatabase extends RoomDatabase {
         return instance;
     }
 
+    public static void closeInstance() {
+        // not called for now
+        instance.close();
+        instance = null;
+    }
+
     public abstract UploadEventDao uploadEventDao();
 }

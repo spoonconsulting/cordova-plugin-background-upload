@@ -1,3 +1,6 @@
+## [4.0.1](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.0...4.0.1) (2022-03-04)
+* **android:** Fixed number of Threads for Executor Service and update Room
+
 ## [4.0.0](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/2.0.7...4.0.0) (2022-03-04)
 * **android:** Added WorkManager to handle uploads
 
