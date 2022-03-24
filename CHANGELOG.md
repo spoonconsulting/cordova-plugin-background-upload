@@ -1,3 +1,6 @@
+## [4.0.2](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.0...4.0.2) (2022-03-24)
+* **android:** Used ScheduledExecutorService and OutofQuotaPolicy added for Android 12 and above
+
 ## [4.0.1](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.0...4.0.1) (2022-03-04)
 * **android:** Fixed number of Threads for Executor Service and update Room
 
