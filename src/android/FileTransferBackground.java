@@ -333,10 +333,6 @@ public class FileTransferBackground extends CordovaPlugin {
         Log.d(TAG, "startUpload: Starting work via work manager");
 
         OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
-                .setConstraints(new Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                )
                 .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
                 .addTag(FileTransferBackground.WORK_TAG_UPLOAD)
