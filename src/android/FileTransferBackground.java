@@ -122,7 +122,7 @@ public class FileTransferBackground extends CordovaPlugin {
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
         if(executorService == null) {
-            executorService = Executors.newScheduledThreadPool(4);
+            executorService = Executors.newCachedThreadPool();
         }
 
         executorService.schedule(() -> {
