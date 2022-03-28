@@ -328,7 +328,12 @@ public final class UploadTask extends Worker {
 
         // Build file reader
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
-        MediaType mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) + "; charset=utf-8");
+        MediaType mediaType;
+        if (MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) == "application/json") {
+            mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) + "; charset=utf-8");
+        } else {
+            mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
+        }
         File file = new File(filepath);
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
