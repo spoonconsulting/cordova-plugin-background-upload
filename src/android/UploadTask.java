@@ -328,7 +328,7 @@ public final class UploadTask extends Worker {
 
         // Build file reader
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
-        MediaType mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
+        MediaType mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) + "; charset=utf-8");
         File file = new File(filepath);
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
