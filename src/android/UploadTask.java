@@ -329,7 +329,7 @@ public final class UploadTask extends Worker {
         // Build file reader
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
         MediaType mediaType;
-        if (MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) == "application/json") {
+        if (MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension).endsWith("/json") || MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension).startsWith("text/")) {
             mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) + "; charset=utf-8");
         } else {
             mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
