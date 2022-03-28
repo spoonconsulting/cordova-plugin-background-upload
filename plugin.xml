@@ -16,7 +16,7 @@
    <dependency id="cordova-plugin-file" version="6.0.2"/>
     <platform name="android">
         <framework src="androidx.work:work-runtime:2.7.1" />
-        <framework src="com.squareup.okhttp3:okhttp:4.9.0" />
+        <framework src="com.squareup.okhttp3:okhttp:4.3.1" />
         <framework src="androidx.room:room-runtime:2.4.2" />
         <framework src="src/android/config.gradle" custom="true" type="gradleReference"/>
         <config-file target="res/xml/config.xml" parent="/*">
