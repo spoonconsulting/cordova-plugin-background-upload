@@ -1,3 +1,15 @@
+## [4.0.4](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.3...4.0.4) (2022-03-29)
+* **android:** Add support for devices that does not support JSON as Content-Type
+
+## [4.0.3](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.2...4.0.3) (2022-03-28)
+* **android:** Use cordova.getThreadPool() for execute Method
+
+## [4.0.2](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.0...4.0.2) (2022-03-24)
+* **android:** Used ScheduledExecutorService and OutofQuotaPolicy added for Android 12 and above
+
+## [4.0.1](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.0...4.0.1) (2022-03-04)
+* **android:** Fixed number of Threads for Executor Service and update Room
+
 ## [4.0.0](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/2.0.7...4.0.0) (2022-03-04)
 * **android:** Added WorkManager to handle uploads
 

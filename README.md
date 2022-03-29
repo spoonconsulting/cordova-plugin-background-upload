@@ -2,7 +2,7 @@
 # cordova-plugin-background-upload
 This plugin provides a file upload functionality that can continue to run even while the app is in background. It includes progress updates suitable for long-term transfer operations of large files.
 
-[![npm version](https://badge.fury.io/js/cordova-plugin-background-upload.svg)](https://badge.fury.io/js/cordova-plugin-background-upload)
+[![npm version](https://badge.fury.io/js/@spoonconsulting%2Fcordova-plugin-background-upload.svg)](https://badge.fury.io/js/@spoonconsulting%2Fcordova-plugin-background-upload)
 [![Build Status](https://travis-ci.com/spoonconsulting/cordova-plugin-background-upload.svg?branch=master)](https://travis-ci.org/spoonconsulting/cordova-plugin-background-upload)
 
 **Supported Platforms**
