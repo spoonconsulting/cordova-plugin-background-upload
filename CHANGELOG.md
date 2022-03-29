@@ -1,3 +1,6 @@
+## [4.0.2](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.2...4.0.3) (2022-03-24)
+* **android:** Use cordova.getThreadPool() for execute Method
+
 ## [4.0.2](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.0...4.0.2) (2022-03-24)
 * **android:** Used ScheduledExecutorService and OutofQuotaPolicy added for Android 12 and above
 
