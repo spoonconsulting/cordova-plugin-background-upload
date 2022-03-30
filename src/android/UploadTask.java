@@ -151,6 +151,8 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        Log.d("ZAFIR", "Hello3");
+
         if(!hasNetworkConnection()) {
             return Result.retry();
         }

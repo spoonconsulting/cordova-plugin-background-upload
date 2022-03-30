@@ -16,6 +16,12 @@ public interface PendingUploadDao {
     @Query("SELECT * FROM pending_upload WHERE id = :id")
     PendingUpload getById(final String id);
 
+    @Query("SELECT * FROM pending_upload LIMIT 1")
+    PendingUpload getFirstEntry();
+
+    @Query("SELECT * FROM pending_upload ORDER BY ID DESC LIMIT 1")
+    PendingUpload getLastEntry();
+
     default boolean exists(final String id) {
         return getById(id) != null;
     }
