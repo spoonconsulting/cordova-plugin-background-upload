@@ -332,6 +332,8 @@ public class FileTransferBackground extends CordovaPlugin {
     private void startUpload(final String uploadId, final Data payload) {
         Log.d(TAG, "startUpload: Starting work via work manager");
 
+        AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().insert(new PendingUpload(uploadId, payload));
+
         OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
                 .setConstraints(new Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
