@@ -1,11 +1,15 @@
 package com.spoon.backgroundfileupload;
 
 import android.app.NotificationManager;
+import android.app.Service;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
+import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
 import androidx.work.Data;
@@ -18,27 +22,37 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
-public class ManagerService extends Worker {
+public class ManagerService extends Service {
     private static final String TAG = "ManagerService";
+    private Timer timer = new Timer();
 
-    public ManagerService(@NonNull Context context, @NonNull WorkerParameters workerParams) {
-        super(context, workerParams);
-    }
-
-    @NonNull
     @Override
-    public Result doWork() {
-        PendingUpload nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getLastEntry();
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                Log.d("ZAFIR", String.valueOf(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfUploadingUploads()));
 
-        startUpload(nextPendingUpload.getId(), nextPendingUpload.getOutputData());
+                if (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfUploadingUploads() <= 2) {
+                    PendingUpload nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getLastPendingUpload();
 
-        Log.d("ZAFIR", nextPendingUpload.getOutputData().toString());
+                    if (nextPendingUpload != null) {
+                        AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADING");
 
-        AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete((nextPendingUpload.getId()));
+                        startUpload(nextPendingUpload.getId(), nextPendingUpload.getOutputData());
 
-        return Result.retry();
+                        Log.d("ZAFIR", nextPendingUpload.getOutputData().toString());
+                    }
+                }
+            }
+        };
+        timer.schedule(task, 0, 500);
+
+        return START_STICKY;
     }
 
     private void startUpload(final String uploadId, final Data payload) {
@@ -65,5 +79,11 @@ public class ManagerService extends Worker {
                 .enqueueUniqueWork(uploadId, ExistingWorkPolicy.APPEND, workRequest);
 
         Log.d(TAG,"eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 }

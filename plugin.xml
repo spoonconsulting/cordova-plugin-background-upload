@@ -55,6 +55,7 @@
         <source-file src="src/android/UploadNotification.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/ManagerService.java" target-dir="src/com/spoon/backgroundfileupload" />
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
+        <service android:name="com.spoon.backgroundfileupload.ManagerService" />
     </platform>
     <platform name="ios">
         <framework src="AFNetworking" type="podspec" spec="~> 4.0.1" />

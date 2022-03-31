@@ -3,6 +3,7 @@ package com.spoon.backgroundfileupload;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
@@ -248,50 +249,10 @@ public class FileTransferBackground extends CordovaPlugin {
                     });
         });
 
-        startManagerService();
-
-//        cordova.getActivity().runOnUiThread(() -> {
-//            WorkManager.getInstance(cordova.getContext())
-//                    .getWorkInfosByTagLiveData(FileTransferBackground.MANAGER_SERVICE_TAG)
-//                    .observeForever((tasks) -> {
-//                        for (WorkInfo info : tasks) {
-//                            switch (info.getState()) {
-//                                case FAILED:
-//                                    Log.d("ZAFIR", "delete");
-//                                    executorService.schedule(() -> {
-//                                        String id = info.getOutputData().getString(ManagerService.KEY_OUTPUT_ID);
-//                                        if (ackDatabase.pendingUploadDao().exists(id)) {
-//                                            ackDatabase.pendingUploadDao().delete(id);
-//                                            Log.d("ZAFIR", "UploadTaskSucceded2");
-//                                        }
-//                                    }, 0, TimeUnit.MILLISECONDS);
-//                                    break;
-//                            }
-//                        }
-//                    });
-//        });
+        cordova.getActivity().startService(new Intent(cordova.getActivity(), ManagerService.class));
 
         this.uploadCallback = callbackContext;
         this.ready = true;
-    }
-
-    private void startManagerService() {
-        OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(ManagerService.class)
-                .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
-                .setBackoffCriteria(BackoffPolicy.LINEAR, 1, TimeUnit.MILLISECONDS)
-                .addTag(FileTransferBackground.MANAGER_SERVICE_TAG);
-
-        Log.d("ZAFIR", "Hello2");
-
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
-        }
-
-        OneTimeWorkRequest workRequest = workRequestBuilder.build();
-
-        WorkManager.getInstance(cordova.getContext())
-                .enqueue(workRequest);
     }
 
     private void addUpload(JSONObject jsonPayload) {
@@ -371,8 +332,8 @@ public class FileTransferBackground extends CordovaPlugin {
 
                 // Put config stuff
                 .putAll(httpClientBaseConfig)
-                .build()
-        ));
+                .build(),
+        "PENDING"));
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {

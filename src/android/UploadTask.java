@@ -283,6 +283,7 @@ public final class UploadTask extends Worker {
         }
 
         final Data data = outputData.build();
+        AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(id);
         AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         return Result.success(data);
     }

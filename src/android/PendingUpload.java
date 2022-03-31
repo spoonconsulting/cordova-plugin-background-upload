@@ -16,9 +16,14 @@ public class PendingUpload {
     @NonNull
     private Data outputData;
 
-    public PendingUpload(@NonNull final String id, @NonNull final Data outputData) {
+    @ColumnInfo(name = "state")
+    @NonNull
+    private String state;
+
+    public PendingUpload(@NonNull final String id, @NonNull final Data outputData, @NonNull final String state) {
         this.id = id;
         this.outputData = outputData;
+        this.state = state; // Pending, Uploading
     }
 
     @NonNull
@@ -29,5 +34,10 @@ public class PendingUpload {
     @NonNull
     public Data getOutputData() {
         return outputData;
+    }
+
+    @NonNull
+    public String getState() {
+        return state;
     }
 }
