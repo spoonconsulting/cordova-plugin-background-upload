@@ -60,5 +60,6 @@ public class ProgressRequestBody extends RequestBody {
                 listener.onProgress(bytesWritten, contentLength);
             }
         }
+        this.stream.close();
     }
 }
