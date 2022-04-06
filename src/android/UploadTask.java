@@ -268,6 +268,7 @@ public final class UploadTask extends Worker {
 
             try (FileOutputStream fos = getApplicationContext().openFileOutput(filename, Context.MODE_PRIVATE)) {
                 fos.write(res.getBytes(StandardCharsets.UTF_8));
+                fos.close();
             }
 
             outputData.putString(KEY_OUTPUT_RESPONSE_FILE, filename);
