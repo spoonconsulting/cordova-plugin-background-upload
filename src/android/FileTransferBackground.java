@@ -161,10 +161,6 @@ public class FileTransferBackground extends CordovaPlugin {
             throw new IllegalStateException("initManager was called twice");
         }
 
-        if (AckDatabase.getInstance(cordova.getContext()) != null) {
-            AckDatabase.closeInstance();
-        }
-
         try {
             final JSONObject settings = new JSONObject(options);
             int ccUpload = settings.getInt("parallelUploadsLimit");
