@@ -24,7 +24,6 @@ public abstract class AckDatabase extends RoomDatabase {
     }
 
     public static void closeInstance() {
-        // not called for now
         instance.close();
         instance = null;
     }

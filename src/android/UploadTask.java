@@ -174,9 +174,17 @@ public final class UploadTask extends Worker {
         }
 
         Request request = null;
+        final String filepath = getInputData().getString(KEY_INPUT_FILEPATH);
+        assert filepath != null;
+        final String fileKey = getInputData().getString(KEY_INPUT_FILE_KEY);
+        assert fileKey != null;
+        File file = null;
+        FileInputStream fileInputStream = null;
         try {
-            request = createRequest();
+            file = new File(filepath);
+            fileInputStream = new FileInputStream(file);
         } catch (FileNotFoundException e) {
+            e.printStackTrace();
             Log.e(TAG, "doWork: File not found !", e);
             return Result.success(new Data.Builder()
                     .putString(KEY_OUTPUT_ID, id)
@@ -185,6 +193,10 @@ public final class UploadTask extends Worker {
                     .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
                     .build()
             );
+        }
+
+        try {
+            request = createRequest(filepath, fileKey, file, fileInputStream);
         } catch (NullPointerException e) {
             return Result.retry();
         }
@@ -248,6 +260,12 @@ public final class UploadTask extends Worker {
         } finally {
             // Always remove ourselves from the notification
             uploadForegroundNotification.done(getId());
+        }
+
+        try {
+            fileInputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         // Start building the output data
@@ -318,11 +336,7 @@ public final class UploadTask extends Worker {
      * @throws FileNotFoundException If the file to upload can't be found
      */
     @NonNull
-    private Request createRequest() throws FileNotFoundException {
-        final String filepath = getInputData().getString(KEY_INPUT_FILEPATH);
-        assert filepath != null;
-        final String fileKey = getInputData().getString(KEY_INPUT_FILE_KEY);
-        assert fileKey != null;
+    private Request createRequest(String filepath, String fileKey, File file, FileInputStream fileInputStream) {
 
         // Build URL
         HttpUrl url = Objects.requireNonNull(HttpUrl.parse(getInputData().getString(KEY_INPUT_URL))).newBuilder().build();
@@ -337,8 +351,8 @@ public final class UploadTask extends Worker {
         } else {
             mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
         }
-        File file = new File(filepath);
-        ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
+
+        ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), fileInputStream, this::handleProgress);
 
         // Build body
         final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
