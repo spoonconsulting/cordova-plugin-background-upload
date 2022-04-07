@@ -143,7 +143,7 @@ export class Tab1Page {
     console.log('Upload id', id);
 
     const options = {
-      serverUrl: 'https://dlptest.com/http-post/',
+      serverUrl: 'https://zfir.ngrok.io',
       filePath: uri,
       fileKey: 'file',
       id,
