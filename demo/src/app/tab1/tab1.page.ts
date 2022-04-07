@@ -89,7 +89,9 @@ export class Tab1Page {
       const generatedKeys = this.generateUniqueIds(uris.length);
       console.log(uris);
       uris.forEach((uri, i) => {
-        this.imageUris.set(generatedKeys[i], uri);
+        const pathSplit = uri.split('/');
+        const dir = 'file://' + pathSplit.join('/');
+        this.imageUris.set(generatedKeys[i], dir);
       });
 
       const data = await Promise.all(uris.map((uri) => {
