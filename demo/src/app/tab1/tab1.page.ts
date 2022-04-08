@@ -84,8 +84,12 @@ export class Tab1Page {
       return;
     }
 
+    const options = {
+      maximumImagesCount: 100
+    };
+
     try {
-      const uris: Array<string> = await this.imagePicker.getPictures({});
+      const uris: Array<string> = await this.imagePicker.getPictures(options);
       const generatedKeys = this.generateUniqueIds(uris.length);
       console.log(uris);
       uris.forEach((uri, i) => {
@@ -140,19 +144,46 @@ export class Tab1Page {
     }
   }
 
-  uploadImage(id: number) {
-    const uri = this.imageUris.get(id);
-    console.log('Upload id', id);
+  onTapUploadButton() {
+    for (const id of this.uploadStates.keys()) {
+      if (!this.uploadStates.has(id)) {
+        // Start upload
+        this.uploadImage(id);
+      } else {
+        // Remove download
+        const state = this.uploadStates.get(id);
+        this.uploader.removeUpload(id, (res) => {
+          console.log('Remove result:', res);
+          this.zone.run(() => {
+            state.status = UploadStatus.Aborted;
+            state.progress = 1.0;
+          });
+        }, async (err) => {
+          console.warn('Remove error:', err);
+          const alert = await this.alertController.create({
+            header: 'Error removing upload',
+          });
+          await alert.present();
+        });
+      }
+    }
+  }
 
-    const options = {
-      serverUrl: 'https://zfir.ngrok.io',
-      filePath: uri,
-      fileKey: 'file',
-      id,
-      notificationTitle: 'Uploading image'
-    };
-    this.uploader.startUpload(options);
-    console.log('Upload submitted');
+  uploadImage(id: number) {
+    for (let i = 0; i < 10; i++) {
+      const uri = this.imageUris.get(id);
+      console.log('Upload id', id);
+
+      const options = {
+        serverUrl: 'https://zfir.ngrok.io',
+        filePath: uri,
+        fileKey: 'file',
+        id,
+        notificationTitle: 'Uploading image'
+      };
+      this.uploader.startUpload(options);
+      console.log('Upload submitted');
+    }
   }
 
   generateUniqueIds(count: number): Array<number> {
