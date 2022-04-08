@@ -18,6 +18,7 @@ declare const FileTransferManager: any;
 export class Tab1Page {
   uploader: any;
 
+  imagesIds: [];
   images: Map<number, string> = new Map();
   imageUris: Map<number, string> = new Map();
   uploadStates: Map<number, UploadState> = new Map();
@@ -145,14 +146,14 @@ export class Tab1Page {
   }
 
   onTapUploadButton() {
-    for (const id of this.uploadStates.keys()) {
-      if (!this.uploadStates.has(id)) {
+    for (const [key, value] of this.images) {
+      if (!this.uploadStates.has(key)) {
         // Start upload
-        this.uploadImage(id);
+        this.uploadImage(key);
       } else {
         // Remove download
-        const state = this.uploadStates.get(id);
-        this.uploader.removeUpload(id, (res) => {
+        const state = this.uploadStates.get(key);
+        this.uploader.removeUpload(key, (res) => {
           console.log('Remove result:', res);
           this.zone.run(() => {
             state.status = UploadStatus.Aborted;
