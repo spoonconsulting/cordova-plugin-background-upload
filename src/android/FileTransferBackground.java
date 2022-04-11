@@ -340,7 +340,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
                 .addTag(FileTransferBackground.WORK_TAG_UPLOAD)
-                .addTag(getCurrentTag(cordova.getContext()))
+                // .addTag(getCurrentTag(cordova.getContext()))
                 .setInputData(payload);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -501,42 +501,42 @@ public class FileTransferBackground extends CordovaPlugin {
         return hashMap;
     }
 
-    public static String getCurrentTag(Context context) {
-        final long now = System.currentTimeMillis();
-        if (currentTag != null && now - currentTagFetchedAt <= 5000) {
-            return currentTag;
-        }
-        currentTagFetchedAt = now;
-        currentTag = fetchCurrentTag(context);
-        return currentTag;
-    }
+    // public static String getCurrentTag(Context context) {
+    //     final long now = System.currentTimeMillis();
+    //     if (currentTag != null && now - currentTagFetchedAt <= 5000) {
+    //         return currentTag;
+    //     }
+    //     currentTagFetchedAt = now;
+    //     currentTag = fetchCurrentTag(context);
+    //     return currentTag;
+    // }
 
-    public static String fetchCurrentTag(Context context) {
-        WorkQuery workQuery = WorkQuery.Builder
-                .fromTags(Arrays.asList(FileTransferBackground.WORK_TAG_UPLOAD))
-                .addStates(Arrays.asList(WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED))
-                .build();
-        List<WorkInfo> workInfo;
-        try {
-            workInfo = WorkManager.getInstance(context)
-                    .getWorkInfos(workQuery)
-                    .get();
-        } catch (ExecutionException | InterruptedException e) {
-            Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
-            workInfo = Collections.emptyList();
-        }
-        String prefix = "packet_";
-        for (WorkInfo info : workInfo) {
-            if (!info.getState().isFinished()) {
-                for (String tag : info.getTags()) {
-                    if (tag.startsWith(prefix)) {
-                        return tag;
-                    }
-                }
-            }
-        }
-        return prefix + UUID.randomUUID().toString();
-    }
+    // public static String fetchCurrentTag(Context context) {
+    //     WorkQuery workQuery = WorkQuery.Builder
+    //             .fromTags(Arrays.asList(FileTransferBackground.WORK_TAG_UPLOAD))
+    //             .addStates(Arrays.asList(WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED))
+    //             .build();
+    //     List<WorkInfo> workInfo;
+    //     try {
+    //         workInfo = WorkManager.getInstance(context)
+    //                 .getWorkInfos(workQuery)
+    //                 .get();
+    //     } catch (ExecutionException | InterruptedException e) {
+    //         Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
+    //         workInfo = Collections.emptyList();
+    //     }
+    //     String prefix = "packet_";
+    //     for (WorkInfo info : workInfo) {
+    //         if (!info.getState().isFinished()) {
+    //             for (String tag : info.getTags()) {
+    //                 if (tag.startsWith(prefix)) {
+    //                     return tag;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return prefix + UUID.randomUUID().toString();
+    // }
 
     public static void logMessage(String message) {
         Log.d("CordovaBackgroundUpload", message);

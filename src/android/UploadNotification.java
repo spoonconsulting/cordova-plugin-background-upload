@@ -51,7 +51,7 @@ public class UploadNotification {
         List<WorkInfo> workInfo;
         try {
             workInfo = WorkManager.getInstance(context)
-                    .getWorkInfosByTag(FileTransferBackground.getCurrentTag(context))
+                    .getWorkInfosByTag(FileTransferBackground.WORK_TAG_UPLOAD)
                     .get();
         } catch (ExecutionException | InterruptedException e) {
             Log.w(UploadTask.TAG, "getForegroundInfo: Problem while retrieving task list:", e);
