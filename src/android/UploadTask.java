@@ -328,7 +328,14 @@ public final class UploadTask extends Worker {
 
         // Build file reader
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
-        MediaType mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
+        MediaType mediaType;
+        if (extension.equals("json")) {
+            // Does not support devices less than Android 10 (Stop Execution)
+            // https://stackoverflow.com/questions/44667125/getmimetypefromextension-returns-null-when-i-pass-json-as-extension
+            mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) + "; charset=utf-8");
+        } else {
+            mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
+        }
         File file = new File(filepath);
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
