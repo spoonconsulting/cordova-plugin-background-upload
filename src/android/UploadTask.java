@@ -8,6 +8,7 @@ import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
 import androidx.work.Data;
+import androidx.work.RxWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -26,7 +27,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLException;
 
+import io.reactivex.Single;
 import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -34,7 +37,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public final class UploadTask extends Worker {
+public final class UploadTask extends RxWorker {
 
     private static final boolean DEBUG_SKIP_UPLOAD = false;
     public static final long DELAY_BETWEEN_NOTIFICATION_UPDATE_MS = 200;
@@ -150,26 +153,26 @@ public final class UploadTask extends Worker {
 
     @NonNull
     @Override
-    public Result doWork() {
+    public Single<Result> createWork() {
         if(!hasNetworkConnection()) {
-            return Result.retry();
+            return Single.just(Result.retry());
         }
 
         final String id = getInputData().getString(KEY_INPUT_ID);
 
         if (id == null) {
             Log.e(TAG, "doWork: ID is invalid !");
-            return Result.failure();
+            return Single.just(Result.failure());
         }
 
         // Check retry count
         if (getRunAttemptCount() > MAX_TRIES) {
-            return Result.success(new Data.Builder()
+            return Single.just(Result.success(new Data.Builder()
                     .putString(KEY_OUTPUT_ID, id)
                     .putBoolean(KEY_OUTPUT_IS_ERROR, true)
                     .putString(KEY_OUTPUT_FAILURE_REASON, "Too many retries")
                     .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
-                    .build()
+                    .build())
             );
         }
 
@@ -178,15 +181,15 @@ public final class UploadTask extends Worker {
             request = createRequest();
         } catch (FileNotFoundException e) {
             Log.e(TAG, "doWork: File not found !", e);
-            return Result.success(new Data.Builder()
+            return Single.just(Result.success(new Data.Builder()
                     .putString(KEY_OUTPUT_ID, id)
                     .putBoolean(KEY_OUTPUT_IS_ERROR, true)
                     .putString(KEY_OUTPUT_FAILURE_REASON, "File not found !")
                     .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
-                    .build()
+                    .build())
             );
         } catch (NullPointerException e) {
-            return Result.retry();
+            return Single.just(Result.retry());
         }
 
         // Register me
@@ -197,25 +200,35 @@ public final class UploadTask extends Worker {
         currentCall = httpClient.newCall(request);
 
         // Block until call is finished (or cancelled)
-        Response response = null;
+        final Response[] response = {null};
         try {
             if (!DEBUG_SKIP_UPLOAD) {
                 try {
                     try {
                         concurrentUploads.acquire();
                         try {
-                            response = currentCall.execute();
-                        } catch (SocketTimeoutException e) {
-                            return Result.retry();
+                             currentCall.enqueue(new Callback() {
+                                 @Override
+                                 public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                                 }
+
+                                 @Override
+                                 public void onResponse(@NonNull Call call, @NonNull Response internalResponse) throws IOException {
+                                    response[0] = internalResponse;
+                                 }
+                             });
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            return Single.just(Result.retry());
                         } finally {
                             concurrentUploads.release();
                         }
                     } catch (InterruptedException e) {
-                        return Result.retry();
+                        return Single.just(Result.retry());
                     }
-                } catch (SocketException | ProtocolException | SSLException e) {
+                } catch (Exception e) {
                     currentCall.cancel();
-                    return Result.retry();
+                    return Single.just(Result.retry());
                 }
             } else {
                 for (int i = 0; i < 10; i++) {
@@ -238,12 +251,12 @@ public final class UploadTask extends Worker {
                         .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
                         .build();
                 AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
-                return Result.success(data);
+                return Single.just(Result.success(data));
             } else {
                 // But if it was not it must be a connectivity problem or
                 // something similar so we retry later
                 Log.e(TAG, "doWork: Call failed, retrying later", e);
-                return Result.retry();
+                return Single.just(Result.retry());
             }
         } finally {
             // Always remove ourselves from the notification
@@ -254,13 +267,13 @@ public final class UploadTask extends Worker {
         final Data.Builder outputData = new Data.Builder()
                 .putString(KEY_OUTPUT_ID, id)
                 .putBoolean(KEY_OUTPUT_IS_ERROR, false)
-                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
+                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response[0].code() : 200);
 
         // Try read the response body, if any
         try {
             final String res;
             if (!DEBUG_SKIP_UPLOAD) {
-                res = response.body() != null ? response.body().string() : "";
+                res = response[0].body() != null ? response[0].body().string() : "";
             } else {
                 res = "<span>heyo</span>";
             }
@@ -282,7 +295,7 @@ public final class UploadTask extends Worker {
 
         final Data data = outputData.build();
         AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
-        return Result.success(data);
+        return Single.just(Result.success(data));
     }
 
     /**
