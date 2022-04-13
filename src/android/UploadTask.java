@@ -3,6 +3,7 @@ package com.spoon.backgroundfileupload;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.os.Build;
+import android.os.StrictMode;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -22,6 +23,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -200,25 +202,19 @@ public final class UploadTask extends RxWorker {
         currentCall = httpClient.newCall(request);
 
         // Block until call is finished (or cancelled)
-        final Response[] response = {null};
+        Response response = null;
         try {
             if (!DEBUG_SKIP_UPLOAD) {
                 try {
                     try {
                         concurrentUploads.acquire();
                         try {
-                             currentCall.enqueue(new Callback() {
-                                 @Override
-                                 public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                                 }
-
-                                 @Override
-                                 public void onResponse(@NonNull Call call, @NonNull Response internalResponse) throws IOException {
-                                    response[0] = internalResponse;
-                                 }
-                             });
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                            if (android.os.Build.VERSION.SDK_INT > 9) {
+                                StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+                                StrictMode.setThreadPolicy(policy);
+                            }
+                            response = currentCall.execute();
+                        } catch (SocketTimeoutException e) {
                             return Single.just(Result.retry());
                         } finally {
                             concurrentUploads.release();
@@ -226,7 +222,7 @@ public final class UploadTask extends RxWorker {
                     } catch (InterruptedException e) {
                         return Single.just(Result.retry());
                     }
-                } catch (Exception e) {
+                } catch (SocketException | ProtocolException | SSLException e) {
                     currentCall.cancel();
                     return Single.just(Result.retry());
                 }
@@ -267,13 +263,13 @@ public final class UploadTask extends RxWorker {
         final Data.Builder outputData = new Data.Builder()
                 .putString(KEY_OUTPUT_ID, id)
                 .putBoolean(KEY_OUTPUT_IS_ERROR, false)
-                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response[0].code() : 200);
+                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
 
         // Try read the response body, if any
         try {
             final String res;
             if (!DEBUG_SKIP_UPLOAD) {
-                res = response[0].body() != null ? response[0].body().string() : "";
+                res = response.body() != null ? response.body().string() : "";
             } else {
                 res = "<span>heyo</span>";
             }
@@ -294,7 +290,12 @@ public final class UploadTask extends RxWorker {
         }
 
         final Data data = outputData.build();
-        AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+        Executors.newSingleThreadExecutor().execute(new Runnable() {
+            @Override
+            public void run() {
+                AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+            }
+        });
         return Single.just(Result.success(data));
     }
 
