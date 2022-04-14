@@ -46,6 +46,8 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private static final String TAG = "FileTransferBackground";
     public static final String WORK_TAG_UPLOAD = "work_tag_upload";
+    public static final String WORK_ID_UPLOAD_1 = "work_tag_upload_1";
+    public static final String WORK_ID_UPLOAD_2 = "work_tag_upload_2";
 
     private CallbackContext uploadCallback;
     private boolean ready = false;
@@ -300,24 +302,22 @@ public class FileTransferBackground extends CordovaPlugin {
         } catch(PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-        startUpload(uploadId, new Data.Builder()
+
+        AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().insert(new PendingUpload(uploadId, new Data.Builder()
                 // Put base info
                 .putString(UploadTask.KEY_INPUT_ID, uploadId)
                 .putString(UploadTask.KEY_INPUT_URL, (String) payload.get("serverUrl"))
                 .putString(UploadTask.KEY_INPUT_FILEPATH, (String) payload.get("filePath"))
                 .putString(UploadTask.KEY_INPUT_FILE_KEY, (String) payload.get("fileKey"))
                 .putString(UploadTask.KEY_INPUT_HTTP_METHOD, (String) payload.get("requestMethod"))
-
                 // Put headers
                 .putInt(UploadTask.KEY_INPUT_HEADERS_COUNT, headersNames.size())
                 .putStringArray(UploadTask.KEY_INPUT_HEADERS_NAMES, headersNames.toArray(new String[0]))
                 .putAll(headerValues)
-
                 // Put query parameters
                 .putInt(UploadTask.KEY_INPUT_PARAMETERS_COUNT, parameterNames.size())
                 .putStringArray(UploadTask.KEY_INPUT_PARAMETERS_NAMES, parameterNames.toArray(new String[0]))
                 .putAll(parameterValues)
-
                 // Put notification stuff
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE, (String) payload.get("notificationTitle"))
                 .putString(UploadTask.KEY_INPUT_NOTIFICATION_ICON, cordova.getActivity().getPackageName() + ":drawable/ic_upload")
@@ -325,34 +325,53 @@ public class FileTransferBackground extends CordovaPlugin {
 
                 // Put config stuff
                 .putAll(httpClientBaseConfig)
-                .build()
-        );
+                .build(),
+        "PENDING"));
+
+        try {
+            List<WorkInfo> workInfos = WorkManager.getInstance(cordova.getContext()).getWorkInfosByTag(FileTransferBackground.WORK_TAG_UPLOAD).get();
+            if (workInfos.size() == 0) {
+                startUploadWorkers();
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void startUpload(final String uploadId, final Data payload) {
+    private void startUploadWorkers() {
         Log.d(TAG, "startUpload: Starting work via work manager");
 
-        OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
+        // WorkRequest 1
+        OneTimeWorkRequest.Builder workRequestBuilder1 = new OneTimeWorkRequest.Builder(UploadTask.class)
                 .setConstraints(new Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
                 )
                 .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
-                .addTag(FileTransferBackground.WORK_TAG_UPLOAD)
-                .addTag(getCurrentTag(cordova.getContext()))
-                .setInputData(payload);
-
+                .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
+            workRequestBuilder1.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
         }
-
-        OneTimeWorkRequest workRequest = workRequestBuilder.build();
-
+        OneTimeWorkRequest workRequest1 = workRequestBuilder1.build();
         WorkManager.getInstance(cordova.getContext())
-                .enqueueUniqueWork(uploadId, ExistingWorkPolicy.APPEND, workRequest);
+                .enqueueUniqueWork(WORK_ID_UPLOAD_1, ExistingWorkPolicy.APPEND, workRequest1);
 
-        logMessage("eventLabel='Uploader starting upload' uploadId='" + uploadId + "'");
+//        // WorkRequest 2
+//        OneTimeWorkRequest.Builder workRequestBuilder2 = new OneTimeWorkRequest.Builder(UploadTask.class)
+//                .setConstraints(new Constraints.Builder()
+//                        .setRequiredNetworkType(NetworkType.CONNECTED)
+//                        .build()
+//                )
+//                .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
+//                .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
+//                .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//            workRequestBuilder2.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
+//        }
+//        OneTimeWorkRequest workRequest2 = workRequestBuilder2.build();
+//        WorkManager.getInstance(cordova.getContext())
+//                .enqueueUniqueWork(WORK_ID_UPLOAD_2, ExistingWorkPolicy.APPEND, workRequest2);
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {
@@ -501,42 +520,42 @@ public class FileTransferBackground extends CordovaPlugin {
         return hashMap;
     }
 
-    public static String getCurrentTag(Context context) {
-        final long now = System.currentTimeMillis();
-        if (currentTag != null && now - currentTagFetchedAt <= 5000) {
-            return currentTag;
-        }
-        currentTagFetchedAt = now;
-        currentTag = fetchCurrentTag(context);
-        return currentTag;
-    }
-
-    public static String fetchCurrentTag(Context context) {
-        WorkQuery workQuery = WorkQuery.Builder
-                .fromTags(Arrays.asList(FileTransferBackground.WORK_TAG_UPLOAD))
-                .addStates(Arrays.asList(WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED))
-                .build();
-        List<WorkInfo> workInfo;
-        try {
-            workInfo = WorkManager.getInstance(context)
-                    .getWorkInfos(workQuery)
-                    .get();
-        } catch (ExecutionException | InterruptedException e) {
-            Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
-            workInfo = Collections.emptyList();
-        }
-        String prefix = "packet_";
-        for (WorkInfo info : workInfo) {
-            if (!info.getState().isFinished()) {
-                for (String tag : info.getTags()) {
-                    if (tag.startsWith(prefix)) {
-                        return tag;
-                    }
-                }
-            }
-        }
-        return prefix + UUID.randomUUID().toString();
-    }
+//    public static String getCurrentTag(Context context) {
+//        final long now = System.currentTimeMillis();
+//        if (currentTag != null && now - currentTagFetchedAt <= 5000) {
+//            return currentTag;
+//        }
+//        currentTagFetchedAt = now;
+//        currentTag = fetchCurrentTag(context);
+//        return currentTag;
+//    }
+//
+//    public static String fetchCurrentTag(Context context) {
+//        WorkQuery workQuery = WorkQuery.Builder
+//                .fromTags(Arrays.asList(FileTransferBackground.WORK_TAG_UPLOAD))
+//                .addStates(Arrays.asList(WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED))
+//                .build();
+//        List<WorkInfo> workInfo;
+//        try {
+//            workInfo = WorkManager.getInstance(context)
+//                    .getWorkInfos(workQuery)
+//                    .get();
+//        } catch (ExecutionException | InterruptedException e) {
+//            Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
+//            workInfo = Collections.emptyList();
+//        }
+//        String prefix = "packet_";
+//        for (WorkInfo info : workInfo) {
+//            if (!info.getState().isFinished()) {
+//                for (String tag : info.getTags()) {
+//                    if (tag.startsWith(prefix)) {
+//                        return tag;
+//                    }
+//                }
+//            }
+//        }
+//        return prefix + UUID.randomUUID().toString();
+//    }
 
     public static void logMessage(String message) {
         Log.d("CordovaBackgroundUpload", message);
