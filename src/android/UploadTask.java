@@ -110,6 +110,8 @@ public final class UploadTask extends Worker {
 
         super(context, workerParams);
 
+        Log.d("ZAFIR", "ZAFIR");
+
         nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getLastPendingUpload();
 
         int concurrencyConfig = nextPendingUpload.getOutputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
@@ -165,6 +167,8 @@ public final class UploadTask extends Worker {
         if(!hasNetworkConnection()) {
             return Result.retry();
         }
+
+        Log.d("ZAFIR", "ZAFIR1");
 
         AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADING");
 
@@ -305,13 +309,12 @@ public final class UploadTask extends Worker {
         AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
 
         AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(id);
-        Result.success(data);
         Log.d("ZAFIR", "ZAFIR");
-        if(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfUploadingUploads() > 0) {
-            return Result.retry();
-        } else {
-            return Result.success();
-        }
+        return Result.retry();
+//        if(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfUploadingUploads() > 0) {
+//        } else {
+//            return Result.success();
+//        }
 
 //        if(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfUploadingUploads() > 0) {
 //            OneTimeWorkRequest.Builder workRequestBuilder1 = new OneTimeWorkRequest.Builder(UploadTask.class)

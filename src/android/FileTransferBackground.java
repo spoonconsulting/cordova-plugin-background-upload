@@ -348,7 +348,7 @@ public class FileTransferBackground extends CordovaPlugin {
                         .build()
                 )
                 .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
-                .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
+                .setBackoffCriteria(BackoffPolicy.LINEAR, 1, TimeUnit.SECONDS)
                 .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             workRequestBuilder1.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
