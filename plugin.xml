@@ -66,6 +66,9 @@
         <source-file src="src/android/UploadNotification.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/WorkManagerInit.java" target-dir="src/com/spoon/backgroundfileupload" />
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
+        <edit-config file="AndroidManifest.xml" target="/manifest" mode="merge">
+            <manifest xmlns:tools="http://schemas.android.com/tools" />
+        </edit-config>
     </platform>
     <platform name="ios">
         <framework src="AFNetworking" type="podspec" spec="~> 4.0.1" />
