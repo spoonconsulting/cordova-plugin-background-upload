@@ -357,6 +357,7 @@ public final class UploadTask extends Worker {
         }
 
         bodyBuilder.addFormDataPart(fileKey, filepath, fileRequestBody);
+        bodyBuilder.setType(MultipartBody.FORM);
 
         // Start build request
         String method = getInputData().getString(KEY_INPUT_HTTP_METHOD);
