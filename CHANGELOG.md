@@ -1,3 +1,6 @@
+## [4.0.5](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.4...4.0.5) (2022-03-29)
+* **android:** Use multipart/form-data attribute as on iOS
+
 ## [4.0.4](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.3...4.0.4) (2022-03-29)
 * **android:** Add support for devices that does not support JSON as Content-Type
 
