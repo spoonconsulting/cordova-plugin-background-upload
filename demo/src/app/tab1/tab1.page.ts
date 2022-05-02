@@ -18,6 +18,7 @@ declare const FileTransferManager: any;
 export class Tab1Page {
   uploader: any;
 
+  imagesIds: [];
   images: Map<number, string> = new Map();
   imageUris: Map<number, string> = new Map();
   uploadStates: Map<number, UploadState> = new Map();
@@ -84,12 +85,18 @@ export class Tab1Page {
       return;
     }
 
+    const options = {
+      maximumImagesCount: 100
+    };
+
     try {
-      const uris: Array<string> = await this.imagePicker.getPictures({});
+      const uris: Array<string> = await this.imagePicker.getPictures(options);
       const generatedKeys = this.generateUniqueIds(uris.length);
       console.log(uris);
       uris.forEach((uri, i) => {
-        this.imageUris.set(generatedKeys[i], uri);
+        const pathSplit = uri.split('/');
+        const dir = 'file://' + pathSplit.join('/');
+        this.imageUris.set(generatedKeys[i], dir);
       });
 
       const data = await Promise.all(uris.map((uri) => {
@@ -138,19 +145,46 @@ export class Tab1Page {
     }
   }
 
-  uploadImage(id: number) {
-    const uri = this.imageUris.get(id);
-    console.log('Upload id', id);
+  onTapUploadButton() {
+    for (const [key, value] of this.images) {
+      if (!this.uploadStates.has(key)) {
+        // Start upload
+        this.uploadImage(key);
+      } else {
+        // Remove download
+        const state = this.uploadStates.get(key);
+        this.uploader.removeUpload(key, (res) => {
+          console.log('Remove result:', res);
+          this.zone.run(() => {
+            state.status = UploadStatus.Aborted;
+            state.progress = 1.0;
+          });
+        }, async (err) => {
+          console.warn('Remove error:', err);
+          const alert = await this.alertController.create({
+            header: 'Error removing upload',
+          });
+          await alert.present();
+        });
+      }
+    }
+  }
 
-    const options = {
-      serverUrl: 'https://dlptest.com/http-post/',
-      filePath: uri,
-      fileKey: 'file',
-      id,
-      notificationTitle: 'Uploading image'
-    };
-    this.uploader.startUpload(options);
-    console.log('Upload submitted');
+  uploadImage(id: number) {
+    for (let i = 0; i < 10; i++) {
+      const uri = this.imageUris.get(id);
+      console.log('Upload id', id);
+
+      const options = {
+        serverUrl: 'https://zfir.ngrok.io',
+        filePath: uri,
+        fileKey: 'file',
+        id,
+        notificationTitle: 'Uploading image'
+      };
+      this.uploader.startUpload(options);
+      console.log('Upload submitted');
+    }
   }
 
   generateUniqueIds(count: number): Array<number> {
