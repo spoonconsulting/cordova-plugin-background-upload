@@ -93,6 +93,8 @@ public final class UploadTask extends Worker {
 
     private Call currentCall;
 
+    private PendingUpload nextPendingUpload;
+
     private static int concurrency = 1;
     private static Semaphore concurrentUploads = new Semaphore(concurrency, true);
     private static Mutex concurrencyLock = new Mutex();
@@ -101,7 +103,9 @@ public final class UploadTask extends Worker {
 
         super(context, workerParams);
 
-        int concurrencyConfig = workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
+        nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getLastPendingUpload();
+
+        int concurrencyConfig = nextPendingUpload.getOutputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
 
         try {
             concurrencyLock.acquire();
@@ -129,20 +133,20 @@ public final class UploadTask extends Worker {
                     .build();
         }
 
-        httpClient.dispatcher().setMaxRequests(workerParams.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
+        httpClient.dispatcher().setMaxRequests(nextPendingUpload.getOutputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             UploadForegroundNotification.configure(
-                    workerParams.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
-                    getApplicationContext().getResources().getIdentifier(workerParams.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
-                    workerParams.getInputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
+                    nextPendingUpload.getOutputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
+                    getApplicationContext().getResources().getIdentifier(nextPendingUpload.getOutputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
+                    nextPendingUpload.getOutputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
             );
             uploadForegroundNotification = new UploadForegroundNotification();
         } else {
             UploadNotification.configure(
-                    workerParams.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
-                    getApplicationContext().getResources().getIdentifier(workerParams.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
-                    workerParams.getInputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
+                    nextPendingUpload.getOutputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
+                    getApplicationContext().getResources().getIdentifier(nextPendingUpload.getOutputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
+                    nextPendingUpload.getOutputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
             );
             uploadNotification = new UploadNotification(getApplicationContext());
         }
@@ -155,134 +159,144 @@ public final class UploadTask extends Worker {
             return Result.retry();
         }
 
-        final String id = getInputData().getString(KEY_INPUT_ID);
+        while (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfPendingUploads() > 0) {
 
-        if (id == null) {
-            Log.e(TAG, "doWork: ID is invalid !");
-            return Result.failure();
-        }
+            nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getLastPendingUpload();
 
-        // Check retry count
-        if (getRunAttemptCount() > MAX_TRIES) {
-            return Result.success(new Data.Builder()
-                    .putString(KEY_OUTPUT_ID, id)
-                    .putBoolean(KEY_OUTPUT_IS_ERROR, true)
-                    .putString(KEY_OUTPUT_FAILURE_REASON, "Too many retries")
-                    .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
-                    .build()
-            );
-        }
+            final String id = nextPendingUpload.getOutputData().getString(KEY_INPUT_ID);
 
-        Request request = null;
-        try {
-            request = createRequest();
-        } catch (FileNotFoundException e) {
-            Log.e(TAG, "doWork: File not found !", e);
-            return Result.success(new Data.Builder()
-                    .putString(KEY_OUTPUT_ID, id)
-                    .putBoolean(KEY_OUTPUT_IS_ERROR, true)
-                    .putString(KEY_OUTPUT_FAILURE_REASON, "File not found !")
-                    .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
-                    .build()
-            );
-        } catch (NullPointerException e) {
-            return Result.retry();
-        }
-
-        // Register me
-        uploadForegroundNotification.progress(getId(), 0f);
-        handleNotification();
-
-        // Start call
-        currentCall = httpClient.newCall(request);
-
-        // Block until call is finished (or cancelled)
-        Response response = null;
-        try {
-            if (!DEBUG_SKIP_UPLOAD) {
-                try {
-                    try {
-                        concurrentUploads.acquire();
-                        try {
-                            response = currentCall.execute();
-                        } catch (SocketTimeoutException e) {
-                            return Result.retry();
-                        } finally {
-                            concurrentUploads.release();
-                        }
-                    } catch (InterruptedException e) {
-                        return Result.retry();
-                    }
-                } catch (SocketException | ProtocolException | SSLException e) {
-                    currentCall.cancel();
-                    return Result.retry();
-                }
-            } else {
-                for (int i = 0; i < 10; i++) {
-                    handleProgress(i * 100, 1000);
-                    // Can be interrupted
-                    Thread.sleep(200);
-                    if (isStopped()) {
-                        throw new InterruptedException("Stopped");
-                    }
-                }
+            if (id == null) {
+                Log.e(TAG, "doWork: ID is invalid !");
+                return Result.failure();
             }
-        } catch (IOException | InterruptedException e) {
-            // If it was user cancelled its ok
-            // See #handleProgress for cancel code
-            if (isStopped()) {
-                final Data data = new Data.Builder()
+
+            // Check retry count
+            if (getRunAttemptCount() > MAX_TRIES) {
+                return Result.success(new Data.Builder()
                         .putString(KEY_OUTPUT_ID, id)
                         .putBoolean(KEY_OUTPUT_IS_ERROR, true)
-                        .putString(KEY_OUTPUT_FAILURE_REASON, "User cancelled")
-                        .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
-                        .build();
-                AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
-                return Result.success(data);
-            } else {
-                // But if it was not it must be a connectivity problem or
-                // something similar so we retry later
-                Log.e(TAG, "doWork: Call failed, retrying later", e);
+                        .putString(KEY_OUTPUT_FAILURE_REASON, "Too many retries")
+                        .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
+                        .build()
+                );
+            }
+
+            Request request = null;
+            try {
+                request = createRequest();
+            } catch (FileNotFoundException e) {
+                Log.e(TAG, "doWork: File not found !", e);
+                return Result.success(new Data.Builder()
+                        .putString(KEY_OUTPUT_ID, id)
+                        .putBoolean(KEY_OUTPUT_IS_ERROR, true)
+                        .putString(KEY_OUTPUT_FAILURE_REASON, "File not found !")
+                        .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
+                        .build()
+                );
+            } catch (NullPointerException e) {
                 return Result.retry();
             }
-        } finally {
-            // Always remove ourselves from the notification
-            uploadForegroundNotification.done(getId());
+
+            // Register me
+            uploadForegroundNotification.progress(getId(), 0f);
+            handleNotification();
+
+            // Start call
+            currentCall = httpClient.newCall(request);
+
+            // Block until call is finished (or cancelled)
+            Response response = null;
+            try {
+                if (!DEBUG_SKIP_UPLOAD) {
+                    try {
+                        try {
+                            concurrentUploads.acquire();
+                            try {
+                                response = currentCall.execute();
+                            } catch (SocketTimeoutException e) {
+                                return Result.retry();
+                            } finally {
+                                concurrentUploads.release();
+                            }
+                        } catch (InterruptedException e) {
+                            return Result.retry();
+                        }
+                    } catch (SocketException | ProtocolException | SSLException e) {
+                        currentCall.cancel();
+                        return Result.retry();
+                    }
+                } else {
+                    for (int i = 0; i < 10; i++) {
+                        handleProgress(i * 100, 1000);
+                        // Can be interrupted
+                        Thread.sleep(200);
+                        if (isStopped()) {
+                            throw new InterruptedException("Stopped");
+                        }
+                    }
+                }
+            } catch (IOException | InterruptedException e) {
+                // If it was user cancelled its ok
+                // See #handleProgress for cancel code
+                if (isStopped()) {
+                    final Data data = new Data.Builder()
+                            .putString(KEY_OUTPUT_ID, id)
+                            .putBoolean(KEY_OUTPUT_IS_ERROR, true)
+                            .putString(KEY_OUTPUT_FAILURE_REASON, "User cancelled")
+                            .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
+                            .build();
+                    AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+                    return Result.success(data);
+                } else {
+                    // But if it was not it must be a connectivity problem or
+                    // something similar so we retry later
+                    Log.e(TAG, "doWork: Call failed, retrying later", e);
+                    return Result.retry();
+                }
+            } finally {
+                // Always remove ourselves from the notification
+                uploadForegroundNotification.done(getId());
+            }
+
+            // Start building the output data
+            final Data.Builder outputData = new Data.Builder()
+                    .putString(KEY_OUTPUT_ID, id)
+                    .putBoolean(KEY_OUTPUT_IS_ERROR, false)
+                    .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
+
+            // Try read the response body, if any
+            try {
+                final String res;
+                if (!DEBUG_SKIP_UPLOAD) {
+                    res = response.body() != null ? response.body().string() : "";
+                } else {
+                    res = "<span>heyo</span>";
+                }
+                final String filename = "upload-response-" + getId() + ".cached-response";
+
+                try (FileOutputStream fos = getApplicationContext().openFileOutput(filename, Context.MODE_PRIVATE)) {
+                    fos.write(res.getBytes(StandardCharsets.UTF_8));
+                }
+
+                outputData.putString(KEY_OUTPUT_RESPONSE_FILE, filename);
+
+            } catch (IOException e) {
+                // Should never happen, but if it does it has something to do with reading the response
+                Log.e(TAG, "doWork: Error while reading the response body", e);
+
+                // But recover and replace the body with something else
+                outputData.putString(KEY_OUTPUT_RESPONSE_FILE, null);
+            }
+
+            final Data data = outputData.build();
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADED");
+            AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+            Log.d("ZAFIR", "ZAFIR");
         }
 
-        // Start building the output data
-        final Data.Builder outputData = new Data.Builder()
-                .putString(KEY_OUTPUT_ID, id)
-                .putBoolean(KEY_OUTPUT_IS_ERROR, false)
-                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
+        FileTransferBackground.startWorkerFlag = false;
 
-        // Try read the response body, if any
-        try {
-            final String res;
-            if (!DEBUG_SKIP_UPLOAD) {
-                res = response.body() != null ? response.body().string() : "";
-            } else {
-                res = "<span>heyo</span>";
-            }
-            final String filename = "upload-response-" + getId() + ".cached-response";
-
-            try (FileOutputStream fos = getApplicationContext().openFileOutput(filename, Context.MODE_PRIVATE)) {
-                fos.write(res.getBytes(StandardCharsets.UTF_8));
-            }
-
-            outputData.putString(KEY_OUTPUT_RESPONSE_FILE, filename);
-
-        } catch (IOException e) {
-            // Should never happen, but if it does it has something to do with reading the response
-            Log.e(TAG, "doWork: Error while reading the response body", e);
-
-            // But recover and replace the body with something else
-            outputData.putString(KEY_OUTPUT_RESPONSE_FILE, null);
-        }
-
-        final Data data = outputData.build();
-        AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
-        return Result.success(data);
+        return Result.success();
     }
 
     /**
@@ -302,7 +316,7 @@ public final class UploadTask extends Worker {
         Log.i(TAG, "handleProgress: " + getId() + " Progress: " + (int) (percent * 100f));
 
         final Data data = new Data.Builder()
-                .putString(KEY_PROGRESS_ID, getInputData().getString(KEY_INPUT_ID))
+                .putString(KEY_PROGRESS_ID, nextPendingUpload.getOutputData().getString(KEY_INPUT_ID))
                 .putInt(KEY_PROGRESS_PERCENT, (int) (percent * 100f))
                 .build();
         Log.d(TAG, "handleProgress: Progress data: " + data);
@@ -318,13 +332,13 @@ public final class UploadTask extends Worker {
      */
     @NonNull
     private Request createRequest() throws FileNotFoundException {
-        final String filepath = getInputData().getString(KEY_INPUT_FILEPATH);
+        final String filepath = nextPendingUpload.getOutputData().getString(KEY_INPUT_FILEPATH);
         assert filepath != null;
-        final String fileKey = getInputData().getString(KEY_INPUT_FILE_KEY);
+        final String fileKey = nextPendingUpload.getOutputData().getString(KEY_INPUT_FILE_KEY);
         assert fileKey != null;
 
         // Build URL
-        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(getInputData().getString(KEY_INPUT_URL))).newBuilder().build();
+        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(nextPendingUpload.getOutputData().getString(KEY_INPUT_URL))).newBuilder().build();
 
         // Build file reader
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
@@ -343,14 +357,14 @@ public final class UploadTask extends Worker {
         final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
 
         // With the parameters
-        final int parametersCount = getInputData().getInt(KEY_INPUT_PARAMETERS_COUNT, 0);
+        final int parametersCount = nextPendingUpload.getOutputData().getInt(KEY_INPUT_PARAMETERS_COUNT, 0);
         if (parametersCount > 0) {
-            final String[] parameterNames = getInputData().getStringArray(KEY_INPUT_PARAMETERS_NAMES);
+            final String[] parameterNames = nextPendingUpload.getOutputData().getStringArray(KEY_INPUT_PARAMETERS_NAMES);
             assert parameterNames != null;
 
             for (int i = 0; i < parametersCount; i++) {
                 final String key = parameterNames[i];
-                final Object value = getInputData().getKeyValueMap().get(KEY_INPUT_PARAMETER_VALUE_PREFIX + i);
+                final Object value = nextPendingUpload.getOutputData().getKeyValueMap().get(KEY_INPUT_PARAMETER_VALUE_PREFIX + i);
 
                 bodyBuilder.addFormDataPart(key, value.toString());
             }
@@ -360,7 +374,7 @@ public final class UploadTask extends Worker {
         bodyBuilder.setType(MultipartBody.FORM);
 
         // Start build request
-        String method = getInputData().getString(KEY_INPUT_HTTP_METHOD);
+        String method = nextPendingUpload.getOutputData().getString(KEY_INPUT_HTTP_METHOD);
         if (method == null) {
             method = "POST";
         }
@@ -369,12 +383,12 @@ public final class UploadTask extends Worker {
                 .method(method.toUpperCase(), bodyBuilder.build());
 
         // Write headers
-        final int headersCount = getInputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);
-        final String[] headerNames = getInputData().getStringArray(KEY_INPUT_HEADERS_NAMES);
+        final int headersCount = nextPendingUpload.getOutputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);
+        final String[] headerNames = nextPendingUpload.getOutputData().getStringArray(KEY_INPUT_HEADERS_NAMES);
         assert headerNames != null;
         for (int i = 0; i < headersCount; i++) {
             final String key = headerNames[i];
-            final Object value = getInputData().getKeyValueMap().get(KEY_INPUT_HEADER_VALUE_PREFIX + i);
+            final Object value = nextPendingUpload.getOutputData().getKeyValueMap().get(KEY_INPUT_HEADER_VALUE_PREFIX + i);
 
             requestBuilder.addHeader(key, value.toString());
         }
