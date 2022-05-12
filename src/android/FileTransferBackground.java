@@ -223,6 +223,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
+                                    Log.d("ZAFIR", "ZAFIR");
                                     completedTasks++;
                                     // No db in main thread
                                     executorService.schedule(() -> {
