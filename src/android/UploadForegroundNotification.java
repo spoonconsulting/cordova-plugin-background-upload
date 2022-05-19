@@ -61,34 +61,9 @@ public class UploadForegroundNotification {
             return cachedInfo;
         }
 
-        List<WorkInfo> workInfo;
-        try {
-            workInfo = WorkManager.getInstance(context)
-                    .getWorkInfosByTag(FileTransferBackground.getCurrentTag(context))
-                    .get();
-        } catch (ExecutionException | InterruptedException e) {
-            Log.w(UploadTask.TAG, "getForegroundInfo: Problem while retrieving task list:", e);
-            workInfo = Collections.emptyList();
-        }
+        float totalProgressStore = ((float) AckDatabase.getInstance(context).pendingUploadDao().getNumberOfUploadedUploads()) / AckDatabase.getInstance(context).pendingUploadDao().getAll().size();
 
-        float uploadingProgress = 0f;
-        int uploadDone = 0;
-        int uploadCount = 0;
-        for (WorkInfo info : workInfo) {
-            if (!info.getState().isFinished()) {
-                final Float progress = collectiveProgress.get(info.getId());
-                if (progress != null) {
-                    uploadingProgress += progress;
-                }
-            } else {
-                uploadDone++;
-            }
-            uploadCount++;
-        }
-
-        float totalProgressStore = ((float) uploadDone) / uploadCount;
-
-        Log.d(UploadTask.TAG, "eventLabel='getForegroundInfo: general (" + uploadingProgress + ") all (" + collectiveProgress + ")'");
+        Log.d(UploadTask.TAG, "eventLabel='getForegroundInfo: general (" + totalProgressStore + ") all (" + collectiveProgress + ")'");
 
         Class<?> mainActivityClass = null;
         try {

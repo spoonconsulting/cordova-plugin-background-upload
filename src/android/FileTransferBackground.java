@@ -188,12 +188,12 @@ public class FileTransferBackground extends CordovaPlugin {
         final AckDatabase ackDatabase = AckDatabase.getInstance(cordova.getContext());
 
         // Resend pending ACK at startup (and warmup database)
-        final List<UploadEvent> uploadEvents = ackDatabase
+        final List<UploadEvent>[] uploadEvents = new List[]{ackDatabase
                 .uploadEventDao()
-                .getAll();
+                .getAll()};
 
         int ackDelay = 0;
-        for (UploadEvent ack : uploadEvents) {
+        for (UploadEvent ack : uploadEvents[0]) {
             executorService.schedule(() -> {
                 handleAck(ack.getOutputData());
             }, ackDelay, TimeUnit.MILLISECONDS);
@@ -208,6 +208,7 @@ public class FileTransferBackground extends CordovaPlugin {
                     .observeForever((tasks) -> {
                         int completedTasks = 0;
                         for (WorkInfo info : tasks) {
+                            Log.d("ZAFIR", "ZAFIR30");
                             switch (info.getState()) {
                                 // If the upload in not finished, publish its progress
                                 case RUNNING:
@@ -223,14 +224,15 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
-                                    Log.d("ZAFIR", "ZAFIR");
+                                    Log.d("ZAFIR", "ZAFIR20");
                                     completedTasks++;
                                     // No db in main thread
                                     executorService.schedule(() -> {
-                                        // The corresponding ACK is already in the DB, if it not, the task is just a leftover
-                                        String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
-                                        if (ackDatabase.uploadEventDao().exists(id)) {
-                                            handleAck(info.getOutputData());
+                                        uploadEvents[0] = ackDatabase
+                                                .uploadEventDao()
+                                                .getAll();
+                                        for (UploadEvent ack : uploadEvents[0]) {
+                                            handleAck(ack.getOutputData());
                                         }
                                     }, 0, TimeUnit.MILLISECONDS);
                                     break;
@@ -345,8 +347,7 @@ public class FileTransferBackground extends CordovaPlugin {
                 )
                 .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
-                .addTag(FileTransferBackground.WORK_TAG_UPLOAD)
-                .addTag(getCurrentTag(cordova.getContext()));
+                .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
@@ -355,7 +356,7 @@ public class FileTransferBackground extends CordovaPlugin {
         OneTimeWorkRequest workRequest = workRequestBuilder.build();
 
         WorkManager.getInstance(cordova.getContext())
-                .enqueue(workRequest);
+                .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD, ExistingWorkPolicy.APPEND, workRequest);
 
         logMessage("eventLabel='Uploader starting upload' uploadId=''");
     }
@@ -506,42 +507,42 @@ public class FileTransferBackground extends CordovaPlugin {
         return hashMap;
     }
 
-    public static String getCurrentTag(Context context) {
-        final long now = System.currentTimeMillis();
-        if (currentTag != null && now - currentTagFetchedAt <= 5000) {
-            return currentTag;
-        }
-        currentTagFetchedAt = now;
-        currentTag = fetchCurrentTag(context);
-        return currentTag;
-    }
-
-    public static String fetchCurrentTag(Context context) {
-        WorkQuery workQuery = WorkQuery.Builder
-                .fromTags(Arrays.asList(FileTransferBackground.WORK_TAG_UPLOAD))
-                .addStates(Arrays.asList(WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED))
-                .build();
-        List<WorkInfo> workInfo;
-        try {
-            workInfo = WorkManager.getInstance(context)
-                    .getWorkInfos(workQuery)
-                    .get();
-        } catch (ExecutionException | InterruptedException e) {
-            Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
-            workInfo = Collections.emptyList();
-        }
-        String prefix = "packet_";
-        for (WorkInfo info : workInfo) {
-            if (!info.getState().isFinished()) {
-                for (String tag : info.getTags()) {
-                    if (tag.startsWith(prefix)) {
-                        return tag;
-                    }
-                }
-            }
-        }
-        return prefix + UUID.randomUUID().toString();
-    }
+//    public static String getCurrentTag(Context context) {
+//        final long now = System.currentTimeMillis();
+//        if (currentTag != null && now - currentTagFetchedAt <= 5000) {
+//            return currentTag;
+//        }
+//        currentTagFetchedAt = now;
+//        currentTag = fetchCurrentTag(context);
+//        return currentTag;
+//    }
+//
+//    public static String fetchCurrentTag(Context context) {
+//        WorkQuery workQuery = WorkQuery.Builder
+//                .fromTags(Arrays.asList(FileTransferBackground.WORK_TAG_UPLOAD))
+//                .addStates(Arrays.asList(WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED))
+//                .build();
+//        List<WorkInfo> workInfo;
+//        try {
+//            workInfo = WorkManager.getInstance(context)
+//                    .getWorkInfos(workQuery)
+//                    .get();
+//        } catch (ExecutionException | InterruptedException e) {
+//            Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
+//            workInfo = Collections.emptyList();
+//        }
+//        String prefix = "packet_";
+//        for (WorkInfo info : workInfo) {
+//            if (!info.getState().isFinished()) {
+//                for (String tag : info.getTags()) {
+//                    if (tag.startsWith(prefix)) {
+//                        return tag;
+//                    }
+//                }
+//            }
+//        }
+//        return prefix + UUID.randomUUID().toString();
+//    }
 
     public static void logMessage(String message) {
         Log.d("CordovaBackgroundUpload", message);
