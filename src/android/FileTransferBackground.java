@@ -184,12 +184,12 @@ public class FileTransferBackground extends CordovaPlugin {
         final AckDatabase ackDatabase = AckDatabase.getInstance(cordova.getContext());
 
         // Resend pending ACK at startup (and warmup database)
-        final List<UploadEvent>[] uploadEvents = new List[]{ackDatabase
+        final List<UploadEvent> uploadEvents = ackDatabase
                 .uploadEventDao()
-                .getAll()};
+                .getAll();
 
         int ackDelay = 0;
-        for (UploadEvent ack : uploadEvents[0]) {
+        for (UploadEvent ack : uploadEvents) {
             executorService.schedule(() -> {
                 handleAck(ack.getOutputData());
             }, ackDelay, TimeUnit.MILLISECONDS);
