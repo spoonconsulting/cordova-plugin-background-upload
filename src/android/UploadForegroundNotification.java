@@ -61,7 +61,7 @@ public class UploadForegroundNotification {
             return cachedInfo;
         }
 
-        float totalProgressStore = ((float) AckDatabase.getInstance(context).pendingUploadDao().getNumberOfUploadedUploads()) / AckDatabase.getInstance(context).pendingUploadDao().getAll().size();
+        float totalProgressStore = ((float) AckDatabase.getInstance(context).uploadEventDao().getNumberOfUploadEvents()) / AckDatabase.getInstance(context).pendingUploadDao().getAll().size();
 
         Log.d(UploadTask.TAG, "eventLabel='getForegroundInfo: general (" + totalProgressStore + ") all (" + collectiveProgress + ")'");
 

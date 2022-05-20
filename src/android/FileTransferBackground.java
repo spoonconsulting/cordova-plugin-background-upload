@@ -209,6 +209,15 @@ public class FileTransferBackground extends CordovaPlugin {
                         int completedTasks = 0;
                         for (WorkInfo info : tasks) {
                             Log.d("ZAFIR", "ZAFIR30");
+                            // No db in main thread
+                            executorService.schedule(() -> {
+                                final List<UploadEvent> uploadEventsList = ackDatabase
+                                        .uploadEventDao()
+                                        .getAll();
+                                for (UploadEvent ack : uploadEventsList) {
+                                    handleAck(ack.getOutputData());
+                                }
+                            }, 0, TimeUnit.MILLISECONDS);
                             switch (info.getState()) {
                                 // If the upload in not finished, publish its progress
                                 case RUNNING:
@@ -224,18 +233,8 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
-                                    Log.d("ZAFIR", "ZAFIR20");
+                                    Log.d(TAG, "Task succeeded");
                                     completedTasks++;
-                                    // No db in main thread
-                                    executorService.schedule(() -> {
-                                        uploadEvents[0] = ackDatabase
-                                                .uploadEventDao()
-                                                .getAll();
-                                        for (UploadEvent ack : uploadEvents[0]) {
-                                            handleAck(ack.getOutputData());
-                                        }
-                                    }, 0, TimeUnit.MILLISECONDS);
-                                    break;
                                 case FAILED:
                                     // The task can't fail completely so something really bad has happened.
                                     logMessage("eventLabel='Uploader failed inexplicably' error='" + info.getOutputData() + "'");
@@ -506,43 +505,6 @@ public class FileTransferBackground extends CordovaPlugin {
         }
         return hashMap;
     }
-
-//    public static String getCurrentTag(Context context) {
-//        final long now = System.currentTimeMillis();
-//        if (currentTag != null && now - currentTagFetchedAt <= 5000) {
-//            return currentTag;
-//        }
-//        currentTagFetchedAt = now;
-//        currentTag = fetchCurrentTag(context);
-//        return currentTag;
-//    }
-//
-//    public static String fetchCurrentTag(Context context) {
-//        WorkQuery workQuery = WorkQuery.Builder
-//                .fromTags(Arrays.asList(FileTransferBackground.WORK_TAG_UPLOAD))
-//                .addStates(Arrays.asList(WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED))
-//                .build();
-//        List<WorkInfo> workInfo;
-//        try {
-//            workInfo = WorkManager.getInstance(context)
-//                    .getWorkInfos(workQuery)
-//                    .get();
-//        } catch (ExecutionException | InterruptedException e) {
-//            Log.w(TAG, "getForegroundInfo: Problem while retrieving task list:", e);
-//            workInfo = Collections.emptyList();
-//        }
-//        String prefix = "packet_";
-//        for (WorkInfo info : workInfo) {
-//            if (!info.getState().isFinished()) {
-//                for (String tag : info.getTags()) {
-//                    if (tag.startsWith(prefix)) {
-//                        return tag;
-//                    }
-//                }
-//            }
-//        }
-//        return prefix + UUID.randomUUID().toString();
-//    }
 
     public static void logMessage(String message) {
         Log.d("CordovaBackgroundUpload", message);

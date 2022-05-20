@@ -165,6 +165,8 @@ public final class UploadTask extends Worker {
 
             nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getLastPendingUpload();
 
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADING");
+
             final String id = nextPendingUpload.getOutputData().getString(KEY_INPUT_ID);
 
             if (id == null) {
@@ -291,7 +293,7 @@ public final class UploadTask extends Worker {
             }
 
             final Data data = outputData.build();
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADED");
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(nextPendingUpload);
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
 
             Log.d("ZAFIR", "ZAFIR 2");
