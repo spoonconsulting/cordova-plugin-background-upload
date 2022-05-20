@@ -6,21 +6,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
-import android.util.Log;
 
 import androidx.annotation.IntegerRes;
 import androidx.core.app.NotificationCompat;
 import androidx.work.ForegroundInfo;
-import androidx.work.WorkInfo;
-import androidx.work.WorkManager;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class UploadForegroundNotification {
@@ -63,7 +58,7 @@ public class UploadForegroundNotification {
 
         float totalProgressStore = ((float) AckDatabase.getInstance(context).uploadEventDao().getNumberOfUploadEvents()) / AckDatabase.getInstance(context).pendingUploadDao().getAll().size();
 
-        Log.d(UploadTask.TAG, "eventLabel='getForegroundInfo: general (" + totalProgressStore + ") all (" + collectiveProgress + ")'");
+        FileTransferBackground.logMessage("eventLabel='getForegroundInfo: general (" + totalProgressStore + ") all (" + collectiveProgress + ")'");
 
         Class<?> mainActivityClass = null;
         try {

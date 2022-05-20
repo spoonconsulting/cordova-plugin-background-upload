@@ -17,7 +17,6 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
-import androidx.work.WorkQuery;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -30,13 +29,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -208,7 +204,6 @@ public class FileTransferBackground extends CordovaPlugin {
                     .observeForever((tasks) -> {
                         int completedTasks = 0;
                         for (WorkInfo info : tasks) {
-                            Log.d("ZAFIR", "ZAFIR30");
                             // No db in main thread
                             executorService.schedule(() -> {
                                 final List<UploadEvent> uploadEventsList = ackDatabase
@@ -225,7 +220,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                         String id = info.getProgress().getString(UploadTask.KEY_PROGRESS_ID);
                                         int progress = info.getProgress().getInt(UploadTask.KEY_PROGRESS_PERCENT, 0);
 
-                                        Log.d(TAG, "initManager: " + info.getId() + " (" + info.getState() + ") Progress: " + progress);
+                                        logMessage("initManager: " + info.getId() + " (" + info.getState() + ") Progress: " + progress);
                                         sendProgress(id, progress);
                                     }
                                     break;
@@ -233,7 +228,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
-                                    Log.d(TAG, "Task succeeded");
+                                    logMessage("Task succeeded");
                                     completedTasks++;
                                 case FAILED:
                                     // The task can't fail completely so something really bad has happened.
@@ -337,7 +332,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void startWorker() {
-        Log.d(TAG, "startUpload: Starting work via work manager");
+        logMessage("startUpload: Starting work via work manager");
 
         OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
                 .setConstraints(new Constraints.Builder()
@@ -357,7 +352,7 @@ public class FileTransferBackground extends CordovaPlugin {
         WorkManager.getInstance(cordova.getContext())
                 .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD, ExistingWorkPolicy.APPEND, workRequest);
 
-        logMessage("eventLabel='Uploader starting upload' uploadId=''");
+        logMessage("eventLabel=Uploader starting upload");
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {
@@ -508,5 +503,13 @@ public class FileTransferBackground extends CordovaPlugin {
 
     public static void logMessage(String message) {
         Log.d("CordovaBackgroundUpload", message);
+    }
+
+    public static void logMessageInfo(String message) {
+        Log.i("CordovaBackgroundUpload", message);
+    }
+
+    public static void logMessageError(String message, Exception exception) {
+        Log.e("CordovaBackgroundUpload", message, exception);
     }
 }

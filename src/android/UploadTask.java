@@ -3,7 +3,6 @@ package com.spoon.backgroundfileupload;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.os.Build;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
@@ -38,8 +37,6 @@ public final class UploadTask extends Worker {
 
     private static final boolean DEBUG_SKIP_UPLOAD = false;
     public static final long DELAY_BETWEEN_NOTIFICATION_UPDATE_MS = 200;
-
-    public static final String TAG = "CordovaBackgroundUpload";
 
     public static final String NOTIFICATION_CHANNEL_ID = "com.spoon.backgroundfileupload.channel";
     public static final String NOTIFICATION_CHANNEL_NAME = "upload channel";
@@ -159,10 +156,7 @@ public final class UploadTask extends Worker {
             return Result.retry();
         }
 
-        Log.d("ZAFIR", String.valueOf(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfPendingUploads()));
-
         do {
-
             nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getLastPendingUpload();
 
             AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADING");
@@ -170,7 +164,7 @@ public final class UploadTask extends Worker {
             final String id = nextPendingUpload.getOutputData().getString(KEY_INPUT_ID);
 
             if (id == null) {
-                Log.e(TAG, "doWork: ID is invalid !");
+                FileTransferBackground.logMessageError("doWork: ID is invalid !", null);
                 return Result.failure();
             }
 
@@ -189,7 +183,7 @@ public final class UploadTask extends Worker {
             try {
                 request = createRequest();
             } catch (FileNotFoundException e) {
-                Log.e(TAG, "doWork: File not found !", e);
+                FileTransferBackground.logMessageError("doWork: File not found !", e);
                 return Result.success(new Data.Builder()
                         .putString(KEY_OUTPUT_ID, id)
                         .putBoolean(KEY_OUTPUT_IS_ERROR, true)
@@ -254,7 +248,7 @@ public final class UploadTask extends Worker {
                 } else {
                     // But if it was not it must be a connectivity problem or
                     // something similar so we retry later
-                    Log.e(TAG, "doWork: Call failed, retrying later", e);
+                    FileTransferBackground.logMessageError("doWork: Call failed, retrying later", e);
                     return Result.retry();
                 }
             } finally {
@@ -286,7 +280,7 @@ public final class UploadTask extends Worker {
 
             } catch (IOException e) {
                 // Should never happen, but if it does it has something to do with reading the response
-                Log.e(TAG, "doWork: Error while reading the response body", e);
+                FileTransferBackground.logMessageError("doWork: Error while reading the response body", e);
 
                 // But recover and replace the body with something else
                 outputData.putString(KEY_OUTPUT_RESPONSE_FILE, null);
@@ -295,11 +289,7 @@ public final class UploadTask extends Worker {
             final Data data = outputData.build();
             AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(nextPendingUpload);
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
-
-            Log.d("ZAFIR", "ZAFIR 2");
         } while(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfPendingUploads() > 0);
-
-        Log.d("ZAFIR", "ZAFIR 3");
 
         FileTransferBackground.startWorkerFlag = false;
 
@@ -320,13 +310,13 @@ public final class UploadTask extends Worker {
         float percent = (float) bytesWritten / (float) totalBytes;
         UploadForegroundNotification.progress(getId(), percent);
 
-        Log.i(TAG, "handleProgress: " + getId() + " Progress: " + (int) (percent * 100f));
+        FileTransferBackground.logMessageInfo("handleProgress: " + getId() + " Progress: " + (int) (percent * 100f));
 
         final Data data = new Data.Builder()
                 .putString(KEY_PROGRESS_ID, nextPendingUpload.getOutputData().getString(KEY_INPUT_ID))
                 .putInt(KEY_PROGRESS_PERCENT, (int) (percent * 100f))
                 .build();
-        Log.d(TAG, "handleProgress: Progress data: " + data);
+        FileTransferBackground.logMessage("handleProgress: Progress data: " + data);
         setProgressAsync(data);
         handleNotification();
     }
@@ -405,19 +395,19 @@ public final class UploadTask extends Worker {
     }
 
     private void handleNotification() {
-        Log.d(TAG, "Upload Notification");
+        FileTransferBackground.logMessage("Upload Notification");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             setForegroundAsync(uploadForegroundNotification.getForegroundInfo(getApplicationContext()));
         } else  {
             uploadNotification.updateProgress();
         }
-        Log.d(TAG, "Upload Notification Exit");
+        FileTransferBackground.logMessage("Upload Notification Exit");
     }
 
     private synchronized boolean hasNetworkConnection() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
         if((connectivityManager == null) || (connectivityManager.getActiveNetworkInfo() == null) || (connectivityManager.getActiveNetworkInfo().isConnectedOrConnecting() == false)) {
-            Log.d(TAG, "No internet connection");
+            FileTransferBackground.logMessage("No internet connection");
             return false;
         }
         return true;

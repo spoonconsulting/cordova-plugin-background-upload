@@ -9,18 +9,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
-import android.util.Log;
 
 import androidx.annotation.IntegerRes;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
-import androidx.work.WorkInfo;
-import androidx.work.WorkManager;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ExecutionException;
 
 public class UploadNotification {
     private Context context;
