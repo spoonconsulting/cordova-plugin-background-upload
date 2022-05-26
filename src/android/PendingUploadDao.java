@@ -16,8 +16,8 @@ public interface PendingUploadDao {
     @Query("SELECT * FROM pending_upload WHERE id = :id")
     PendingUpload getById(final String id);
 
-    @Query("SELECT * FROM pending_upload LIMIT 1")
-    PendingUpload getFirstEntry();
+    @Query("SELECT * FROM pending_upload WHERE state = 'PENDING' LIMIT 1")
+    PendingUpload getFirstPendingEntry();
 
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'PENDING'")
     int getNumberOfPendingUploads();

@@ -20,6 +20,7 @@ import java.net.ProtocolException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -101,7 +102,7 @@ public final class UploadTask extends Worker {
 
         super(context, workerParams);
 
-        nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstEntry();
+        nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
 
         int concurrencyConfig = nextPendingUpload.getOutputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
 
@@ -158,7 +159,7 @@ public final class UploadTask extends Worker {
         }
 
         do {
-            nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstEntry();
+            nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
 
             AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADING");
 
@@ -289,10 +290,17 @@ public final class UploadTask extends Worker {
 
             final Data data = outputData.build();
             AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADED");
+            FileTransferBackground.logMessage("ZAFIR: " + AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfUploadedUploads());
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         } while(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfPendingUploads() > 0);
 
         FileTransferBackground.startWorkerFlag = false;
+
+        final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getAll();
+
+        for (PendingUpload pendingUpload: pendingUploads) {
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(pendingUpload);
+        }
 
         return Result.success();
     }
