@@ -3,6 +3,7 @@ package com.spoon.backgroundfileupload;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.os.Build;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
@@ -100,7 +101,7 @@ public final class UploadTask extends Worker {
 
         super(context, workerParams);
 
-        nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getLastPendingUpload();
+        nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstEntry();
 
         int concurrencyConfig = nextPendingUpload.getOutputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
 
@@ -157,7 +158,7 @@ public final class UploadTask extends Worker {
         }
 
         do {
-            nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getLastPendingUpload();
+            nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstEntry();
 
             AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADING");
 
@@ -287,7 +288,7 @@ public final class UploadTask extends Worker {
             }
 
             final Data data = outputData.build();
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(nextPendingUpload);
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADED");
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         } while(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfPendingUploads() > 0);
 

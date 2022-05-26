@@ -19,14 +19,14 @@ public interface PendingUploadDao {
     @Query("SELECT * FROM pending_upload LIMIT 1")
     PendingUpload getFirstEntry();
 
-    @Query("SELECT * FROM pending_upload WHERE state = 'PENDING' ORDER BY ID DESC LIMIT 1")
-    PendingUpload getLastPendingUpload();
-
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'PENDING'")
     int getNumberOfPendingUploads();
 
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'UPLOADING'")
     int getNumberOfUploadingUploads();
+
+    @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'UPLOADED'")
+    int getNumberOfUploadedUploads();
 
     @Query("UPDATE pending_upload SET state = :state WHERE ID = :id")
     void setState(final String id, final String state);

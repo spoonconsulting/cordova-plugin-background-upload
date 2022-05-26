@@ -430,6 +430,8 @@ public class FileTransferBackground extends CordovaPlugin {
      */
     private void cleanupUpload(final String uploadId) {
         final UploadEvent ack = AckDatabase.getInstance(cordova.getContext()).uploadEventDao().getById(uploadId);
+        final PendingUpload pendingAck = AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().getById(uploadId);
+
         // If the upload is done there is an ACK of it, so get file name from there
         if (ack != null) {
             if (ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
@@ -438,6 +440,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
             // Also delete it from database
             AckDatabase.getInstance(cordova.getContext()).uploadEventDao().delete(ack);
+            AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().delete(pendingAck);
         } else {
             // Otherwise get the data from the task itself
             final WorkInfo task;
