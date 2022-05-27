@@ -288,7 +288,6 @@ public final class UploadTask extends Worker {
 
             final Data data = outputData.build();
             AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().setState(nextPendingUpload.getId(), "UPLOADED");
-            FileTransferBackground.logMessage("ZAFIR: " + AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfUploadedUploads());
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         } while(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getNumberOfPendingUploads() > 0);
 
