@@ -228,7 +228,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case BLOCKED:
                                 case ENQUEUED:
                                 case SUCCEEDED:
-                                    logMessage("Task succeeded");
+                                    logMessage("Task succeeded: " + info.getId());
                                     completedTasks++;
                                 case FAILED:
                                     // The task can't fail completely so something really bad has happened.
