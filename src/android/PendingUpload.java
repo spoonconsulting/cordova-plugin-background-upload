@@ -23,7 +23,7 @@ public class PendingUpload {
     public PendingUpload(@NonNull final String id, @NonNull final Data outputData, @NonNull final String state) {
         this.id = id;
         this.outputData = outputData;
-        this.state = state; // Pending, Uploading
+        this.state = state; // Pending, Uploaded
     }
 
     @NonNull
