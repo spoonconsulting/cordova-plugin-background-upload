@@ -21,6 +21,7 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLException;
@@ -92,11 +93,31 @@ public final class UploadTask extends Worker {
 
     private PendingUpload nextPendingUpload;
 
+    private static int concurrency = 1;
+    private static Semaphore concurrentUploads = new Semaphore(concurrency, true);
+    private static Mutex concurrencyLock = new Mutex();
+
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
 
         super(context, workerParams);
 
         nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+
+        int concurrencyConfig = nextPendingUpload.getOutputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
+
+        try {
+            concurrencyLock.acquire();
+            try {
+                if (concurrency != concurrencyConfig) {
+                    concurrency = concurrencyConfig;
+                    concurrentUploads = new Semaphore(concurrencyConfig, true);
+                }
+            } finally {
+                concurrencyLock.release();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         if (httpClient == null) {
             httpClient = new OkHttpClient.Builder()
@@ -186,8 +207,15 @@ public final class UploadTask extends Worker {
                 if (!DEBUG_SKIP_UPLOAD) {
                     try {
                         try {
-                            response = currentCall.execute();
-                        } catch (SocketTimeoutException e) {
+                            concurrentUploads.acquire();
+                            try {
+                                response = currentCall.execute();
+                            } catch (SocketTimeoutException e) {
+                                return Result.retry();
+                            } finally {
+                                concurrentUploads.release();
+                            }
+                        } catch (InterruptedException e) {
                             return Result.retry();
                         }
                     } catch (SocketException | ProtocolException | SSLException e) {
@@ -261,9 +289,7 @@ public final class UploadTask extends Worker {
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         } while (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() > 0);
 
-        if (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() == 0) {
-            FileTransferBackground.workerIsStarted = false;
-        }
+        FileTransferBackground.workerIsStarted = false;
 
         final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getAll();
 

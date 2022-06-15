@@ -39,6 +39,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class FileTransferBackground extends CordovaPlugin {
+
+    private static final String TAG = "FileTransferBackground";
     public static final String WORK_TAG_UPLOAD = "work_tag_upload";
 
     private CallbackContext uploadCallback;
@@ -46,7 +48,8 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private Data httpClientBaseConfig = Data.EMPTY;
 
-    private int ccUpload = 1;
+    private static String currentTag;
+    private static long currentTagFetchedAt;
 
     public static boolean workerIsStarted;
 
@@ -158,7 +161,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         try {
             final JSONObject settings = new JSONObject(options);
-            ccUpload = settings.getInt("parallelUploadsLimit");
+            int ccUpload = settings.getInt("parallelUploadsLimit");
 
             // Rebuild base HTTP config
             httpClientBaseConfig = new Data.Builder()
@@ -333,7 +336,7 @@ public class FileTransferBackground extends CordovaPlugin {
     }
 
     private void startWorker() {
-        logMessage("startUpload: Starting worker via work manager");
+        logMessage("startUpload: Starting work via work manager");
 
         OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
                 .setConstraints(new Constraints.Builder()
@@ -353,7 +356,7 @@ public class FileTransferBackground extends CordovaPlugin {
         WorkManager.getInstance(cordova.getContext())
                 .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD, ExistingWorkPolicy.APPEND, workRequest);
 
-        logMessage("eventLabel=Uploader starting uploads via worker");
+        logMessage("eventLabel=Uploader starting upload");
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {
