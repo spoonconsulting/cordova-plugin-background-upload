@@ -153,6 +153,8 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        FileTransferBackground.logMessage("Hello");
+
         if(!hasNetworkConnection()) {
             return Result.retry();
         }
