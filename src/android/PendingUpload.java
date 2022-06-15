@@ -27,6 +27,11 @@ public class PendingUpload {
     }
 
     @NonNull
+    public void setState(@NonNull final String state) {
+        this.state = state;
+    }
+
+    @NonNull
     public String getId() {
         return id;
     }
