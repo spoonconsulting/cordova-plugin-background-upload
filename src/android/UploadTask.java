@@ -132,8 +132,6 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        FileTransferBackground.logMessage("Hello");
-
         if(!hasNetworkConnection()) {
             return Result.retry();
         }
@@ -216,6 +214,7 @@ public final class UploadTask extends Worker {
                             .putString(KEY_OUTPUT_FAILURE_REASON, "User cancelled")
                             .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
                             .build();
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
                     AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
                     return Result.success(data);
                 } else {
