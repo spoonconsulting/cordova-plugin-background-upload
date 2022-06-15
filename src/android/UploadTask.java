@@ -21,7 +21,6 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLException;
@@ -93,31 +92,11 @@ public final class UploadTask extends Worker {
 
     private PendingUpload nextPendingUpload;
 
-    private static int concurrency = 1;
-    private static Semaphore concurrentUploads = new Semaphore(concurrency, true);
-    private static Mutex concurrencyLock = new Mutex();
-
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
 
         super(context, workerParams);
 
         nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
-
-        int concurrencyConfig = nextPendingUpload.getOutputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 1);
-
-        try {
-            concurrencyLock.acquire();
-            try {
-                if (concurrency != concurrencyConfig) {
-                    concurrency = concurrencyConfig;
-                    concurrentUploads = new Semaphore(concurrencyConfig, true);
-                }
-            } finally {
-                concurrencyLock.release();
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
         if (httpClient == null) {
             httpClient = new OkHttpClient.Builder()
@@ -183,7 +162,6 @@ public final class UploadTask extends Worker {
             Request request = null;
             try {
                 request = createRequest();
-                AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
             } catch (FileNotFoundException e) {
                 FileTransferBackground.logMessageError("doWork: File not found !", e);
                 return Result.success(new Data.Builder()
@@ -194,7 +172,6 @@ public final class UploadTask extends Worker {
                         .build()
                 );
             } catch (NullPointerException e) {
-                AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
                 return Result.retry();
             }
 
@@ -213,12 +190,10 @@ public final class UploadTask extends Worker {
                         try {
                             response = currentCall.execute();
                         } catch (SocketTimeoutException e) {
-                            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
                             return Result.retry();
                         }
                     } catch (SocketException | ProtocolException | SSLException e) {
                         currentCall.cancel();
-                        AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
                         return Result.retry();
                     }
                 } else {
@@ -242,13 +217,11 @@ public final class UploadTask extends Worker {
                             .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
                             .build();
                     AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
-                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
                     return Result.success(data);
                 } else {
                     // But if it was not it must be a connectivity problem or
                     // something similar so we retry later
                     FileTransferBackground.logMessageError("doWork: Call failed, retrying later", e);
-                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
                     return Result.retry();
                 }
             } finally {

@@ -46,9 +46,6 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private Data httpClientBaseConfig = Data.EMPTY;
 
-    private static String currentTag;
-    private static long currentTagFetchedAt;
-
     public static boolean workerIsStarted;
 
     private ScheduledExecutorService executorService = null;
@@ -352,7 +349,7 @@ public class FileTransferBackground extends CordovaPlugin {
         OneTimeWorkRequest workRequest = workRequestBuilder.build();
 
         WorkManager.getInstance(cordova.getContext())
-                .enqueueUniqueWork(FileTransferBackground.UNIQUE_WORK_TAG_UPLOAD, ExistingWorkPolicy.APPEND, workRequest);
+                .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD, ExistingWorkPolicy.APPEND, workRequest);
 
         logMessage("eventLabel=Uploader starting uploads via worker");
     }
