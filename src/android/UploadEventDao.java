@@ -14,7 +14,7 @@ public interface UploadEventDao {
     List<UploadEvent> getAll();
 
     @Query("SELECT COUNT(*) FROM upload_event")
-    int getNumberOfUploadEvents();
+    int getUploadEventsCount();
 
     @Query("SELECT * FROM upload_event WHERE id = :id")
     UploadEvent getById(final String id);

@@ -20,10 +20,10 @@ public class PendingUpload {
     @NonNull
     private String state;
 
-    public PendingUpload(@NonNull final String id, @NonNull final Data outputData, @NonNull final String state) {
+    public PendingUpload(@NonNull final String id, @NonNull final Data outputData) {
         this.id = id;
         this.outputData = outputData;
-        this.state = state; // Pending, Uploaded
+        this.state = "PENDING";
     }
 
     @NonNull

@@ -51,7 +51,7 @@ public class FileTransferBackground extends CordovaPlugin {
     private static String currentTag;
     private static long currentTagFetchedAt;
 
-    public static boolean startWorkerFlag;
+    public static boolean workerIsStarted;
 
     private ScheduledExecutorService executorService = null;
 
@@ -300,34 +300,38 @@ public class FileTransferBackground extends CordovaPlugin {
             e.printStackTrace();
         }
 
-        AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().insert(new PendingUpload(uploadId, new Data.Builder()
-                // Put base info
-                .putString(UploadTask.KEY_INPUT_ID, uploadId)
-                .putString(UploadTask.KEY_INPUT_URL, (String) payload.get("serverUrl"))
-                .putString(UploadTask.KEY_INPUT_FILEPATH, (String) payload.get("filePath"))
-                .putString(UploadTask.KEY_INPUT_FILE_KEY, (String) payload.get("fileKey"))
-                .putString(UploadTask.KEY_INPUT_HTTP_METHOD, (String) payload.get("requestMethod"))
-                // Put headers
-                .putInt(UploadTask.KEY_INPUT_HEADERS_COUNT, headersNames.size())
-                .putStringArray(UploadTask.KEY_INPUT_HEADERS_NAMES, headersNames.toArray(new String[0]))
-                .putAll(headerValues)
-                // Put query parameters
-                .putInt(UploadTask.KEY_INPUT_PARAMETERS_COUNT, parameterNames.size())
-                .putStringArray(UploadTask.KEY_INPUT_PARAMETERS_NAMES, parameterNames.toArray(new String[0]))
-                .putAll(parameterValues)
-                // Put notification stuff
-                .putString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE, (String) payload.get("notificationTitle"))
-                .putString(UploadTask.KEY_INPUT_NOTIFICATION_ICON, cordova.getActivity().getPackageName() + ":drawable/ic_upload")
-                .putString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY, intentActivity)
+        AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().insert(
+            new PendingUpload(
+                    uploadId,
+                    new Data.Builder()
+                        // Put base info
+                        .putString(UploadTask.KEY_INPUT_ID, uploadId)
+                        .putString(UploadTask.KEY_INPUT_URL, (String) payload.get("serverUrl"))
+                        .putString(UploadTask.KEY_INPUT_FILEPATH, (String) payload.get("filePath"))
+                        .putString(UploadTask.KEY_INPUT_FILE_KEY, (String) payload.get("fileKey"))
+                        .putString(UploadTask.KEY_INPUT_HTTP_METHOD, (String) payload.get("requestMethod"))
+                        // Put headers
+                        .putInt(UploadTask.KEY_INPUT_HEADERS_COUNT, headersNames.size())
+                        .putStringArray(UploadTask.KEY_INPUT_HEADERS_NAMES, headersNames.toArray(new String[0]))
+                        .putAll(headerValues)
+                        // Put query parameters
+                        .putInt(UploadTask.KEY_INPUT_PARAMETERS_COUNT, parameterNames.size())
+                        .putStringArray(UploadTask.KEY_INPUT_PARAMETERS_NAMES, parameterNames.toArray(new String[0]))
+                        .putAll(parameterValues)
+                        // Put notification stuff
+                        .putString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE, (String) payload.get("notificationTitle"))
+                        .putString(UploadTask.KEY_INPUT_NOTIFICATION_ICON, cordova.getActivity().getPackageName() + ":drawable/ic_upload")
+                        .putString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY, intentActivity)
 
-                // Put config stuff
-                .putAll(httpClientBaseConfig)
-                .build(),
-            "PENDING"));
+                        // Put config stuff
+                        .putAll(httpClientBaseConfig)
+                    .build()
+            )
+        );
 
-        if (!startWorkerFlag) {
+        if (!workerIsStarted) {
             startWorker();
-            startWorkerFlag = true;
+            workerIsStarted = true;
         }
     }
 

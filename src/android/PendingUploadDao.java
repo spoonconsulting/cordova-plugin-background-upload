@@ -20,13 +20,13 @@ public interface PendingUploadDao {
     PendingUpload getFirstPendingEntry();
 
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'PENDING'")
-    int getNumberOfPendingUploads();
+    int getPendingUploadsCount();
 
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'UPLOADED'")
-    int getNumberOfUploadedUploads();
+    int getCompletedUploadsCount();
 
-    @Query("UPDATE pending_upload SET state = :state WHERE ID = :id")
-    void setState(final String id, final String state);
+    @Query("UPDATE pending_upload SET state = 'UPLOADED' WHERE ID = :id")
+    void markAsUploaded(final String id);
 
     default boolean exists(final String id) {
         return getById(id) != null;
