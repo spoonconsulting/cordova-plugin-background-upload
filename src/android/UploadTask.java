@@ -153,8 +153,6 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        FileTransferBackground.logMessage("Hello");
-
         if(!hasNetworkConnection()) {
             return Result.retry();
         }
@@ -209,15 +207,8 @@ public final class UploadTask extends Worker {
                 if (!DEBUG_SKIP_UPLOAD) {
                     try {
                         try {
-                            concurrentUploads.acquire();
-                            try {
-                                response = currentCall.execute();
-                            } catch (SocketTimeoutException e) {
-                                return Result.retry();
-                            } finally {
-                                concurrentUploads.release();
-                            }
-                        } catch (InterruptedException e) {
+                            response = currentCall.execute();
+                        } catch (SocketTimeoutException e) {
                             return Result.retry();
                         }
                     } catch (SocketException | ProtocolException | SSLException e) {
@@ -291,7 +282,9 @@ public final class UploadTask extends Worker {
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         } while (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() > 0);
 
-        FileTransferBackground.workerIsStarted = false;
+        if (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() == 0) {
+            FileTransferBackground.workerIsStarted = false;
+        }
 
         final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getAll();
 
