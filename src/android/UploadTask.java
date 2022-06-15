@@ -153,6 +153,8 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        FileTransferBackground.logMessage("Hello");
+
         if(!hasNetworkConnection()) {
             return Result.retry();
         }
@@ -181,6 +183,7 @@ public final class UploadTask extends Worker {
             Request request = null;
             try {
                 request = createRequest();
+                AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
             } catch (FileNotFoundException e) {
                 FileTransferBackground.logMessageError("doWork: File not found !", e);
                 return Result.success(new Data.Builder()
@@ -191,6 +194,7 @@ public final class UploadTask extends Worker {
                         .build()
                 );
             } catch (NullPointerException e) {
+                AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
                 return Result.retry();
             }
 
@@ -209,10 +213,12 @@ public final class UploadTask extends Worker {
                         try {
                             response = currentCall.execute();
                         } catch (SocketTimeoutException e) {
+                            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
                             return Result.retry();
                         }
                     } catch (SocketException | ProtocolException | SSLException e) {
                         currentCall.cancel();
+                        AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
                         return Result.retry();
                     }
                 } else {
@@ -236,11 +242,13 @@ public final class UploadTask extends Worker {
                             .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
                             .build();
                     AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
                     return Result.success(data);
                 } else {
                     // But if it was not it must be a connectivity problem or
                     // something similar so we retry later
                     FileTransferBackground.logMessageError("doWork: Call failed, retrying later", e);
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
                     return Result.retry();
                 }
             } finally {
@@ -279,10 +287,12 @@ public final class UploadTask extends Worker {
             }
 
             final Data data = outputData.build();
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
-        } while (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() > 0);
+        } while(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() > 0);
 
-        if (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() == 0) {
+        if (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() == 0
+                && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getUploadingUploadsCount() == 0) {
             FileTransferBackground.workerIsStarted = false;
         }
 

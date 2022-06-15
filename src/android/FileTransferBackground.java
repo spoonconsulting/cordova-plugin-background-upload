@@ -39,8 +39,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class FileTransferBackground extends CordovaPlugin {
-
-    private static final String TAG = "FileTransferBackground";
     public static final String WORK_TAG_UPLOAD = "work_tag_upload";
 
     private CallbackContext uploadCallback;
@@ -330,13 +328,13 @@ public class FileTransferBackground extends CordovaPlugin {
         );
 
         if (!workerIsStarted) {
-            startWorker();
+            startWorkers();
             workerIsStarted = true;
         }
     }
 
-    private void startWorker() {
-        logMessage("startUpload: Starting work via work manager");
+    private void startWorkers() {
+        logMessage("startUpload: Starting worker via work manager");
 
         OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
                 .setConstraints(new Constraints.Builder()
@@ -354,9 +352,9 @@ public class FileTransferBackground extends CordovaPlugin {
         OneTimeWorkRequest workRequest = workRequestBuilder.build();
 
         WorkManager.getInstance(cordova.getContext())
-                .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD, ExistingWorkPolicy.APPEND, workRequest);
+                .enqueueUniqueWork(FileTransferBackground.UNIQUE_WORK_TAG_UPLOAD, ExistingWorkPolicy.APPEND, workRequest);
 
-        logMessage("eventLabel=Uploader starting upload");
+        logMessage("eventLabel=Uploader starting uploads via worker");
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {
