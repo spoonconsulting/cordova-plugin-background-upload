@@ -21,6 +21,7 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLException;
@@ -81,16 +82,13 @@ public final class UploadTask extends Worker {
     private static UploadNotification uploadNotification = null;
     private static UploadForegroundNotification uploadForegroundNotification = null;
 
-    public static class Mutex {
-        public void acquire() throws InterruptedException { }
-        public void release() { }
-    }
-
     private static OkHttpClient httpClient;
 
     private Call currentCall;
 
     private PendingUpload nextPendingUpload;
+
+    private static Semaphore concurrentUploads = new Semaphore(1, true);
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
 
@@ -137,7 +135,16 @@ public final class UploadTask extends Worker {
         }
 
         do {
-            nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+            try {
+                FileTransferBackground.logMessage("ZAFIR");
+                concurrentUploads.acquire();
+                nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+                AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                concurrentUploads.release();
+            }
 
             final String id = nextPendingUpload.getOutputData().getString(KEY_INPUT_ID);
 
