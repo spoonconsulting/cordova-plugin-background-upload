@@ -81,11 +81,6 @@ public final class UploadTask extends Worker {
     private static UploadNotification uploadNotification = null;
     private static UploadForegroundNotification uploadForegroundNotification = null;
 
-    public static class Mutex {
-        public void acquire() throws InterruptedException { }
-        public void release() { }
-    }
-
     private static OkHttpClient httpClient;
 
     private Call currentCall;
@@ -263,8 +258,7 @@ public final class UploadTask extends Worker {
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         } while(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() > 0);
 
-        if (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() == 0
-                && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getUploadingUploadsCount() == 0) {
+        if (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() == 0) {
             FileTransferBackground.workerIsStarted = false;
         }
 
