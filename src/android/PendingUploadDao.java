@@ -14,7 +14,7 @@ public interface PendingUploadDao {
     List<PendingUpload> getAll();
 
     @Query("SELECT COUNT(*) FROM pending_upload")
-    List<PendingUpload> getAllCount();
+    int getAllCount();
 
     @Query("SELECT * FROM pending_upload WHERE id = :id")
     PendingUpload getById(final String id);
