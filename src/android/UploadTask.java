@@ -87,18 +87,19 @@ public final class UploadTask extends Worker {
 
     private PendingUpload nextPendingUpload;
 
-    private static boolean firstMigration = false;
+    private static boolean firstMigrationFlag = false;
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
 
         super(context, workerParams);
 
         // Migrating code from 4.0.5 to 4.0.6 - Check if upload comes from another worker and does not exists in table
-        if (workerParams.getInputData().getString(KEY_INPUT_ID) != null && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getById(workerParams.getInputData().getString(KEY_INPUT_ID)) == null && firstMigration == false) {
-            FileTransferBackground.logMessage("Migrating upload " + workerParams.getInputData().getString(KEY_INPUT_ID));
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().insert(new PendingUpload(workerParams.getInputData().getString(KEY_INPUT_ID), workerParams.getInputData()));
-            FileTransferBackground.logMessage("Retrying migrated upload " + workerParams.getInputData().getString(KEY_INPUT_ID) + " after some seconds...");
-            firstMigration = true;
+        String oldUploadTaskId = workerParams.getInputData().getString(KEY_INPUT_ID);
+        if (oldUploadTaskId != null && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getById(oldUploadTaskId) == null && firstMigrationFlag == false) {
+            FileTransferBackground.logMessage("Migrating upload " + oldUploadTaskId);
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().insert(new PendingUpload(oldUploadTaskId, workerParams.getInputData()));
+            FileTransferBackground.logMessage("Retrying migrated upload " + oldUploadTaskId + " after some seconds...");
+            firstMigrationFlag = true;
         }
 
         nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
@@ -142,10 +143,11 @@ public final class UploadTask extends Worker {
         }
 
         // Migrating code from 4.0.5 to 4.0.6 - Check if upload comes from another worker and does not exists in table
-        if (getInputData().getString(KEY_INPUT_ID) != null && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getById(getInputData().getString(KEY_INPUT_ID)) == null && firstMigration == true) {
-            FileTransferBackground.logMessage("Migrating upload " + getInputData().getString(KEY_INPUT_ID));
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().insert(new PendingUpload(getInputData().getString(KEY_INPUT_ID), getInputData()));
-            FileTransferBackground.logMessage("Retrying migrated upload " + getInputData().getString(KEY_INPUT_ID) + " after some seconds...");
+        String oldUploadTaskId = getInputData().getString(KEY_INPUT_ID);
+        if (oldUploadTaskId != null && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getById(oldUploadTaskId) == null && firstMigrationFlag == true) {
+            FileTransferBackground.logMessage("Migrating upload " + oldUploadTaskId);
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().insert(new PendingUpload(oldUploadTaskId, getInputData()));
+            FileTransferBackground.logMessage("Retrying migrated upload " + oldUploadTaskId + " after some seconds...");
             return Result.success();
         }
 
