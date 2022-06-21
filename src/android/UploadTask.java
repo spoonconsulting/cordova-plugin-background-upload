@@ -87,9 +87,19 @@ public final class UploadTask extends Worker {
 
     private PendingUpload nextPendingUpload;
 
+    private static boolean firstMigration = false;
+
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
 
         super(context, workerParams);
+
+        // Migrating code from 4.0.5 to 4.0.6 - Check if upload comes from another worker and does not exists in table
+        if (workerParams.getInputData().getString(KEY_INPUT_ID) != null && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getById(workerParams.getInputData().getString(KEY_INPUT_ID)) == null && firstMigration == false) {
+            FileTransferBackground.logMessage("Migrating upload " + workerParams.getInputData().getString(KEY_INPUT_ID));
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().insert(new PendingUpload(workerParams.getInputData().getString(KEY_INPUT_ID), workerParams.getInputData()));
+            FileTransferBackground.logMessage("Retrying migrated upload " + workerParams.getInputData().getString(KEY_INPUT_ID) + " after some seconds...");
+            firstMigration = true;
+        }
 
         nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
 
@@ -105,20 +115,20 @@ public final class UploadTask extends Worker {
                     .build();
         }
 
-        httpClient.dispatcher().setMaxRequests(nextPendingUpload.getOutputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
+        httpClient.dispatcher().setMaxRequests(nextPendingUpload.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             UploadForegroundNotification.configure(
-                    nextPendingUpload.getOutputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
-                    getApplicationContext().getResources().getIdentifier(nextPendingUpload.getOutputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
-                    nextPendingUpload.getOutputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
+                    nextPendingUpload.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
+                    getApplicationContext().getResources().getIdentifier(nextPendingUpload.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
+                    nextPendingUpload.getInputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
             );
             uploadForegroundNotification = new UploadForegroundNotification();
         } else {
             UploadNotification.configure(
-                    nextPendingUpload.getOutputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
-                    getApplicationContext().getResources().getIdentifier(nextPendingUpload.getOutputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
-                    nextPendingUpload.getOutputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
+                    nextPendingUpload.getInputData().getString(UploadTask.KEY_INPUT_NOTIFICATION_TITLE),
+                    getApplicationContext().getResources().getIdentifier(nextPendingUpload.getInputData().getString(KEY_INPUT_NOTIFICATION_ICON), null, null),
+                    nextPendingUpload.getInputData().getString(UploadTask.KEY_INPUT_CONFIG_INTENT_ACTIVITY)
             );
             uploadNotification = new UploadNotification(getApplicationContext());
         }
@@ -131,10 +141,18 @@ public final class UploadTask extends Worker {
             return Result.retry();
         }
 
+        // Migrating code from 4.0.5 to 4.0.6 - Check if upload comes from another worker and does not exists in table
+        if (getInputData().getString(KEY_INPUT_ID) != null && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getById(getInputData().getString(KEY_INPUT_ID)) == null && firstMigration == true) {
+            FileTransferBackground.logMessage("Migrating upload " + getInputData().getString(KEY_INPUT_ID));
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().insert(new PendingUpload(getInputData().getString(KEY_INPUT_ID), getInputData()));
+            FileTransferBackground.logMessage("Retrying migrated upload " + getInputData().getString(KEY_INPUT_ID) + " after some seconds...");
+            return Result.success();
+        }
+
         do {
             nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
 
-            final String id = nextPendingUpload.getOutputData().getString(KEY_INPUT_ID);
+            final String id = nextPendingUpload.getInputData().getString(KEY_INPUT_ID);
 
             if (id == null) {
                 FileTransferBackground.logMessageError("doWork: ID is invalid !", null);
@@ -288,7 +306,7 @@ public final class UploadTask extends Worker {
         FileTransferBackground.logMessageInfo("handleProgress: " + getId() + " Progress: " + (int) (percent * 100f));
 
         final Data data = new Data.Builder()
-                .putString(KEY_PROGRESS_ID, nextPendingUpload.getOutputData().getString(KEY_INPUT_ID))
+                .putString(KEY_PROGRESS_ID, nextPendingUpload.getInputData().getString(KEY_INPUT_ID))
                 .putInt(KEY_PROGRESS_PERCENT, (int) (percent * 100f))
                 .build();
         FileTransferBackground.logMessage("handleProgress: Progress data: " + data);
@@ -304,13 +322,13 @@ public final class UploadTask extends Worker {
      */
     @NonNull
     private Request createRequest() throws FileNotFoundException {
-        final String filepath = nextPendingUpload.getOutputData().getString(KEY_INPUT_FILEPATH);
+        final String filepath = nextPendingUpload.getInputData().getString(KEY_INPUT_FILEPATH);
         assert filepath != null;
-        final String fileKey = nextPendingUpload.getOutputData().getString(KEY_INPUT_FILE_KEY);
+        final String fileKey = nextPendingUpload.getInputData().getString(KEY_INPUT_FILE_KEY);
         assert fileKey != null;
 
         // Build URL
-        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(nextPendingUpload.getOutputData().getString(KEY_INPUT_URL))).newBuilder().build();
+        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(nextPendingUpload.getInputData().getString(KEY_INPUT_URL))).newBuilder().build();
 
         // Build file reader
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
@@ -329,14 +347,14 @@ public final class UploadTask extends Worker {
         final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
 
         // With the parameters
-        final int parametersCount = nextPendingUpload.getOutputData().getInt(KEY_INPUT_PARAMETERS_COUNT, 0);
+        final int parametersCount = nextPendingUpload.getInputData().getInt(KEY_INPUT_PARAMETERS_COUNT, 0);
         if (parametersCount > 0) {
-            final String[] parameterNames = nextPendingUpload.getOutputData().getStringArray(KEY_INPUT_PARAMETERS_NAMES);
+            final String[] parameterNames = nextPendingUpload.getInputData().getStringArray(KEY_INPUT_PARAMETERS_NAMES);
             assert parameterNames != null;
 
             for (int i = 0; i < parametersCount; i++) {
                 final String key = parameterNames[i];
-                final Object value = nextPendingUpload.getOutputData().getKeyValueMap().get(KEY_INPUT_PARAMETER_VALUE_PREFIX + i);
+                final Object value = nextPendingUpload.getInputData().getKeyValueMap().get(KEY_INPUT_PARAMETER_VALUE_PREFIX + i);
 
                 bodyBuilder.addFormDataPart(key, value.toString());
             }
@@ -346,7 +364,7 @@ public final class UploadTask extends Worker {
         bodyBuilder.setType(MultipartBody.FORM);
 
         // Start build request
-        String method = nextPendingUpload.getOutputData().getString(KEY_INPUT_HTTP_METHOD);
+        String method = nextPendingUpload.getInputData().getString(KEY_INPUT_HTTP_METHOD);
         if (method == null) {
             method = "POST";
         }
@@ -355,12 +373,12 @@ public final class UploadTask extends Worker {
                 .method(method.toUpperCase(), bodyBuilder.build());
 
         // Write headers
-        final int headersCount = nextPendingUpload.getOutputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);
-        final String[] headerNames = nextPendingUpload.getOutputData().getStringArray(KEY_INPUT_HEADERS_NAMES);
+        final int headersCount = nextPendingUpload.getInputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);
+        final String[] headerNames = nextPendingUpload.getInputData().getStringArray(KEY_INPUT_HEADERS_NAMES);
         assert headerNames != null;
         for (int i = 0; i < headersCount; i++) {
             final String key = headerNames[i];
-            final Object value = nextPendingUpload.getOutputData().getKeyValueMap().get(KEY_INPUT_HEADER_VALUE_PREFIX + i);
+            final Object value = nextPendingUpload.getInputData().getKeyValueMap().get(KEY_INPUT_HEADER_VALUE_PREFIX + i);
 
             requestBuilder.addHeader(key, value.toString());
         }
