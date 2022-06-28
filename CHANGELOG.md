@@ -1,3 +1,7 @@
+## [4.0.6](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.5...4.0.6) (2022-03-29)
+* **android:** Fix FilePath if there is a local webserver running on device
+* **ios:** Fix FilePath if there is a local webserver running on device
+
 ## [4.0.5](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.4...4.0.5) (2022-03-29)
 * **android:** Use multipart/form-data attribute as on iOS
 
