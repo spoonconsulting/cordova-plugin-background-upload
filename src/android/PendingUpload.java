@@ -14,15 +14,15 @@ public class PendingUpload {
 
     @ColumnInfo(name = "output_data")
     @NonNull
-    private Data outputData;
+    private Data inputData;
 
     @ColumnInfo(name = "state")
     @NonNull
     private String state;
 
-    public PendingUpload(@NonNull final String id, @NonNull final Data outputData) {
+    public PendingUpload(@NonNull final String id, @NonNull final Data inputData) {
         this.id = id;
-        this.outputData = outputData;
+        this.inputData = inputData;
         this.state = "PENDING";
     }
 
@@ -37,8 +37,8 @@ public class PendingUpload {
     }
 
     @NonNull
-    public Data getOutputData() {
-        return outputData;
+    public Data getInputData() {
+        return inputData;
     }
 
     @NonNull

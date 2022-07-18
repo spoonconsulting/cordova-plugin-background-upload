@@ -51,7 +51,7 @@ FileTransferManager.prototype.startUpload = function (payload) {
 
   var self = this
   window.resolveLocalFileSystemURL(payload.filePath, function (entry) {
-    payload.filePath = entry.toURL().replace('file://', '')
+    payload.filePath = new URL(entry.toURL()).pathname.replace(/^\/local-filesystem/, '')
     exec(self.callback, null, 'FileTransferBackground', 'startUpload', [payload])
   }, function () {
     self.callback({ id: payload.id, state: 'FAILED', error: 'File not found: ' + payload.filePath })
