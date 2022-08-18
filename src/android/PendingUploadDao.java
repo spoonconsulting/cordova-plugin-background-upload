@@ -25,6 +25,9 @@ public interface PendingUploadDao {
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'PENDING'")
     int getPendingUploadsCount();
 
+    @Query("SELECT * FROM pending_upload WHERE state = 'UPLOADED'")
+    int getCompletedUploads();
+
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'UPLOADED'")
     int getCompletedUploadsCount();
 

@@ -282,7 +282,7 @@ public final class UploadTask extends Worker {
             FileTransferBackground.workerIsStarted = false;
         }
 
-        final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getAll();
+        final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getCompletedUploads();
 
         for (PendingUpload pendingUpload: pendingUploads) {
             AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(pendingUpload);
