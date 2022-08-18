@@ -42,9 +42,9 @@ public interface PendingUploadDao {
     void delete(final PendingUpload ack);
 
     default void delete(final String id) {
-        PendingUpload ack = getById(id);
-        if (ack != null) {
-            delete(ack);
+        PendingUpload pendingUpload = getById(id);
+        if (pendingUpload != null) {
+            delete(pendingUpload);
         }
     }
 }
