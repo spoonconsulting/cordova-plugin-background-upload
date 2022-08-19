@@ -19,8 +19,11 @@ public interface UploadEventDao {
     @Query("SELECT * FROM upload_event WHERE id = :id")
     UploadEvent getById(final String id);
 
+    @Query("SELECT COUNT(id) FROM upload_event WHERE id = :id")
+    int getCountById(final String id);
+
     default boolean exists(final String id) {
-        return getById(id) != null;
+        return getCountById(id) > 0;
     }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
