@@ -19,6 +19,9 @@ public interface PendingUploadDao {
     @Query("SELECT * FROM pending_upload WHERE id = :id")
     PendingUpload getById(final String id);
 
+    @Query("SELECT COUNT(id) FROM pending_upload WHERE id = :id")
+    int getCountById(final String id);
+
     @Query("SELECT * FROM pending_upload WHERE state = 'PENDING' LIMIT 1")
     PendingUpload getFirstPendingEntry();
 
@@ -26,16 +29,22 @@ public interface PendingUploadDao {
     int getPendingUploadsCount();
 
     @Query("SELECT * FROM pending_upload WHERE state = 'UPLOADED'")
-    int getCompletedUploads();
+    List<PendingUpload> getCompletedUploads();
 
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'UPLOADED'")
     int getCompletedUploadsCount();
+
+    @Query("UPDATE pending_upload SET state = 'PENDING' WHERE ID = :id")
+    void markAsPending(final String id);
+
+    @Query("UPDATE pending_upload SET state = 'UPLOADING' WHERE ID = :id")
+    void markAsUploading(final String id);
 
     @Query("UPDATE pending_upload SET state = 'UPLOADED' WHERE ID = :id")
     void markAsUploaded(final String id);
 
     default boolean exists(final String id) {
-        return getById(id) != null;
+        return getCountById(id) > 0;
     }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

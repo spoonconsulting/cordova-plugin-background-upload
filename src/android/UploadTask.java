@@ -154,10 +154,13 @@ public final class UploadTask extends Worker {
         do {
             nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
 
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
+
             final String id = nextPendingUpload.getInputData().getString(KEY_INPUT_ID);
 
             if (id == null) {
                 FileTransferBackground.logMessageError("doWork: ID is invalid !", null);
+                AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
                 return Result.failure();
             }
 
