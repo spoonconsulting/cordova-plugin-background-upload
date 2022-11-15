@@ -1,82 +1,46 @@
 import { Component, NgZone } from '@angular/core';
 import { AlertController, Platform } from '@ionic/angular';
-import { ImagePicker } from '@ionic-native/image-picker/ngx';
-import { File } from '@ionic-native/file/ngx';
+import { ImagePicker } from '@awesome-cordova-plugins/image-picker/ngx';
+import { File } from '@awesome-cordova-plugins/file/ngx';
+import { FileTransferManager, BackgroundUpload } from '@awesome-cordova-plugins/background-upload/ngx';
 
-const TEST_UPLOAD_URL = 'http://speedtest.tele2.net/upload.php';
+const TEST_UPLOAD_URL = 'https://api.2ip.me/api-speedtest/en/dev.null';
 const ID_OFFSET = 100;
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-declare const FileTransferManager: any;
 
 @Component({
   selector: 'app-tab1',
   templateUrl: 'tab1.page.html',
   styleUrls: ['tab1.page.scss'],
-  providers: [ImagePicker, File],
+  providers: [ImagePicker, File, BackgroundUpload],
 })
 export class Tab1Page {
-  uploader: any;
+  uploader: FileTransferManager;
 
-  imagesIds: [];
   images: Map<number, string> = new Map();
   imageUris: Map<number, string> = new Map();
   uploadStates: Map<number, UploadState> = new Map();
+
+  private isCordova = this.platform.is('cordova');
 
   constructor(
     private platform: Platform,
     private zone: NgZone,
     private alertController: AlertController,
     private imagePicker: ImagePicker,
-    private file: File
+    private file: File,
+    private backgroundUpload: BackgroundUpload
   ) {
     this.platform.ready().then(() => {
 
-      this.uploader = FileTransferManager.init({}, (event) => {
-        console.log(event);
+      this.initUpload();
 
-        this.zone.run(() => {
-          const id = Number.parseInt(event.id, 10);
-
-          if (!this.uploadStates.has(id)) {
-            this.uploadStates.set(id, new UploadState());
-          }
-          const state = this.uploadStates.get(id);
-
-          switch (event.state) {
-            case 'UPLOADING':
-              state.status = UploadStatus.InProgress;
-              state.progress = event.progress / 100.0;
-              break;
-
-            case 'UPLOADED':
-              state.status = UploadStatus.Done;
-              state.progress = 1.0;
-              break;
-
-            case 'FAILED':
-              state.status = UploadStatus.Failed;
-              this.alertController.create({
-                header: 'Upload failed',
-                message: event.error,
-                buttons: ['Ok'],
-              })
-                .then((alert) => alert.present());
-              break;
-          }
-
-          console.log('New state:', state);
-
-          if (event.eventId) {
-            console.log('ACK');
-            this.uploader.acknowledgeEvent(event.eventId);
-          }
-        });
-      });
     });
   }
 
   async onPickImage() {
+    if (!this.isCordova) {
+      return
+    }
     // Check permissions beforehand because if we let imagePicker do it
     // he will return nonsense
     const hasPermissions = await this.imagePicker.hasReadPermission();
@@ -120,66 +84,89 @@ export class Tab1Page {
     }
   }
 
-  onClickImage(id: number) {
+  async onClickImage(id: number) {
     if (!this.uploadStates.has(id)) {
       // Start upload
       this.uploadImage(id);
     } else {
       // Remove download
-      const state = this.uploadStates.get(id);
-      this.uploader.removeUpload(id, (res) => {
-
-        console.log('Remove result:', res);
-        this.zone.run(() => {
-          state.status = UploadStatus.Aborted;
-          state.progress = 1.0;
-        });
-
-      }, async (err) => {
-        console.warn('Remove error:', err);
-        const alert = await this.alertController.create({
-          header: 'Error removing upload',
-        });
-        await alert.present();
-      });
+      await this.removeImage(id);
     }
   }
 
-  onTapUploadButton() {
+  async onTapUploadButton() {
     for (const [key, value] of this.images) {
       if (!this.uploadStates.has(key)) {
         // Start upload
         this.uploadImage(key);
       } else {
         // Remove download
-        const state = this.uploadStates.get(key);
-        this.uploader.removeUpload(key, (res) => {
-          console.log('Remove result:', res);
-          this.zone.run(() => {
-            state.status = UploadStatus.Aborted;
-            state.progress = 1.0;
-          });
-        }, async (err) => {
-          console.warn('Remove error:', err);
-          const alert = await this.alertController.create({
-            header: 'Error removing upload',
-          });
-          await alert.present();
-        });
+        await this.removeImage(key);
       }
     }
   }
 
-  uploadImage(id: number) {
+  private initUpload(){
+    if(!this.isCordova){
+      return;
+    }
+    if(this.uploader){
+      return;
+    }
+    this.uploader = this.backgroundUpload.init({
+      callBack: event => {
+        console.log(event);
+        this.zone.run(() => {
+          const id = Number.parseInt(event.id, 10);
+
+          if (!this.uploadStates.has(id)) {
+            this.uploadStates.set(id, new UploadState());
+          }
+          const state = this.uploadStates.get(id);
+
+          switch (event.state) {
+            case 'UPLOADING':
+              state.status = UploadStatus.InProgress;
+              state.progress = event.progress / 100.0;
+              break;
+
+            case 'UPLOADED':
+              state.status = UploadStatus.Done;
+              state.progress = 1.0;
+              break;
+
+            case 'FAILED':
+              state.status = UploadStatus.Failed;
+              this.alertController.create({
+                header: 'Upload failed',
+                message: event.error,
+                buttons: ['Ok'],
+              })
+                .then((alert) => alert.present());
+              break;
+          }
+
+          console.log('New state:', state);
+
+          if (event.eventId) {
+            console.log('ACK');
+            this.uploader.acknowledgeEvent(event.eventId);
+          }
+        });
+      }
+    })
+  }
+
+  private uploadImage(id: number) {
     for (let i = 0; i < 10; i++) {
       const uri = this.imageUris.get(id);
       console.log('Upload id', id);
 
       const options = {
-        serverUrl: 'https://zfir.ngrok.io',
+        serverUrl: TEST_UPLOAD_URL,
         filePath: uri,
         fileKey: 'file',
-        id,
+        id: String(id),
         notificationTitle: 'Uploading image'
       };
       this.uploader.startUpload(options);
@@ -187,7 +174,25 @@ export class Tab1Page {
     }
   }
 
-  generateUniqueIds(count: number): Array<number> {
+  private async removeImage(id: number) {
+    const state = this.uploadStates.get(id);
+    const res = await this.uploader.removeUpload(id);
+    if (res) {
+      console.log('Remove result:', res);
+      this.zone.run(() => {
+        state.status = UploadStatus.Aborted;
+        state.progress = 1.0;
+      });
+    } else {
+      console.warn('Remove error:', res);
+      const alert = await this.alertController.create({
+        header: 'Error removing upload',
+      });
+      await alert.present();
+    }
+  }
+
+  private generateUniqueIds(count: number): Array<number> {
     const random = () => Math.round(Math.random() * 10000);
     const keys = Array(count).fill(undefined);
 
