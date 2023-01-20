@@ -1,3 +1,6 @@
+## [4.0.8](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.7...4.0.8) (2023-01-20)
+* **android:** Add support for .db extension when assigning MediaType
+
 ## [4.0.7](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.6...4.0.7) (2022-11-15)
 * **android:** Compatibility with cordova-android v11
 
