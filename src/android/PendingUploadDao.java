@@ -37,9 +37,6 @@ public interface PendingUploadDao {
     @Query("UPDATE pending_upload SET state = 'PENDING' WHERE ID = :id")
     void markAsPending(final String id);
 
-    @Query("UPDATE pending_upload SET state = 'UPLOADING' WHERE ID = :id")
-    void markAsUploading(final String id);
-
     @Query("UPDATE pending_upload SET state = 'UPLOADED' WHERE ID = :id")
     void markAsUploaded(final String id);
 
