@@ -153,6 +153,7 @@ public final class UploadTask extends Worker {
 
         do {
             nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
 
             final String id = nextPendingUpload.getInputData().getString(KEY_INPUT_ID);
 
@@ -336,7 +337,7 @@ public final class UploadTask extends Worker {
         // Build file reader
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
         MediaType mediaType;
-        if (extension.equals("json") || extension.equals("db")) {
+        if (extension.equals("json")) {
             // Does not support devices less than Android 10 (Stop Execution)
             // https://stackoverflow.com/questions/44667125/getmimetypefromextension-returns-null-when-i-pass-json-as-extension
             mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) + "; charset=utf-8");

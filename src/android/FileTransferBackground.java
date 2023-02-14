@@ -50,6 +50,8 @@ public class FileTransferBackground extends CordovaPlugin {
 
     private ScheduledExecutorService executorService = null;
 
+    private int ccUpload;
+
     public void sendCallback(JSONObject obj) {
         /* we check the webview has been initialized */
         if (ready) {
@@ -156,8 +158,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         try {
             final JSONObject settings = new JSONObject(options);
-            int ccUpload = settings.getInt("parallelUploadsLimit");
-
+            ccUpload = settings.getInt("parallelUploadsLimit");
             // Rebuild base HTTP config
             httpClientBaseConfig = new Data.Builder()
                     .putInt(UploadTask.KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, ccUpload)
@@ -333,25 +334,28 @@ public class FileTransferBackground extends CordovaPlugin {
     private void startWorkers() {
         logMessage("startUpload: Starting worker via work manager");
 
-        OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
-                .setConstraints(new Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                )
-                .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
-                .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
-                .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
+        for (int i = 0; i < ccUpload; i++) {
+            OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
+                    .setConstraints(new Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()
+                    )
+                    .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
+                    .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
+                    .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
+            }
+
+            OneTimeWorkRequest workRequest = workRequestBuilder.build();
+
+            WorkManager.getInstance(cordova.getContext())
+                    .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD + "_" + i, ExistingWorkPolicy.APPEND, workRequest);
+
+            logMessage("eventLabel=Uploader starting uploads via worker" + i);
         }
 
-        OneTimeWorkRequest workRequest = workRequestBuilder.build();
-
-        WorkManager.getInstance(cordova.getContext())
-                .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD, ExistingWorkPolicy.APPEND, workRequest);
-
-        logMessage("eventLabel=Uploader starting uploads via worker");
     }
 
     private void sendAddingUploadError(String uploadId, Exception error) {
