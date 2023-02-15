@@ -351,7 +351,7 @@ public class FileTransferBackground extends CordovaPlugin {
             OneTimeWorkRequest workRequest = workRequestBuilder.build();
 
             WorkManager.getInstance(cordova.getContext())
-                    .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD + "_" + i, ExistingWorkPolicy.APPEND, workRequest);
+                    .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD + "_" + i, ExistingWorkPolicy.KEEP, workRequest);
 
             logMessage("eventLabel=Uploader starting uploads via worker" + i);
         }
