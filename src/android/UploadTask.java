@@ -279,15 +279,13 @@ public final class UploadTask extends Worker {
             AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         } while(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() > 0);
 
-        if (AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() == 0) {
-            FileTransferBackground.workerIsStarted = false;
-        }
-
         final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getCompletedUploads();
 
         for (PendingUpload pendingUpload: pendingUploads) {
             AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(pendingUpload);
         }
+
+        FileTransferBackground.workerIsStarted = false;
 
         return Result.success();
     }
