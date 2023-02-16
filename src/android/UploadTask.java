@@ -153,7 +153,6 @@ public final class UploadTask extends Worker {
 
         do {
             nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
 
             final String id = nextPendingUpload.getInputData().getString(KEY_INPUT_ID);
 
