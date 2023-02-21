@@ -1,3 +1,6 @@
+## [4.0.8](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.8...4.0.9) (2023-02-21)
+* **android:** Upgrade WorkManager(2.8.0), Room(2.5.0) and Room Compiler(2.5.0)
+
 ## [4.0.8](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.7...4.0.8) (2023-01-20)
 * **android:** Add support for .db extension when assigning MediaType
 
