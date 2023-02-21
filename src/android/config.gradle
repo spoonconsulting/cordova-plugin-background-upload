@@ -4,5 +4,5 @@ if(cordovaConfig.MIN_SDK_VERSION < minSdkVersion){
 }
 
 dependencies {
-    annotationProcessor 'androidx.room:room-compiler:2.4.3'
+    annotationProcessor 'androidx.room:room-compiler:2.5.0'
 }

@@ -13,9 +13,9 @@
     </engines>
    <dependency id="cordova-plugin-file" version="6.0.2"/>
     <platform name="android">
-        <framework src="androidx.work:work-runtime:2.7.1" />
+        <framework src="androidx.work:work-runtime:2.8.0" />
         <framework src="com.squareup.okhttp3:okhttp:4.9.3" />
-        <framework src="androidx.room:room-runtime:2.4.2" />
+        <framework src="androidx.room:room-runtime:2.5.0" />
         <framework src="src/android/config.gradle" custom="true" type="gradleReference"/>
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FileTransferBackground">
@@ -34,6 +34,7 @@
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
             <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+            <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <meta-data android:name="DATABASE" android:value="cordova-plugin-background-upload.db" />
