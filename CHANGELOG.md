@@ -1,3 +1,6 @@
+## [4.0.10](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.9...4.0.10) (2023-03-09)
+* **android:** Add Workers based on the number of parallelUploadsLimit and use a database to continue taking pending uploads in the Workers
+
 ## [4.0.9](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.8...4.0.9) (2023-02-21)
 * **android:** Upgrade WorkManager(2.8.0), Room(2.5.0) and Room Compiler(2.5.0)
 
