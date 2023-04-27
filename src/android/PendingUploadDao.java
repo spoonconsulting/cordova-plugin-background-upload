@@ -5,6 +5,7 @@ import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Update;
 
 import java.util.List;
 
@@ -34,11 +35,18 @@ public interface PendingUploadDao {
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'UPLOADED'")
     int getCompletedUploadsCount();
 
-    @Query("UPDATE pending_upload SET state = 'PENDING' WHERE ID = :id")
-    void markAsPending(final String id);
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    default void markAsPending(final String id) {
+        setState(id, "PENDING");
+    }
 
-    @Query("UPDATE pending_upload SET state = 'UPLOADED' WHERE ID = :id")
-    void markAsUploaded(final String id);
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    default void markAsUploaded(final String id) {
+        setState(id, "UPLOADED");
+    }
+
+    @Query("UPDATE OR REPLACE pending_upload SET state = :state WHERE ID = :id")
+    void setState(final String id, final String state);
 
     default boolean exists(final String id) {
         return getCountById(id) > 0;
