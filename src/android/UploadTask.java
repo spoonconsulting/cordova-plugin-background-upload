@@ -268,8 +268,6 @@ public final class UploadTask extends Worker {
             AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(pendingUpload);
         }
 
-        FileTransferBackground.workerIsStarted = false;
-
         return Result.success();
     }
 

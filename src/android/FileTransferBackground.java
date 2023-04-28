@@ -17,6 +17,7 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
+import androidx.work.WorkQuery;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -45,8 +46,6 @@ public class FileTransferBackground extends CordovaPlugin {
     private boolean ready = false;
 
     private Data httpClientBaseConfig = Data.EMPTY;
-
-    public static boolean workerIsStarted;
 
     private ScheduledExecutorService executorService = null;
 
@@ -178,6 +177,21 @@ public class FileTransferBackground extends CordovaPlugin {
         }
 
         final AckDatabase ackDatabase = AckDatabase.getInstance(cordova.getContext());
+
+        try {
+            List<WorkInfo.State> workInfoStates = new ArrayList<>();
+            workInfoStates.add(WorkInfo.State.BLOCKED);
+            workInfoStates.add(WorkInfo.State.CANCELLED);
+            workInfoStates.add(WorkInfo.State.ENQUEUED);
+            workInfoStates.add(WorkInfo.State.RUNNING);
+            List<WorkInfo> workers = WorkManager.getInstance(cordova.getContext()).getWorkInfos(WorkQuery.Builder.fromStates(workInfoStates).build()).get();
+            if (ackDatabase.pendingUploadDao().getPendingUploadsCount() > 0 && workers.size() == 0) {
+                startWorkers();
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            logMessage("eventLabel='Uploader could not start worker:'" + e.getMessage() + "'");
+        }
 
         // Resend pending ACK at startup (and warmup database)
         final List<UploadEvent> uploadEvents = ackDatabase
@@ -326,9 +340,19 @@ public class FileTransferBackground extends CordovaPlugin {
             )
         );
 
-        if (!workerIsStarted) {
-            startWorkers();
-            workerIsStarted = true;
+        try {
+            List<WorkInfo.State> workInfoStates = new ArrayList<>();
+            workInfoStates.add(WorkInfo.State.BLOCKED);
+            workInfoStates.add(WorkInfo.State.CANCELLED);
+            workInfoStates.add(WorkInfo.State.ENQUEUED);
+            workInfoStates.add(WorkInfo.State.RUNNING);
+            List<WorkInfo> workers = WorkManager.getInstance(cordova.getContext()).getWorkInfos(WorkQuery.Builder.fromStates(workInfoStates).build()).get();
+            if (workers.size() == 0) {
+                startWorkers();
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            logMessage("eventLabel='Uploader could not start worker:'" + e.getMessage() + "'");
         }
     }
 
