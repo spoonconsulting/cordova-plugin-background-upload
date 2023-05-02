@@ -180,6 +180,7 @@ public class FileTransferBackground extends CordovaPlugin {
 
         // Delete any worker
         WorkManager.getInstance(cordova.getContext()).cancelAllWork();
+        WorkManager.getInstance(cordova.getContext()).pruneWork();
 
         // Start workers if there is pending uploads and no worker is already running
         try {
