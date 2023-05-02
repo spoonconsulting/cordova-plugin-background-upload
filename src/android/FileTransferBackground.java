@@ -178,6 +178,21 @@ public class FileTransferBackground extends CordovaPlugin {
 
         final AckDatabase ackDatabase = AckDatabase.getInstance(cordova.getContext());
 
+        // Delete any worker
+        try {
+            List<WorkInfo.State> workInfoStates = new ArrayList<>();
+            workInfoStates.add(WorkInfo.State.FAILED);
+            workInfoStates.add(WorkInfo.State.SUCCEEDED);
+            List<WorkInfo> workers = WorkManager.getInstance(cordova.getContext()).getWorkInfos(WorkQuery.Builder.fromStates(workInfoStates).build()).get();
+            for (int i = 0; i < workers.size(); i++) {
+                WorkManager.getInstance(cordova.getContext()).cancelUniqueWork(workers.get(i));
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            logMessage("eventLabel='Uploader could not start worker:'" + e.getMessage() + "'");
+        }
+
+        // Start workers if there is pending uploads and no worker is already running
         try {
             List<WorkInfo.State> workInfoStates = new ArrayList<>();
             workInfoStates.add(WorkInfo.State.BLOCKED);
@@ -185,6 +200,7 @@ public class FileTransferBackground extends CordovaPlugin {
             workInfoStates.add(WorkInfo.State.ENQUEUED);
             workInfoStates.add(WorkInfo.State.RUNNING);
             List<WorkInfo> workers = WorkManager.getInstance(cordova.getContext()).getWorkInfos(WorkQuery.Builder.fromStates(workInfoStates).build()).get();
+
             if (ackDatabase.pendingUploadDao().getPendingUploadsCount() > 0 && workers.size() == 0) {
                 startWorkers();
             }
