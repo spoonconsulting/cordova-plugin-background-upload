@@ -178,14 +178,14 @@ public class FileTransferBackground extends CordovaPlugin {
 
         final AckDatabase ackDatabase = AckDatabase.getInstance(cordova.getContext());
 
-        // Delete any worker
+        // Delete any worker that has been failed or succeeded
         try {
             List<WorkInfo.State> workInfoStates = new ArrayList<>();
             workInfoStates.add(WorkInfo.State.FAILED);
             workInfoStates.add(WorkInfo.State.SUCCEEDED);
             List<WorkInfo> workers = WorkManager.getInstance(cordova.getContext()).getWorkInfos(WorkQuery.Builder.fromStates(workInfoStates).build()).get();
             for (int i = 0; i < workers.size(); i++) {
-                WorkManager.getInstance(cordova.getContext()).cancelAllWork();
+                WorkManager.getInstance(cordova.getContext()).cancelWorkById(workers.get(i).getId());
             }
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
@@ -377,17 +377,13 @@ public class FileTransferBackground extends CordovaPlugin {
 
         for (int i = 0; i < ccUpload; i++) {
             OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
-                    .setConstraints(new Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build()
-                    )
-                    .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
+//                    .setConstraints(new Constraints.Builder()
+//                            .setRequiredNetworkType(NetworkType.CONNECTED)
+//                            .build()
+//                    )
+//                    .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
                     .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
                     .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
-
-    //            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-    //                workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
-    //            }
 
             OneTimeWorkRequest workRequest = workRequestBuilder.build();
 
