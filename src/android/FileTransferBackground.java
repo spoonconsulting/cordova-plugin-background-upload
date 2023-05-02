@@ -385,14 +385,14 @@ public class FileTransferBackground extends CordovaPlugin {
                     .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
                     .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
-            }
+    //            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    //                workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
+    //            }
 
             OneTimeWorkRequest workRequest = workRequestBuilder.build();
 
             WorkManager.getInstance(cordova.getContext())
-                    .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD + "_" + i, ExistingWorkPolicy.REPLACE, workRequest);
+                    .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD + "_" + i, ExistingWorkPolicy.KEEP, workRequest);
 
             logMessage("eventLabel=Uploader starting uploads via worker" + i);
         }
