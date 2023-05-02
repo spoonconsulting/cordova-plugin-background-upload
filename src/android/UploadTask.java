@@ -146,15 +146,15 @@ public final class UploadTask extends Worker {
             }
 
             // Check retry count
-            // if (getRunAttemptCount() > MAX_TRIES) {
-            //     return Result.success(new Data.Builder()
-            //             .putString(KEY_OUTPUT_ID, id)
-            //             .putBoolean(KEY_OUTPUT_IS_ERROR, true)
-            //             .putString(KEY_OUTPUT_FAILURE_REASON, "Too many retries")
-            //             .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
-            //             .build()
-            //     );
-            // }
+            if (getRunAttemptCount() > MAX_TRIES) {
+                return Result.success(new Data.Builder()
+                        .putString(KEY_OUTPUT_ID, id)
+                        .putBoolean(KEY_OUTPUT_IS_ERROR, true)
+                        .putString(KEY_OUTPUT_FAILURE_REASON, "Too many retries")
+                        .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
+                        .build()
+                );
+            }
 
             Request request = null;
             try {
