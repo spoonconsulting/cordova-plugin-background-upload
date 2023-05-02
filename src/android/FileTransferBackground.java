@@ -377,11 +377,11 @@ public class FileTransferBackground extends CordovaPlugin {
 
         for (int i = 0; i < ccUpload; i++) {
             OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
-//                    .setConstraints(new Constraints.Builder()
-//                            .setRequiredNetworkType(NetworkType.CONNECTED)
-//                            .build()
-//                    )
-//                    .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
+                    .setConstraints(new Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()
+                    )
+                    .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
                     .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
                     .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
 
