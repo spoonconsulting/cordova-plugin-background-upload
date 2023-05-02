@@ -185,7 +185,7 @@ public class FileTransferBackground extends CordovaPlugin {
             workInfoStates.add(WorkInfo.State.SUCCEEDED);
             List<WorkInfo> workers = WorkManager.getInstance(cordova.getContext()).getWorkInfos(WorkQuery.Builder.fromStates(workInfoStates).build()).get();
             for (int i = 0; i < workers.size(); i++) {
-                WorkManager.getInstance(cordova.getContext()).cancelUniqueWork(workers.get(i));
+                WorkManager.getInstance(cordova.getContext()).cancelAllWork();
             }
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
@@ -392,7 +392,7 @@ public class FileTransferBackground extends CordovaPlugin {
             OneTimeWorkRequest workRequest = workRequestBuilder.build();
 
             WorkManager.getInstance(cordova.getContext())
-                    .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD + "_" + i, ExistingWorkPolicy.KEEP, workRequest);
+                    .enqueueUniqueWork(FileTransferBackground.WORK_TAG_UPLOAD + "_" + i, ExistingWorkPolicy.REPLACE, workRequest);
 
             logMessage("eventLabel=Uploader starting uploads via worker" + i);
         }
