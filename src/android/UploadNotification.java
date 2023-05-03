@@ -41,9 +41,8 @@ public class UploadNotification {
         ));
     }
 
-    public void updateProgress() {
-        float totalProgressStore = (float) (AckDatabase.getInstance(context).pendingUploadDao().getCompletedUploadsCount() / (double) AckDatabase.getInstance(context).pendingUploadDao().getAllCount());
-        notificationBuilder.setProgress(100, (int) (totalProgressStore * 100f), false);
+    public void updateProgress(float progress) {
+        notificationBuilder.setProgress(100, (int) (progress * 100), false);
         notificationManager.notify(UploadNotification.notificationId, notificationBuilder.build());
     }
 

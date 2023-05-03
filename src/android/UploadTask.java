@@ -163,7 +163,7 @@ public final class UploadTask extends Worker {
 
             // Register me
             uploadForegroundNotification.progress(getId(), 0f);
-            handleNotification();
+            handleNotification(0f);
 
             // Start call
             currentCall = httpClient.newCall(request);
@@ -279,7 +279,7 @@ public final class UploadTask extends Worker {
                 .build();
         FileTransferBackground.logMessage("handleProgress: Progress data: " + data);
         setProgressAsync(data);
-        handleNotification();
+        handleNotification(percent);
     }
 
     /**
@@ -355,12 +355,12 @@ public final class UploadTask extends Worker {
         return requestBuilder.build();
     }
 
-    private void handleNotification() {
+    private void handleNotification(float progress) {
         FileTransferBackground.logMessage("Upload Notification");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            setForegroundAsync(uploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+            setForegroundAsync(uploadForegroundNotification.getForegroundInfo(getApplicationContext(), progress));
         } else  {
-            uploadNotification.updateProgress();
+            uploadNotification.updateProgress(progress);
         }
         FileTransferBackground.logMessage("Upload Notification Exit");
     }
