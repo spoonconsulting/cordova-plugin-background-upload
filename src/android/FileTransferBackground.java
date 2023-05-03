@@ -367,17 +367,13 @@ public class FileTransferBackground extends CordovaPlugin {
 
         for (int i = 0; i < ccUpload; i++) {
             OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
-                    .setConstraints(new Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build()
-                    )
-                    .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
+                   .setConstraints(new Constraints.Builder()
+                           .setRequiredNetworkType(NetworkType.CONNECTED)
+                           .build()
+                   )
+                   .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
                     .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
                     .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
-            }
 
             OneTimeWorkRequest workRequest = workRequestBuilder.build();
 
@@ -463,16 +459,18 @@ public class FileTransferBackground extends CordovaPlugin {
      * Cleanup response file and ACK entry.
      */
     private void cleanupUpload(final String uploadId) {
-        final UploadEvent ack = AckDatabase.getInstance(cordova.getContext()).uploadEventDao().getById(uploadId);
+        final PendingUpload pendingUploadAck = AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().getById(uploadId);
+        final UploadEvent uploadEventAck = AckDatabase.getInstance(cordova.getContext()).uploadEventDao().getById(uploadId);
 
         // If the upload is done there is an ACK of it, so get file name from there
-        if (ack != null) {
-            if (ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
-                cordova.getContext().deleteFile(ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
+        if (uploadEventAck != null) {
+            if (uploadEventAck.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
+                cordova.getContext().deleteFile(uploadEventAck.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
             }
 
             // Also delete it from database
-            AckDatabase.getInstance(cordova.getContext()).uploadEventDao().delete(ack);
+            AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().delete(pendingUploadAck);
+            AckDatabase.getInstance(cordova.getContext()).uploadEventDao().delete(uploadEventAck);
         } else {
             // Otherwise get the data from the task itself
             final WorkInfo task;
