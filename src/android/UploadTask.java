@@ -93,16 +93,12 @@ public final class UploadTask extends Worker {
 
         super(context, workerParams);
 
-        // Migrating code from 4.0.9 to 4.0.10 - Check if upload comes from another worker and does not exists in table
-        String oldUploadTaskId = workerParams.getInputData().getString(KEY_INPUT_ID);
-        if (!firstMigrationFlag && oldUploadTaskId != null && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getById(oldUploadTaskId) == null) {
-            FileTransferBackground.logMessage("Migrating upload " + oldUploadTaskId);
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().insert(new PendingUpload(oldUploadTaskId, workerParams.getInputData()));
-            FileTransferBackground.logMessage("Retrying migrated upload " + oldUploadTaskId + " after some seconds...");
-            firstMigrationFlag = true;
-        }
-
-        nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+        AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+            @Override
+            public void run() {
+                nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+            }
+        });
 
         if (httpClient == null) {
             httpClient = new OkHttpClient.Builder()
@@ -115,8 +111,6 @@ public final class UploadTask extends Worker {
                     .cache(null)
                     .build();
         }
-
-        httpClient.dispatcher().setMaxRequests(nextPendingUpload.getInputData().getInt(KEY_INPUT_CONFIG_CONCURRENT_DOWNLOADS, 2));
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             UploadForegroundNotification.configure(
@@ -142,35 +136,17 @@ public final class UploadTask extends Worker {
             return Result.retry();
         }
 
-        // Migrating code from 4.0.9 to 4.0.10 - Check if upload comes from another worker and does not exists in table
-        String oldUploadTaskId = getInputData().getString(KEY_INPUT_ID);
-        if (oldUploadTaskId != null && AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getById(oldUploadTaskId) == null && firstMigrationFlag == true) {
-            FileTransferBackground.logMessage("Migrating upload " + oldUploadTaskId);
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().insert(new PendingUpload(oldUploadTaskId, getInputData()));
-            FileTransferBackground.logMessage("Retrying migrated upload " + oldUploadTaskId + " after some seconds...");
-            return Result.success();
-        }
+        while (true) {
+            AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+                @Override
+                public void run() {
+                    nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
+                }
+            });
 
-        do {
-            nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
-
-            final String id = nextPendingUpload.getInputData().getString(KEY_INPUT_ID);
-
-            if (id == null) {
-                FileTransferBackground.logMessageError("doWork: ID is invalid !", null);
-                AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsPending(nextPendingUpload.getId());
-                return Result.failure();
-            }
-
-            // Check retry count
-            if (getRunAttemptCount() > MAX_TRIES) {
-                return Result.success(new Data.Builder()
-                        .putString(KEY_OUTPUT_ID, id)
-                        .putBoolean(KEY_OUTPUT_IS_ERROR, true)
-                        .putString(KEY_OUTPUT_FAILURE_REASON, "Too many retries")
-                        .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
-                        .build()
-                );
+            if (nextPendingUpload == null) {
+                break;
             }
 
             Request request = null;
@@ -179,7 +155,7 @@ public final class UploadTask extends Worker {
             } catch (FileNotFoundException e) {
                 FileTransferBackground.logMessageError("doWork: File not found !", e);
                 return Result.success(new Data.Builder()
-                        .putString(KEY_OUTPUT_ID, id)
+                        .putString(KEY_OUTPUT_ID, nextPendingUpload.getId())
                         .putBoolean(KEY_OUTPUT_IS_ERROR, true)
                         .putString(KEY_OUTPUT_FAILURE_REASON, "File not found !")
                         .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
@@ -191,7 +167,7 @@ public final class UploadTask extends Worker {
 
             // Register me
             uploadForegroundNotification.progress(getId(), 0f);
-            handleNotification();
+            handleNotification(0f);
 
             // Start call
             currentCall = httpClient.newCall(request);
@@ -225,13 +201,18 @@ public final class UploadTask extends Worker {
                 // See #handleProgress for cancel code
                 if (isStopped()) {
                     final Data data = new Data.Builder()
-                            .putString(KEY_OUTPUT_ID, id)
+                            .putString(KEY_OUTPUT_ID, nextPendingUpload.getId())
                             .putBoolean(KEY_OUTPUT_IS_ERROR, true)
                             .putString(KEY_OUTPUT_FAILURE_REASON, "User cancelled")
                             .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
                             .build();
-                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
-                    AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+                    AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+                        @Override
+                        public void run() {
+                            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
+                            AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(nextPendingUpload.getId(), data));
+                        }
+                    });
                     return Result.success(data);
                 } else {
                     // But if it was not it must be a connectivity problem or
@@ -246,7 +227,7 @@ public final class UploadTask extends Worker {
 
             // Start building the output data
             final Data.Builder outputData = new Data.Builder()
-                    .putString(KEY_OUTPUT_ID, id)
+                    .putString(KEY_OUTPUT_ID, nextPendingUpload.getId())
                     .putBoolean(KEY_OUTPUT_IS_ERROR, false)
                     .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
 
@@ -275,17 +256,25 @@ public final class UploadTask extends Worker {
             }
 
             final Data data = outputData.build();
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
-            AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
-        } while(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() > 0);
-
-        final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getCompletedUploads();
-
-        for (PendingUpload pendingUpload: pendingUploads) {
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(pendingUpload);
+            AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+                @Override
+                public void run() {
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
+                    AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(nextPendingUpload.getId(), data));
+                }
+            });
         }
 
-        FileTransferBackground.workerIsStarted = false;
+        AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+            @Override
+            public void run() {
+                final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getCompletedUploads();
+
+                for (PendingUpload pendingUpload:pendingUploads) {
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(pendingUpload);
+                }
+            }
+        });
 
         return Result.success();
     }
@@ -303,16 +292,13 @@ public final class UploadTask extends Worker {
 
         float percent = (float) bytesWritten / (float) totalBytes;
         UploadForegroundNotification.progress(getId(), percent);
-
-        FileTransferBackground.logMessageInfo("handleProgress: " + getId() + " Progress: " + (int) (percent * 100f));
-
         final Data data = new Data.Builder()
                 .putString(KEY_PROGRESS_ID, nextPendingUpload.getInputData().getString(KEY_INPUT_ID))
                 .putInt(KEY_PROGRESS_PERCENT, (int) (percent * 100f))
                 .build();
         FileTransferBackground.logMessage("handleProgress: Progress data: " + data);
         setProgressAsync(data);
-        handleNotification();
+        handleNotification(percent);
     }
 
     /**
@@ -388,12 +374,12 @@ public final class UploadTask extends Worker {
         return requestBuilder.build();
     }
 
-    private void handleNotification() {
+    private void handleNotification(float progress) {
         FileTransferBackground.logMessage("Upload Notification");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            setForegroundAsync(uploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+            setForegroundAsync(uploadForegroundNotification.getForegroundInfo(getApplicationContext(), progress));
         } else  {
-            uploadNotification.updateProgress();
+            uploadNotification.updateProgress(progress);
         }
         FileTransferBackground.logMessage("Upload Notification Exit");
     }

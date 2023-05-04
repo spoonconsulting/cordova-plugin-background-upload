@@ -17,6 +17,7 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
+import androidx.work.WorkQuery;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -45,8 +46,6 @@ public class FileTransferBackground extends CordovaPlugin {
     private boolean ready = false;
 
     private Data httpClientBaseConfig = Data.EMPTY;
-
-    public static boolean workerIsStarted;
 
     private ScheduledExecutorService executorService = null;
 
@@ -179,18 +178,56 @@ public class FileTransferBackground extends CordovaPlugin {
 
         final AckDatabase ackDatabase = AckDatabase.getInstance(cordova.getContext());
 
-        // Resend pending ACK at startup (and warmup database)
-        final List<UploadEvent> uploadEvents = ackDatabase
-                .uploadEventDao()
-                .getAll();
+        // Delete any worker
+        WorkManager.getInstance(cordova.getContext()).cancelAllWork();
+        WorkManager.getInstance(cordova.getContext()).pruneWork();
 
-        int ackDelay = 0;
-        for (UploadEvent ack : uploadEvents) {
-            executorService.schedule(() -> {
-                handleAck(ack.getOutputData());
-            }, ackDelay, TimeUnit.MILLISECONDS);
-            ackDelay += 200;
+        ackDatabase.runInTransaction(new Runnable() {
+            @Override
+            public void run() {
+                ackDatabase.pendingUploadDao().resetUploadingAsPending();
+            }
+        });
+
+        // Start workers if there is pending uploads and no worker is already running
+        try {
+            List<WorkInfo.State> workInfoStates = new ArrayList<>();
+            workInfoStates.add(WorkInfo.State.BLOCKED);
+            workInfoStates.add(WorkInfo.State.CANCELLED);
+            workInfoStates.add(WorkInfo.State.ENQUEUED);
+            workInfoStates.add(WorkInfo.State.RUNNING);
+            List<WorkInfo> workers = WorkManager.getInstance(cordova.getContext()).getWorkInfos(WorkQuery.Builder.fromStates(workInfoStates).build()).get();
+
+            ackDatabase.runInTransaction(new Runnable() {
+                @Override
+                public void run() {
+                    if (ackDatabase.pendingUploadDao().getPendingUploadsCount() > 0 && workers.size() == 0) {
+                        startWorkers();
+                    }
+                }
+            });
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            logMessage("eventLabel='Uploader could not start worker:'" + e.getMessage() + "'");
         }
+
+        // Resend pending ACK at startup (and warmup database)
+
+        ackDatabase.runInTransaction(new Runnable() {
+            @Override
+            public void run() {
+                List<UploadEvent> uploadEvents = ackDatabase
+                        .uploadEventDao()
+                        .getAll();
+                int ackDelay = 0;
+                for (UploadEvent ack : uploadEvents) {
+                    executorService.schedule(() -> {
+                        handleAck(ack.getOutputData());
+                    }, ackDelay, TimeUnit.MILLISECONDS);
+                    ackDelay += 200;
+                }
+            }
+        });
 
         // Can't use observeForever anywhere else than the main thread
         cordova.getActivity().runOnUiThread(() -> {
@@ -202,12 +239,17 @@ public class FileTransferBackground extends CordovaPlugin {
                         for (WorkInfo info : tasks) {
                             // No db in main thread
                             executorService.schedule(() -> {
-                                final List<UploadEvent> uploadEventsList = ackDatabase
-                                        .uploadEventDao()
-                                        .getAll();
-                                for (UploadEvent ack : uploadEventsList) {
-                                    handleAck(ack.getOutputData());
-                                }
+                                ackDatabase.runInTransaction(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        List<UploadEvent> uploadEventsList = ackDatabase
+                                                .uploadEventDao()
+                                                .getAll();
+                                        for (UploadEvent ack : uploadEventsList) {
+                                            handleAck(ack.getOutputData());
+                                        }
+                                    }
+                                });
                             }, 0, TimeUnit.MILLISECONDS);
                             switch (info.getState()) {
                                 // If the upload in not finished, publish its progress
@@ -226,6 +268,7 @@ public class FileTransferBackground extends CordovaPlugin {
                                 case SUCCEEDED:
                                     logMessage("Task succeeded: " + info.getId());
                                     completedTasks++;
+                                    break;
                                 case FAILED:
                                     // The task can't fail completely so something really bad has happened.
                                     logMessage("eventLabel='Uploader failed inexplicably' error='" + info.getOutputData() + "'");
@@ -256,6 +299,10 @@ public class FileTransferBackground extends CordovaPlugin {
         // Prepare task payload
 
         final String uploadId = String.valueOf(payload.get("id"));
+
+        if (uploadId == null) {
+            return;
+        }
 
         // Create headers
         final Map<String, Object> headers;
@@ -325,9 +372,19 @@ public class FileTransferBackground extends CordovaPlugin {
             )
         );
 
-        if (!workerIsStarted) {
-            startWorkers();
-            workerIsStarted = true;
+        try {
+            List<WorkInfo.State> workInfoStates = new ArrayList<>();
+            workInfoStates.add(WorkInfo.State.BLOCKED);
+            workInfoStates.add(WorkInfo.State.CANCELLED);
+            workInfoStates.add(WorkInfo.State.ENQUEUED);
+            workInfoStates.add(WorkInfo.State.RUNNING);
+            List<WorkInfo> workers = WorkManager.getInstance(cordova.getContext()).getWorkInfos(WorkQuery.Builder.fromStates(workInfoStates).build()).get();
+            if (workers.size() == 0) {
+                startWorkers();
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            logMessage("eventLabel='Uploader could not start worker:'" + e.getMessage() + "'");
         }
     }
 
@@ -336,13 +393,13 @@ public class FileTransferBackground extends CordovaPlugin {
 
         for (int i = 0; i < ccUpload; i++) {
             OneTimeWorkRequest.Builder workRequestBuilder = new OneTimeWorkRequest.Builder(UploadTask.class)
-                    .setConstraints(new Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build()
-                    )
-                    .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
-                    .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
-                    .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
+                   .setConstraints(new Constraints.Builder()
+                           .setRequiredNetworkType(NetworkType.CONNECTED)
+                           .build()
+                   )
+                   .keepResultsForAtLeast(0, TimeUnit.MILLISECONDS)
+                   .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
+                   .addTag(FileTransferBackground.WORK_TAG_UPLOAD);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST);
@@ -432,16 +489,20 @@ public class FileTransferBackground extends CordovaPlugin {
      * Cleanup response file and ACK entry.
      */
     private void cleanupUpload(final String uploadId) {
-        final UploadEvent ack = AckDatabase.getInstance(cordova.getContext()).uploadEventDao().getById(uploadId);
+        final UploadEvent uploadEventAck = AckDatabase.getInstance(cordova.getContext()).uploadEventDao().getById(uploadId);
 
         // If the upload is done there is an ACK of it, so get file name from there
-        if (ack != null) {
-            if (ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
-                cordova.getContext().deleteFile(ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
+        if (uploadEventAck != null) {
+            if (uploadEventAck.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
+                cordova.getContext().deleteFile(uploadEventAck.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
             }
 
             // Also delete it from database
-            AckDatabase.getInstance(cordova.getContext()).uploadEventDao().delete(ack);
+            final PendingUpload pendingUploadAck = AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().getById(uploadId);
+            if (pendingUploadAck != null) {
+                AckDatabase.getInstance(cordova.getContext()).pendingUploadDao().delete(pendingUploadAck);
+            }
+            AckDatabase.getInstance(cordova.getContext()).uploadEventDao().delete(uploadEventAck);
         } else {
             // Otherwise get the data from the task itself
             final WorkInfo task;

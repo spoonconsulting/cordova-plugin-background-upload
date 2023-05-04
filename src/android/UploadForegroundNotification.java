@@ -44,7 +44,7 @@ public class UploadForegroundNotification {
         collectiveProgress.remove(uuid);
     }
 
-    static ForegroundInfo getForegroundInfo(final Context context) {
+    static ForegroundInfo getForegroundInfo(final Context context, float progress) {
         final long now = System.currentTimeMillis();
         // Set to now to ensure other worker will be throttled
         final long lastUpdate = lastNotificationUpdateMs.getAndSet(now);
@@ -56,9 +56,7 @@ public class UploadForegroundNotification {
             return cachedInfo;
         }
 
-        float totalProgressStore = (float) (AckDatabase.getInstance(context).pendingUploadDao().getCompletedUploadsCount() / (double) AckDatabase.getInstance(context).pendingUploadDao().getAllCount());
-
-        FileTransferBackground.logMessage("eventLabel='getForegroundInfo: general (" + totalProgressStore + ") all (" + collectiveProgress + ")'");
+        FileTransferBackground.logMessage("eventLabel='getForegroundInfo: general (" + (progress * 100) + ") all (" + collectiveProgress + ")'");
 
         Class<?> mainActivityClass = null;
         try {
@@ -82,7 +80,7 @@ public class UploadForegroundNotification {
                 .setSmallIcon(notificationIconRes)
                 .setColor(Color.rgb(57, 100, 150))
                 .setOngoing(true)
-                .setProgress(100, (int) (totalProgressStore * 100f), false)
+                .setProgress(100, (int) (progress * 100), false)
                 .setContentIntent(pendingIntent)
                 .addAction(notificationIconRes, "Open", pendingIntent)
                 .build();
