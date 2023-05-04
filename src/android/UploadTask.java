@@ -93,6 +93,13 @@ public final class UploadTask extends Worker {
 
         super(context, workerParams);
 
+        AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+            @Override
+            public void run() {
+                nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+            }
+        });
+
         if (httpClient == null) {
             httpClient = new OkHttpClient.Builder()
                     .followRedirects(true)
