@@ -35,9 +35,17 @@ public interface PendingUploadDao {
     @Query("SELECT COUNT(*) FROM pending_upload WHERE state = 'UPLOADED'")
     int getCompletedUploadsCount();
 
+    @Query("UPDATE pending_upload SET state = 'PENDING' WHERE state = 'UPLOADING'")
+    void resetUploadingAsPending();
+
     @Update(onConflict = OnConflictStrategy.REPLACE)
     default void markAsPending(final String id) {
         setState(id, "PENDING");
+    }
+
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    default void markAsUploading(final String id) {
+        setState(id, "UPLOADING");
     }
 
     @Update(onConflict = OnConflictStrategy.REPLACE)

@@ -93,7 +93,13 @@ public final class UploadTask extends Worker {
 
         super(context, workerParams);
 
-        nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+        AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+            @Override
+            public void run() {
+                nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+                AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
+            }
+        });
 
         if (httpClient == null) {
             httpClient = new OkHttpClient.Builder()
@@ -133,9 +139,23 @@ public final class UploadTask extends Worker {
             return Result.retry();
         }
 
+        final int[] pendingUploadCount = new int[1];
+        AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+          @Override
+          public void run() {
+              pendingUploadCount[0] = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount();
+          }
+        });
+        if (nextPendingUpload == null) {
+            AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+                @Override
+                public void run() {
+                    nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
+                }
+            });
+        }
         do {
-            nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
-
             final String id = nextPendingUpload.getInputData().getString(KEY_INPUT_ID);
 
             if (id == null) {
@@ -201,8 +221,13 @@ public final class UploadTask extends Worker {
                             .putString(KEY_OUTPUT_FAILURE_REASON, "User cancelled")
                             .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
                             .build();
-                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
-                    AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+                    AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+                        @Override
+                        public void run() {
+                            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
+                            AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+                        }
+                    });
                     return Result.success(data);
                 } else {
                     // But if it was not it must be a connectivity problem or
@@ -246,15 +271,28 @@ public final class UploadTask extends Worker {
             }
 
             final Data data = outputData.build();
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
-            AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
-        } while(AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount() > 0);
+            AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+                @Override
+                public void run() {
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploaded(nextPendingUpload.getId());
+                    AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+                    pendingUploadCount[0] = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getPendingUploadsCount();
+                    nextPendingUpload = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getFirstPendingEntry();
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().markAsUploading(nextPendingUpload.getId());
+                }
+            });
+        } while(pendingUploadCount[0] > 0);
 
-        final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getCompletedUploads();
+        AckDatabase.getInstance(getApplicationContext()).runInTransaction(new Runnable() {
+            @Override
+            public void run() {
+                final List<PendingUpload> pendingUploads = AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().getCompletedUploads();
 
-        for (PendingUpload pendingUpload: pendingUploads) {
-            AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(pendingUpload);
-        }
+                for (PendingUpload pendingUpload:pendingUploads) {
+                    AckDatabase.getInstance(getApplicationContext()).pendingUploadDao().delete(pendingUpload);
+                }
+            }
+        });
 
         return Result.success();
     }
