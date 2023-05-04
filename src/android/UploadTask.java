@@ -3,7 +3,6 @@ package com.spoon.backgroundfileupload;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.os.Build;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
