@@ -300,6 +300,10 @@ public class FileTransferBackground extends CordovaPlugin {
 
         final String uploadId = String.valueOf(payload.get("id"));
 
+        if (uploadId == null) {
+            return;
+        }
+
         // Create headers
         final Map<String, Object> headers;
         try {
