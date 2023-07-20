@@ -55,7 +55,15 @@
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
     </platform>
     <platform name="ios">
-        <framework src="AFNetworking" type="podspec" spec="~> 4.0.1" />
+        <podspec>
+            <config>
+                <source url="https://cdn.cocoapods.org/"/>
+            </config>
+            <pods use-frameworks="true">
+                <framework src="AFNetworking" type="podspec" spec="~> 4.0.1" />
+            </pods>
+        </podspec>
+
         <config-file target="config.xml" parent="/*">
             <feature name="FileTransferBackground">
                 <param name="ios-package" value="FileTransferBackground" />
