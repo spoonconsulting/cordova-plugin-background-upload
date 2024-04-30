@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 import androidx.work.Data;
 
-@Database(entities = {UploadEvent.class, PendingUpload.class}, version = 4)
+@Database(entities = {UploadEvent.class}, version = 5)
 @TypeConverters(value = {Data.class})
 public abstract class AckDatabase extends RoomDatabase {
     private static AckDatabase instance;
@@ -30,6 +30,4 @@ public abstract class AckDatabase extends RoomDatabase {
     }
 
     public abstract UploadEventDao uploadEventDao();
-
-    public abstract PendingUploadDao pendingUploadDao();
 }

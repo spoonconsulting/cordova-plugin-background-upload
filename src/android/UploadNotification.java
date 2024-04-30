@@ -9,12 +9,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.annotation.IntegerRes;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
 public class UploadNotification {
     private Context context;
@@ -42,7 +48,26 @@ public class UploadNotification {
     }
 
     public void updateProgress() {
-        float totalProgressStore = (float) (AckDatabase.getInstance(context).pendingUploadDao().getCompletedUploadsCount() / (double) AckDatabase.getInstance(context).pendingUploadDao().getAllCount());
+        List<WorkInfo> workInfo;
+        try {
+            workInfo = WorkManager.getInstance(context)
+                    .getWorkInfosByTag(FileTransferBackground.getCurrentTag(context))
+                    .get();
+        } catch (ExecutionException | InterruptedException e) {
+            Log.w(UploadTask.TAG, "getForegroundInfo: Problem while retrieving task list:", e);
+            workInfo = Collections.emptyList();
+        }
+
+        int uploadDone = 0;
+        int uploadCount = 0;
+        for (WorkInfo info : workInfo) {
+            if (info.getState().isFinished()) {
+                uploadDone++;
+            }
+            uploadCount++;
+        }
+
+        float totalProgressStore = ((float) uploadDone) / uploadCount;
         notificationBuilder.setProgress(100, (int) (totalProgressStore * 100f), false);
         notificationManager.notify(UploadNotification.notificationId, notificationBuilder.build());
     }

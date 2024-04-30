@@ -47,15 +47,20 @@
         <source-file src="src/android/AckDatabase.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEventDao.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadEvent.java" target-dir="src/com/spoon/backgroundfileupload" />
-        <source-file src="src/android/PendingUploadDao.java" target-dir="src/com/spoon/backgroundfileupload" />
-        <source-file src="src/android/PendingUpload.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/ProgressRequestBody.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadForegroundNotification.java" target-dir="src/com/spoon/backgroundfileupload" />
         <source-file src="src/android/UploadNotification.java" target-dir="src/com/spoon/backgroundfileupload" />
         <resource-file src="src/android/res/ic_upload.png" target="res/drawable/ic_upload.png" />
     </platform>
     <platform name="ios">
-        <framework src="AFNetworking" type="podspec" spec="~> 4.0.1" />
+       <podspec>
+            <config>
+                <source url="https://cdn.cocoapods.org/"/>
+            </config>
+            <pods use-frameworks="true">
+                <pod name="AFNetworking" spec="~> 4.0.1" />
+            </pods>
+        </podspec>
         <config-file target="config.xml" parent="/*">
             <feature name="FileTransferBackground">
                 <param name="ios-package" value="FileTransferBackground" />
