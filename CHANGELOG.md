@@ -1,3 +1,7 @@
+## [4.1.0](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.10....4.1.0) (2024-04-30)
+* **android:** REVERTED Add Workers based on the number of parallelUploadsLimit and use a database to continue taking pending uploads in the Workers
+* **iOS:** Removed framework tag for pods
+
 ## [4.0.10](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.9...4.0.10) (2023-03-09)
 * **android:** Add Workers based on the number of parallelUploadsLimit and use a database to continue taking pending uploads in the Workers
 
