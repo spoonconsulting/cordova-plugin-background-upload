@@ -81,7 +81,7 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void sendSuccess(final String id, final String response, int statusCode) {
+    private void sendSuccess(final String id, final String response, int statusCode, long uploadDuration) {
         if (response != null && !response.isEmpty()) {
             logMessage("eventLabel='Uploader onSuccess' uploadId='" + id + "' response='" + response.substring(0, Math.min(2000, response.length() - 1)) + "'");
         } else {
@@ -95,6 +95,7 @@ public class FileTransferBackground extends CordovaPlugin {
                     .put("state", "UPLOADED")
                     .put("serverResponse", response)
                     .put("statusCode", statusCode)
+                    .put("uploadDuration", uploadDuration)
             );
         } catch (JSONException e) {
             // Can't really happen but just in case
@@ -412,7 +413,8 @@ public class FileTransferBackground extends CordovaPlugin {
             sendSuccess(
                     ackData.getString(UploadTask.KEY_OUTPUT_ID),
                     response,
-                    ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1 /* If this is sent, something is really wrong */)
+                    ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1 /* If this is sent, something is really wrong */),
+                    ackData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_DURATION, 0)
             );
 
         } else {

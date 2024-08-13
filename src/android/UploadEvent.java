@@ -11,6 +11,7 @@ public class UploadEvent {
     @PrimaryKey
     @NonNull
     private String id;
+    private long uploadDuration;
 
     @ColumnInfo(name = "output_data")
     @NonNull
@@ -19,6 +20,7 @@ public class UploadEvent {
     public UploadEvent(@NonNull final String id, @NonNull final Data outputData) {
         this.id = id;
         this.outputData = outputData;
+        this.uploadDuration = outputData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_DURATION, 0);
     }
 
     @NonNull
@@ -29,5 +31,13 @@ public class UploadEvent {
     @NonNull
     public Data getOutputData() {
         return outputData;
+    }
+
+    public long getUploadDuration() {
+        return uploadDuration;
+    }
+
+    public void setUploadDuration(long uploadDuration) {
+        this.uploadDuration = uploadDuration;
     }
 }

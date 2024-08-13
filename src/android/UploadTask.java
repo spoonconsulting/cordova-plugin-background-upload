@@ -79,6 +79,8 @@ public final class UploadTask extends Worker {
     public static final String KEY_OUTPUT_STATUS_CODE = "output_status_code";
     public static final String KEY_OUTPUT_FAILURE_REASON = "output_failure_reason";
     public static final String KEY_OUTPUT_FAILURE_CANCELED = "output_failure_canceled";
+    public static final String KEY_OUTPUT_UPLOAD_DURATION = "output_upload_duration";
+
     // </editor-fold>
 
     private static UploadNotification uploadNotification = null;
@@ -96,6 +98,9 @@ public final class UploadTask extends Worker {
     private static int concurrency = 1;
     private static Semaphore concurrentUploads = new Semaphore(concurrency, true);
     private static Mutex concurrencyLock = new Mutex();
+    private long startUploadTime;
+    private long endUploadTime;
+    private long uploadDuration;
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
 
@@ -189,6 +194,8 @@ public final class UploadTask extends Worker {
             return Result.retry();
         }
 
+        startUploadTime = System.currentTimeMillis();
+
         // Register me
         uploadForegroundNotification.progress(getId(), 0f);
         handleNotification();
@@ -246,6 +253,8 @@ public final class UploadTask extends Worker {
                 return Result.retry();
             }
         } finally {
+            endUploadTime = System.currentTimeMillis();
+            uploadDuration = endUploadTime - startUploadTime;
             // Always remove ourselves from the notification
             uploadForegroundNotification.done(getId());
         }
@@ -254,7 +263,8 @@ public final class UploadTask extends Worker {
         final Data.Builder outputData = new Data.Builder()
                 .putString(KEY_OUTPUT_ID, id)
                 .putBoolean(KEY_OUTPUT_IS_ERROR, false)
-                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
+                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200)
+                .putLong(KEY_OUTPUT_UPLOAD_DURATION, uploadDuration);
 
         // Try read the response body, if any
         try {
