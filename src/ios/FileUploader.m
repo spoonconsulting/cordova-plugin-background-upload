@@ -1,6 +1,7 @@
 #import "FileUploader.h"
 @interface FileUploader()
-@property (nonatomic, strong) NSMutableDictionary* responsesData;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, NSDate *> *uploadStartTimes;
+@property (nonatomic, strong) NSMutableDictionary *responsesData;
 @property (nonatomic, strong) AFURLSessionManager *manager;
 @end
 
@@ -20,6 +21,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
         return nil;
     [UploadEvent setupStorage];
     self.responsesData = [[NSMutableDictionary alloc] init];
+    self.uploadStartTimes = [[NSMutableDictionary alloc] init];
     NSURLSessionConfiguration* configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
     configuration.HTTPMaximumConnectionsPerHost = FileUploader.parallelUploadsLimit;
     configuration.sessionSendsLaunchEvents = NO;
@@ -27,6 +29,8 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
         NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
+        NSDate *startTime = weakSelf.uploadStartTimes[uploadId];
+        NSTimeInterval duration = [[NSDate date] timeIntervalSinceDate:startTime];
         NSLog(@"[BackgroundUpload] Task %@ completed with error %@", uploadId, error);
         if (!error){
             NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
@@ -36,16 +40,18 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                 @"id" : uploadId,
                 @"state" : @"UPLOADED",
                 @"statusCode" : @(((NSHTTPURLResponse *)task.response).statusCode),
-                @"serverResponse" : serverResponse
+                @"serverResponse" : serverResponse,
+                @"uploadDuration" : @(duration)
             }];
         } else {
             [weakSelf saveAndSendEvent:@{
                 @"id" : uploadId,
                 @"state" : @"FAILED",
                 @"error" : error.localizedDescription,
-                @"errorCode" : @(error.code)
+                @"errorCode" : @(error.code),
             }];
         }
+        [weakSelf.uploadStartTimes removeObjectForKey:uploadId]; // Clean up
     }];
 
     [self.manager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {
@@ -60,7 +66,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
 }
 
 -(void)saveAndSendEvent:(NSDictionary*)data{
-    UploadEvent*event = [UploadEvent create:data];
+    UploadEvent* event = [UploadEvent create:data];
     [self sendEvent:[event dataRepresentation]];
 }
 
@@ -89,6 +95,9 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                      completionHandler:^(NSError *error, NSMutableURLRequest *request) {
         if (error)
             return handler(error);
+        
+        weakSelf.uploadStartTimes[payload[@"id"]] = [NSDate date];
+        
         __block double lastProgressTimeStamp = 0;
 
         [[weakSelf.manager uploadTaskWithRequest:request
