@@ -19,10 +19,12 @@ public abstract class AckDatabase extends RoomDatabase {
     static final Migration MIGRATION_5_6 = new Migration(5, 6) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            // Add the new column to the existing table
             database.execSQL("ALTER TABLE upload_events ADD COLUMN uploadDuration INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE upload_events ADD COLUMN startUploadTime INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE upload_events ADD COLUMN endUploadTime INTEGER NOT NULL DEFAULT 0");
         }
     };
+
 
     public static synchronized AckDatabase getInstance(final Context context) {
         if (instance == null) {

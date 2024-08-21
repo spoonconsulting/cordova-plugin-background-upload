@@ -80,6 +80,8 @@ public final class UploadTask extends Worker {
     public static final String KEY_OUTPUT_FAILURE_REASON = "output_failure_reason";
     public static final String KEY_OUTPUT_FAILURE_CANCELED = "output_failure_canceled";
     public static final String KEY_OUTPUT_UPLOAD_DURATION = "output_upload_duration";
+    public static final String KEY_OUTPUT_UPLOAD_START_TIME = "output_upload_start_time";
+    public static final String KEY_OUTPUT_UPLOAD_END_TIME = "output_upload_end_time";
 
     // </editor-fold>
 
@@ -264,7 +266,9 @@ public final class UploadTask extends Worker {
                 .putString(KEY_OUTPUT_ID, id)
                 .putBoolean(KEY_OUTPUT_IS_ERROR, false)
                 .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200)
-                .putLong(KEY_OUTPUT_UPLOAD_DURATION, uploadDuration);
+                .putLong(KEY_OUTPUT_UPLOAD_DURATION, uploadDuration)
+                .putLong(KEY_OUTPUT_UPLOAD_START_TIME, startUploadTime)
+                .putLong(KEY_OUTPUT_UPLOAD_END_TIME, endUploadTime);
 
         // Try read the response body, if any
         try {

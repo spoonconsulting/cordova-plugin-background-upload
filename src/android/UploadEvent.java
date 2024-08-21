@@ -12,6 +12,9 @@ public class UploadEvent {
     @NonNull
     private String id;
     private long uploadDuration;
+    private long uploadStartTime;
+    private long uploadEndTime;
+
 
     @ColumnInfo(name = "output_data")
     @NonNull
@@ -21,6 +24,8 @@ public class UploadEvent {
         this.id = id;
         this.outputData = outputData;
         this.uploadDuration = outputData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_DURATION, 0);
+        this.uploadStartTime = outputData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_START_TIME, 0);
+        this.uploadEndTime = outputData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_END_TIME, 0);
     }
 
     @NonNull
@@ -39,5 +44,21 @@ public class UploadEvent {
 
     public void setUploadDuration(long uploadDuration) {
         this.uploadDuration = uploadDuration;
+    }
+
+    public long getUploadStartTime() {
+        return uploadStartTime;
+    }
+
+    public void setUploadStartTime(long uploadStartTime) {
+        this.uploadStartTime = uploadStartTime;
+    }
+
+    public long getUploadEndTime() {
+        return uploadEndTime;
+    }
+
+    public void setUploadEndTime(long uploadEndTime) {
+        this.uploadEndTime = uploadEndTime;
     }
 }
