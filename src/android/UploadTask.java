@@ -96,6 +96,8 @@ public final class UploadTask extends Worker {
     private static int concurrency = 1;
     private static Semaphore concurrentUploads = new Semaphore(concurrency, true);
     private static Mutex concurrencyLock = new Mutex();
+    long startTime = 0;
+    long endTime = 0;
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
 
@@ -189,6 +191,7 @@ public final class UploadTask extends Worker {
             return Result.retry();
         }
 
+        startTime = System.currentTimeMillis();
         // Register me
         uploadForegroundNotification.progress(getId(), 0f);
         handleNotification();
@@ -237,7 +240,7 @@ public final class UploadTask extends Worker {
                         .putString(KEY_OUTPUT_FAILURE_REASON, "User cancelled")
                         .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
                         .build();
-                AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+                AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data, startTime, endTime));
                 return Result.success(data);
             } else {
                 // But if it was not it must be a connectivity problem or
@@ -246,6 +249,7 @@ public final class UploadTask extends Worker {
                 return Result.retry();
             }
         } finally {
+            endTime = System.currentTimeMillis();
             // Always remove ourselves from the notification
             uploadForegroundNotification.done(getId());
         }
@@ -281,7 +285,7 @@ public final class UploadTask extends Worker {
         }
 
         final Data data = outputData.build();
-        AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
+        AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data, startTime, endTime));
         return Result.success(data);
     }
 
