@@ -12,8 +12,8 @@ public class UploadEvent {
     @NonNull
     private String id;
     private long uploadDuration;
-    private long uploadStartTime;
-    private long uploadEndTime;
+    private long startUploadTime;
+    private long finishUploadTime;
 
 
     @ColumnInfo(name = "output_data")
