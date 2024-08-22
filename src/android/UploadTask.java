@@ -101,7 +101,7 @@ public final class UploadTask extends Worker {
     private static Semaphore concurrentUploads = new Semaphore(concurrency, true);
     private static Mutex concurrencyLock = new Mutex();
     private long startUploadTime;
-    private long endUploadTime;
+    private long finishUploadTime;
     private long uploadDuration;
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
@@ -255,8 +255,8 @@ public final class UploadTask extends Worker {
                 return Result.retry();
             }
         } finally {
-            endUploadTime = System.currentTimeMillis();
-            uploadDuration = endUploadTime - startUploadTime;
+            finishUploadTime = System.currentTimeMillis();
+            uploadDuration = finishUploadTime - startUploadTime;
             // Always remove ourselves from the notification
             uploadForegroundNotification.done(getId());
         }
@@ -268,7 +268,7 @@ public final class UploadTask extends Worker {
                 .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200)
                 .putLong(KEY_OUTPUT_UPLOAD_DURATION, uploadDuration)
                 .putLong(KEY_OUTPUT_UPLOAD_START_TIME, startUploadTime)
-                .putLong(KEY_OUTPUT_UPLOAD_END_TIME, endUploadTime);
+                .putLong(KEY_OUTPUT_UPLOAD_END_TIME, finishUploadTime);
 
         // Try read the response body, if any
         try {

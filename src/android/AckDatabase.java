@@ -21,7 +21,7 @@ public abstract class AckDatabase extends RoomDatabase {
         public void migrate(@NonNull SupportSQLiteDatabase database) {
             database.execSQL("ALTER TABLE upload_events ADD COLUMN uploadDuration INTEGER NOT NULL DEFAULT 0");
             database.execSQL("ALTER TABLE upload_events ADD COLUMN startUploadTime INTEGER NOT NULL DEFAULT 0");
-            database.execSQL("ALTER TABLE upload_events ADD COLUMN endUploadTime INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE upload_events ADD COLUMN finishUploadTime INTEGER NOT NULL DEFAULT 0");
         }
     };
 

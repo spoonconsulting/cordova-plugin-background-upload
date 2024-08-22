@@ -81,7 +81,7 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void sendSuccess(final String id, final String response, int statusCode, long uploadDuration, long uploadStartTime, long uploadEndTime) {
+    private void sendSuccess(final String id, final String response, int statusCode, long uploadDuration, long startUploadTime, long finishUploadTime) {
         if (response != null && !response.isEmpty()) {
             logMessage("eventLabel='Uploader onSuccess' uploadId='" + id + "' response='" + response.substring(0, Math.min(2000, response.length() - 1)) + "'");
         } else {
@@ -96,8 +96,8 @@ public class FileTransferBackground extends CordovaPlugin {
                     .put("serverResponse", response)
                     .put("statusCode", statusCode)
                     .put("uploadDuration", uploadDuration)
-                    .put("uploadStartTime", uploadStartTime)
-                    .put("uploadEndTime", uploadEndTime)
+                    .put("startUploadTime", startUploadTime)
+                    .put("finishUploadTime", finishUploadTime)
             );
         } catch (JSONException e) {
             // Can't really happen but just in case

@@ -24,8 +24,8 @@ public class UploadEvent {
         this.id = id;
         this.outputData = outputData;
         this.uploadDuration = outputData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_DURATION, 0);
-        this.uploadStartTime = outputData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_START_TIME, 0);
-        this.uploadEndTime = outputData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_END_TIME, 0);
+        this.startUploadTime = outputData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_START_TIME, 0);
+        this.finishUploadTime = outputData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_END_TIME, 0);
     }
 
     @NonNull
@@ -46,19 +46,19 @@ public class UploadEvent {
         this.uploadDuration = uploadDuration;
     }
 
-    public long getUploadStartTime() {
-        return uploadStartTime;
+    public long getStartUploadTime() {
+        return startUploadTime;
     }
 
-    public void setUploadStartTime(long uploadStartTime) {
-        this.uploadStartTime = uploadStartTime;
+    public void setStartUploadTime(long startUploadTime) {
+        this.startUploadTime = startUploadTime;
     }
 
-    public long getUploadEndTime() {
-        return uploadEndTime;
+    public long getFinishUploadTime() {
+        return finishUploadTime;
     }
 
-    public void setUploadEndTime(long uploadEndTime) {
-        this.uploadEndTime = uploadEndTime;
+    public void setFinishUploadTime(long finishUploadTime) {
+        this.finishUploadTime = finishUploadTime;
     }
 }
