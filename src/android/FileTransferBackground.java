@@ -82,7 +82,13 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void sendSuccess(final String id, final String response, int statusCode, long uploadDuration, long finishUploadTime) {
+    private void sendSuccess(HashMap<String, Object> uploadData) {
+        String id = (String) uploadData.get("outputId");
+        String response = (String) uploadData.get("response");
+        int statusCode = (int) uploadData.get("statusCode");
+        long uploadDuration = (long) uploadData.get("uploadDuration");
+        long finishUploadTime = (long) uploadData.get("finishUploadTime");
+
         if (response != null && !response.isEmpty()) {
             logMessage("eventLabel='Uploader onSuccess' uploadId='" + id + "' response='" + response.substring(0, Math.min(2000, response.length() - 1)) + "'");
         } else {
@@ -195,8 +201,11 @@ public class FileTransferBackground extends CordovaPlugin {
 
         int ackDelay = 0;
         for (UploadEvent ack : uploadEvents) {
+            long startUploadTime = ack.getOutputData().getLong("output_upload_start_time", 0);
+            long endUploadTime = ack.getOutputData().getLong("output_upload_end_time", 0);
+            long uploadDuration = endUploadTime - startUploadTime;
             executorService.schedule(() -> {
-                handleAck(ack.getOutputData(), ack.calculateUploadDuration(), ack.getFinishUploadTime());
+                handleAck(ack.getOutputData(), uploadDuration, endUploadTime);
             }, ackDelay, TimeUnit.MILLISECONDS);
             ackDelay += 200;
         }
@@ -230,7 +239,10 @@ public class FileTransferBackground extends CordovaPlugin {
                                         // The corresponding ACK is already in the DB, if it not, the task is just a leftover
                                         String id = info.getOutputData().getString(UploadTask.KEY_OUTPUT_ID);
                                         if (ackDatabase.uploadEventDao().exists(id)) {
-                                            handleAck(info.getOutputData(), ackDatabase.uploadEventDao().getById(id).calculateUploadDuration(), ackDatabase.uploadEventDao().getById(id).getFinishUploadTime());
+                                            long startUploadTime = info.getOutputData().getLong("output_upload_start_time", 0);
+                                            long endUploadTime = info.getOutputData().getLong("output_upload_end_time", 0);
+                                            long uploadDuration = endUploadTime - startUploadTime;
+                                            handleAck(info.getOutputData(), uploadDuration, endUploadTime);
                                         }
                                     }, 0, TimeUnit.MILLISECONDS);
                                     break;
@@ -412,14 +424,14 @@ public class FileTransferBackground extends CordovaPlugin {
                 response = readFileToStringNoThrow(ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
             }
 
-            sendSuccess(
-                    ackData.getString(UploadTask.KEY_OUTPUT_ID),
-                    response,
-                    ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1 /* If this is sent, something is really wrong */),
-                    uploadDuration,
-                    finishUploadTime
-            );
+            HashMap<String, Object> uploadData = new HashMap<>();
+            uploadData.put("outputId", ackData.getString(UploadTask.KEY_OUTPUT_ID));
+            uploadData.put("response", response);
+            uploadData.put("statusCode", ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1));
+            uploadData.put("uploadDuration", uploadDuration);
+            uploadData.put("finishUploadTime", finishUploadTime);
 
+            sendSuccess(uploadData);
         } else {
             // The upload was a failure
             sendError(

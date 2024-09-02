@@ -16,19 +16,9 @@ public class UploadEvent {
     @NonNull
     private Data outputData;
 
-    @ColumnInfo(name = "start_upload_time")
-    @NonNull
-    private long startUploadTime;
-
-    @ColumnInfo(name = "finish_upload_time")
-    @NonNull
-    private long finishUploadTime;
-
-    public UploadEvent(@NonNull final String id, @NonNull final Data outputData, @NonNull final long startUploadTime, @NonNull final long finishUploadTime) {
+    public UploadEvent(@NonNull final String id, @NonNull final Data outputData ) {
         this.id = id;
         this.outputData = outputData;
-        this.startUploadTime = startUploadTime;
-        this.finishUploadTime = finishUploadTime;
     }
 
     @NonNull
@@ -39,17 +29,5 @@ public class UploadEvent {
     @NonNull
     public Data getOutputData() {
         return outputData;
-    }
-
-    public long getStartUploadTime() {
-        return startUploadTime;
-    }
-
-    public long getFinishUploadTime() {
-        return finishUploadTime;
-    }
-
-    public long calculateUploadDuration() {
-        return finishUploadTime - startUploadTime;
     }
 }

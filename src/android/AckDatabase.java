@@ -2,35 +2,22 @@ package com.spoon.backgroundfileupload;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
-import androidx.room.migration.Migration;
-import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.work.Data;
 
-@Database(entities = {UploadEvent.class}, version = 6)
+@Database(entities = {UploadEvent.class}, version = 5)
 @TypeConverters(value = {Data.class})
 public abstract class AckDatabase extends RoomDatabase {
     private static AckDatabase instance;
 
-    static final Migration MIGRATION_5_6 = new Migration(5, 6) {
-        @Override
-        public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE upload_events ADD COLUMN start_upload_time INTEGER NOT NULL DEFAULT 0");
-            database.execSQL("ALTER TABLE upload_events ADD COLUMN finish_upload_time INTEGER NOT NULL DEFAULT 0");
-        }
-    };
-
-
-    public static synchronized AckDatabase getInstance(final Context context) {
+    public static AckDatabase getInstance(final Context context) {
         if (instance == null) {
             instance = Room
                     .databaseBuilder(context, AckDatabase.class, "cordova-plugin-background-upload.db")
                     .fallbackToDestructiveMigration()
-                    .addMigrations(MIGRATION_5_6)
                     .build();
         }
         return instance;

@@ -79,6 +79,8 @@ public final class UploadTask extends Worker {
     public static final String KEY_OUTPUT_STATUS_CODE = "output_status_code";
     public static final String KEY_OUTPUT_FAILURE_REASON = "output_failure_reason";
     public static final String KEY_OUTPUT_FAILURE_CANCELED = "output_failure_canceled";
+    public static final String KEY_OUTPUT_UPLOAD_START_TIME = "output_upload_start_time";
+    public static final String KEY_OUTPUT_UPLOAD_END_TIME = "output_upload_end_time";
     // </editor-fold>
 
     private static UploadNotification uploadNotification = null;
@@ -239,8 +241,10 @@ public final class UploadTask extends Worker {
                         .putBoolean(KEY_OUTPUT_IS_ERROR, true)
                         .putString(KEY_OUTPUT_FAILURE_REASON, "User cancelled")
                         .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
+                        .putLong(KEY_OUTPUT_UPLOAD_START_TIME, startTime)
+                        .putLong(KEY_OUTPUT_UPLOAD_END_TIME, endTime)
                         .build();
-                AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data, startTime, endTime));
+                AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
                 return Result.success(data);
             } else {
                 // But if it was not it must be a connectivity problem or
@@ -258,7 +262,9 @@ public final class UploadTask extends Worker {
         final Data.Builder outputData = new Data.Builder()
                 .putString(KEY_OUTPUT_ID, id)
                 .putBoolean(KEY_OUTPUT_IS_ERROR, false)
-                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
+                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200)
+                .putLong(KEY_OUTPUT_UPLOAD_START_TIME, startTime)
+                .putLong(KEY_OUTPUT_UPLOAD_END_TIME, endTime);
 
         // Try read the response body, if any
         try {
@@ -285,7 +291,7 @@ public final class UploadTask extends Worker {
         }
 
         final Data data = outputData.build();
-        AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data, startTime, endTime));
+        AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         return Result.success(data);
     }
 
