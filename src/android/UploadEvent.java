@@ -16,7 +16,7 @@ public class UploadEvent {
     @NonNull
     private Data outputData;
 
-    public UploadEvent(@NonNull final String id, @NonNull final Data outputData ) {
+    public UploadEvent(@NonNull final String id, @NonNull final Data outputData) {
         this.id = id;
         this.outputData = outputData;
     }
