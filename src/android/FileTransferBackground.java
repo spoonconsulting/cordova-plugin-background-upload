@@ -423,14 +423,10 @@ public class FileTransferBackground extends CordovaPlugin {
             long uploadDuration = finishUploadTime - startUploadTime;
 
             HashMap<String, Object> uploadData = new HashMap<>();
-            if (uploadDuration <= 0) {
-                uploadData.put("outputId", ackData.getString(UploadTask.KEY_OUTPUT_ID));
-                uploadData.put("response", response);
-                uploadData.put("statusCode", ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1));
-            } else {
-                uploadData.put("outputId", ackData.getString(UploadTask.KEY_OUTPUT_ID));
-                uploadData.put("response", response);
-                uploadData.put("statusCode", ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1));
+            uploadData.put("outputId", ackData.getString(UploadTask.KEY_OUTPUT_ID));
+            uploadData.put("response", response);
+            uploadData.put("statusCode", ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1));
+            if (uploadDuration > 0) {
                 uploadData.put("uploadDuration", uploadDuration);
                 uploadData.put("finishUploadTime", finishUploadTime);
             }
