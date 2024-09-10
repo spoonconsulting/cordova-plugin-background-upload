@@ -412,10 +412,10 @@ public class FileTransferBackground extends CordovaPlugin {
     private void handleAck(final Data ackData) {
         if (!ackData.getBoolean(UploadTask.KEY_OUTPUT_IS_ERROR, false)) {
             sendError(
-            ackData.getString(UploadTask.KEY_OUTPUT_ID),
-            ackData.getString(UploadTask.KEY_OUTPUT_FAILURE_REASON),
-            ackData.getBoolean(UploadTask.KEY_OUTPUT_FAILURE_CANCELED, false)
-        );
+                ackData.getString(UploadTask.KEY_OUTPUT_ID),
+                ackData.getString(UploadTask.KEY_OUTPUT_FAILURE_REASON),
+                ackData.getBoolean(UploadTask.KEY_OUTPUT_FAILURE_CANCELED, false)
+            );
         } else {
             String response = null;
             if (ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
@@ -435,7 +435,6 @@ public class FileTransferBackground extends CordovaPlugin {
                 uploadData.put("uploadDuration", uploadDuration);
                 uploadData.put("finishUploadTime", finishUploadTime);
             }
-
             sendSuccess(uploadData);
         }
     }
