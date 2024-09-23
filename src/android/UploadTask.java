@@ -79,6 +79,8 @@ public final class UploadTask extends Worker {
     public static final String KEY_OUTPUT_STATUS_CODE = "output_status_code";
     public static final String KEY_OUTPUT_FAILURE_REASON = "output_failure_reason";
     public static final String KEY_OUTPUT_FAILURE_CANCELED = "output_failure_canceled";
+    public static final String KEY_OUTPUT_UPLOAD_START_TIME = "output_upload_start_time";
+    public static final String KEY_OUTPUT_UPLOAD_FINISH_TIME = "output_upload_finish_time";
     // </editor-fold>
 
     private static UploadNotification uploadNotification = null;
@@ -96,6 +98,8 @@ public final class UploadTask extends Worker {
     private static int concurrency = 1;
     private static Semaphore concurrentUploads = new Semaphore(concurrency, true);
     private static Mutex concurrencyLock = new Mutex();
+    long startTime = 0;
+    long endTime = 0;
 
     public UploadTask(@NonNull Context context, @NonNull WorkerParameters workerParams) {
 
@@ -189,6 +193,7 @@ public final class UploadTask extends Worker {
             return Result.retry();
         }
 
+        startTime = System.currentTimeMillis();
         // Register me
         uploadForegroundNotification.progress(getId(), 0f);
         handleNotification();
@@ -236,6 +241,8 @@ public final class UploadTask extends Worker {
                         .putBoolean(KEY_OUTPUT_IS_ERROR, true)
                         .putString(KEY_OUTPUT_FAILURE_REASON, "User cancelled")
                         .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, true)
+                        .putLong(KEY_OUTPUT_UPLOAD_START_TIME, startTime)
+                        .putLong(KEY_OUTPUT_UPLOAD_FINISH_TIME, endTime)
                         .build();
                 AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
                 return Result.success(data);
@@ -246,6 +253,7 @@ public final class UploadTask extends Worker {
                 return Result.retry();
             }
         } finally {
+            endTime = System.currentTimeMillis();
             // Always remove ourselves from the notification
             uploadForegroundNotification.done(getId());
         }
@@ -254,7 +262,9 @@ public final class UploadTask extends Worker {
         final Data.Builder outputData = new Data.Builder()
                 .putString(KEY_OUTPUT_ID, id)
                 .putBoolean(KEY_OUTPUT_IS_ERROR, false)
-                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200);
+                .putInt(KEY_OUTPUT_STATUS_CODE, (!DEBUG_SKIP_UPLOAD) ? response.code() : 200)
+                .putLong(KEY_OUTPUT_UPLOAD_START_TIME, startTime)
+                .putLong(KEY_OUTPUT_UPLOAD_FINISH_TIME, endTime);
 
         // Try read the response body, if any
         try {

@@ -32,6 +32,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -81,7 +82,13 @@ public class FileTransferBackground extends CordovaPlugin {
         }
     }
 
-    private void sendSuccess(final String id, final String response, int statusCode) {
+    private void sendSuccess(HashMap<String, Object> uploadData) {
+        String id = (String) uploadData.get("outputId");
+        String response = (String) uploadData.get("response");
+        int statusCode = (int) uploadData.get("statusCode");
+        long uploadDuration = (long) uploadData.get("uploadDuration");
+        long finishUploadTime = (long) uploadData.get("finishUploadTime");
+
         if (response != null && !response.isEmpty()) {
             logMessage("eventLabel='Uploader onSuccess' uploadId='" + id + "' response='" + response.substring(0, Math.min(2000, response.length() - 1)) + "'");
         } else {
@@ -95,6 +102,8 @@ public class FileTransferBackground extends CordovaPlugin {
                     .put("state", "UPLOADED")
                     .put("serverResponse", response)
                     .put("statusCode", statusCode)
+                    .put("uploadDuration", uploadDuration)
+                    .put("finishUploadTime", finishUploadTime)
             );
         } catch (JSONException e) {
             // Can't really happen but just in case
@@ -401,26 +410,28 @@ public class FileTransferBackground extends CordovaPlugin {
      * Handle ACK data and send it to the JS.
      */
     private void handleAck(final Data ackData) {
-        // If upload was successful
         if (!ackData.getBoolean(UploadTask.KEY_OUTPUT_IS_ERROR, false)) {
-            // Read response from file if present
             String response = null;
             if (ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
                 response = readFileToStringNoThrow(ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
             }
 
-            sendSuccess(
-                    ackData.getString(UploadTask.KEY_OUTPUT_ID),
-                    response,
-                    ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1 /* If this is sent, something is really wrong */)
-            );
+            long startUploadTime = ackData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_START_TIME, 0);
+            long finishUploadTime = ackData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_FINISH_TIME, 0);
+            long uploadDuration = finishUploadTime - startUploadTime;
 
+            HashMap<String, Object> uploadData = new HashMap<>();
+            uploadData.put("outputId", ackData.getString(UploadTask.KEY_OUTPUT_ID));
+            uploadData.put("response", response);
+            uploadData.put("statusCode", ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1));
+            uploadData.put("uploadDuration", uploadDuration);
+            uploadData.put("finishUploadTime", finishUploadTime);
+            sendSuccess(uploadData);
         } else {
-            // The upload was a failure
             sendError(
-                    ackData.getString(UploadTask.KEY_OUTPUT_ID),
-                    ackData.getString(UploadTask.KEY_OUTPUT_FAILURE_REASON),
-                    ackData.getBoolean(UploadTask.KEY_OUTPUT_FAILURE_CANCELED, false)
+                ackData.getString(UploadTask.KEY_OUTPUT_ID),
+                ackData.getString(UploadTask.KEY_OUTPUT_FAILURE_REASON),
+                ackData.getBoolean(UploadTask.KEY_OUTPUT_FAILURE_CANCELED, false)
             );
         }
     }
