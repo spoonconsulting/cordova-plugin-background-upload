@@ -13,7 +13,7 @@
       <clobbers target="window.TestUtils"/>
    </js-module>
      <js-module src="tests.js" name="tests"></js-module>
-     <dependency id="cordova-plugin-file" version="6.0.2" />
+     <dependency id="cordova-plugin-file" version="8.1.0" />
      <platform name="android">
         <resource-file src="tree.jpg" target="assets/tree.jpg" />
         <resource-file src="tree2.jpg" target="assets/tree2.jpg" />
