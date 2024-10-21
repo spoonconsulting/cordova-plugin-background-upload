@@ -32,30 +32,26 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
         NSDate *startTime = weakSelf.uploadStartTimes[uploadId];
         NSDate *endUploadTime = [NSDate date];
         NSTimeInterval timeInterval = [endUploadTime timeIntervalSince1970];
-        long long uploadTimeinMS = (long long)(timeInterval * 1000);
+        long long endUploadTimeInMS = (long long)(timeInterval * 1000);
         NSTimeInterval duration = [endUploadTime timeIntervalSinceDate:startTime];
         NSLog(@"[BackgroundUpload] Task %@ completed with error %@", uploadId, error);
         if (!error){
             NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
             NSString* serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";
             [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
-            if (!isnan(duration)) {
-                [weakSelf saveAndSendEvent:@{
+            NSMutableDictionary *event = [@{
                     @"id" : uploadId,
                     @"state" : @"UPLOADED",
                     @"statusCode" : @(((NSHTTPURLResponse *)task.response).statusCode),
-                    @"serverResponse" : serverResponse,
-                    @"uploadDuration" : @(duration * 1000),
-                    @"finishUploadTime": @(uploadTimeinMS)
-                }];
-            } else {
-                [weakSelf saveAndSendEvent:@{
-                    @"id" : uploadId,
-                    @"state" : @"UPLOADED",
-                    @"statusCode" : @(((NSHTTPURLResponse *)task.response).statusCode),
-                    @"serverResponse" : serverResponse,
-                }];
-            }
+                    @"serverResponse" : serverResponse
+                } mutableCopy];
+                
+                if (!isnan(duration)) {
+                    event[@"uploadDuration"] = @(duration * 1000);
+                    event[@"finishUploadTime"] = @(endUploadTimeInMS);
+                }
+                
+                [weakSelf saveAndSendEvent:event];
         } else {
             [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
             [weakSelf saveAndSendEvent:@{
