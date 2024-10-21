@@ -1,6 +1,7 @@
 #import "FileUploader.h"
 @interface FileUploader()
-@property (nonatomic, strong) NSMutableDictionary* responsesData;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, NSDate *> *uploadStartTimes;
+@property (nonatomic, strong) NSMutableDictionary *responsesData;
 @property (nonatomic, strong) AFURLSessionManager *manager;
 @end
 
@@ -20,6 +21,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
         return nil;
     [UploadEvent setupStorage];
     self.responsesData = [[NSMutableDictionary alloc] init];
+    self.uploadStartTimes = [[NSMutableDictionary alloc] init];
     NSURLSessionConfiguration* configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
     configuration.HTTPMaximumConnectionsPerHost = FileUploader.parallelUploadsLimit;
     configuration.sessionSendsLaunchEvents = NO;
@@ -27,23 +29,36 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
         NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
+        NSDate *startTime = weakSelf.uploadStartTimes[uploadId];
+        NSDate *endUploadTime = [NSDate date];
+        NSTimeInterval timeInterval = [endUploadTime timeIntervalSince1970];
+        long long endUploadTimeInMS = (long long)(timeInterval * 1000);
+        NSTimeInterval duration = [endUploadTime timeIntervalSinceDate:startTime];
         NSLog(@"[BackgroundUpload] Task %@ completed with error %@", uploadId, error);
         if (!error){
             NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
             NSString* serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";
             [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
-            [weakSelf saveAndSendEvent:@{
-                @"id" : uploadId,
-                @"state" : @"UPLOADED",
-                @"statusCode" : @(((NSHTTPURLResponse *)task.response).statusCode),
-                @"serverResponse" : serverResponse
-            }];
+            NSMutableDictionary *event = [@{
+                    @"id" : uploadId,
+                    @"state" : @"UPLOADED",
+                    @"statusCode" : @(((NSHTTPURLResponse *)task.response).statusCode),
+                    @"serverResponse" : serverResponse
+                } mutableCopy];
+                
+                if (!isnan(duration)) {
+                    event[@"uploadDuration"] = @(duration * 1000);
+                    event[@"finishUploadTime"] = @(endUploadTimeInMS);
+                }
+                
+                [weakSelf saveAndSendEvent:event];
         } else {
+            [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
             [weakSelf saveAndSendEvent:@{
                 @"id" : uploadId,
                 @"state" : @"FAILED",
                 @"error" : error.localizedDescription,
-                @"errorCode" : @(error.code)
+                @"errorCode" : @(error.code),
             }];
         }
     }];
@@ -60,7 +75,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
 }
 
 -(void)saveAndSendEvent:(NSDictionary*)data{
-    UploadEvent*event = [UploadEvent create:data];
+    UploadEvent* event = [UploadEvent create:data];
     [self sendEvent:[event dataRepresentation]];
 }
 
@@ -89,6 +104,9 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                      completionHandler:^(NSError *error, NSMutableURLRequest *request) {
         if (error)
             return handler(error);
+        
+        weakSelf.uploadStartTimes[payload[@"id"]] = [NSDate date];
+        
         __block double lastProgressTimeStamp = 0;
 
         [[weakSelf.manager uploadTaskWithRequest:request
