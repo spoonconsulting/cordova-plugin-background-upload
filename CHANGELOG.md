@@ -1,4 +1,8 @@
-## [4.1.0](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.10....4.1.0) (2024-04-30)
+## [4.1.1](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.1.0...4.1.1) (2024-09-23)
+* **android:** Update cordova plugin file version to 8.1.0
+* **iOS:** Update cordova plugin file version to 8.1.0
+
+## [4.1.0](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.0.10...4.1.0) (2024-04-30)
 * **android:** REVERTED Add Workers based on the number of parallelUploadsLimit and use a database to continue taking pending uploads in the Workers
 * **iOS:** Removed framework tag for pods
 
