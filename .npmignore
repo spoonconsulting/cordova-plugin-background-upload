@@ -7,4 +7,5 @@ dist/demo*
 .git*
 .npmignore
 node_modules
-demo/node_modules
+/demo
+/tests

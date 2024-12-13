@@ -3,6 +3,7 @@ import { AlertController, Platform } from '@ionic/angular';
 import { ImagePicker } from '@awesome-cordova-plugins/image-picker/ngx';
 import { File } from '@awesome-cordova-plugins/file/ngx';
 import { FileTransferManager, BackgroundUpload } from '@awesome-cordova-plugins/background-upload/ngx';
+import { WebView } from '@awesome-cordova-plugins/ionic-webview/ngx';
 
 const TEST_UPLOAD_URL = 'https://api.2ip.me/api-speedtest/en/dev.null';
 const ID_OFFSET = 100;
@@ -11,7 +12,7 @@ const ID_OFFSET = 100;
   selector: 'app-tab1',
   templateUrl: 'tab1.page.html',
   styleUrls: ['tab1.page.scss'],
-  providers: [ImagePicker, File, BackgroundUpload],
+  providers: [ImagePicker, File, BackgroundUpload, WebView],
 })
 export class Tab1Page {
   uploader: FileTransferManager;
@@ -20,7 +21,7 @@ export class Tab1Page {
   imageUris: Map<number, string> = new Map();
   uploadStates: Map<number, UploadState> = new Map();
 
-  private isCordova = this.platform.is('cordova');
+  isCordova = false;
 
   constructor(
     private platform: Platform,
@@ -28,12 +29,12 @@ export class Tab1Page {
     private alertController: AlertController,
     private imagePicker: ImagePicker,
     private file: File,
+    private webView: WebView,
     private backgroundUpload: BackgroundUpload
   ) {
+    this.isCordova = this.platform.is('cordova');
     this.platform.ready().then(() => {
-
       this.initUpload();
-
     });
   }
 
@@ -49,24 +50,23 @@ export class Tab1Page {
       return;
     }
 
-    const options = {
-      maximumImagesCount: 100
-    };
-
     try {
-      const uris: Array<string> = await this.imagePicker.getPictures(options);
-      const generatedKeys = this.generateUniqueIds(uris.length);
-      console.log(uris);
-      uris.forEach((uri, i) => {
-        const pathSplit = uri.split('/');
+      const imageInfos: Array<{ height: number; path: string; width: number}> = await this.imagePicker.getPictures({
+        maximumImagesCount: 100
+      });
+      const generatedKeys = this.generateUniqueIds(imageInfos.length);
+      console.log(imageInfos);
+      imageInfos.forEach((imageInfo, i) => {
+        const pathSplit = imageInfo.path.split('/');
         const dir = 'file://' + pathSplit.join('/');
         this.imageUris.set(generatedKeys[i], dir);
       });
 
-      const data = await Promise.all(uris.map((uri) => {
-        const pathSplit = uri.split('/');
+      const data = await Promise.all(imageInfos.map((imageInfo) => {
+        const pathSplit = imageInfo.path.split('/');
         const filename = pathSplit.pop();
         const dir = 'file://' + pathSplit.join('/');
+        console.log(this.webView.convertFileSrc(imageInfo.path));
         return this.file.readAsDataURL(dir, filename);
       }));
 
@@ -158,7 +158,7 @@ export class Tab1Page {
   }
 
   private uploadImage(id: number) {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 1; i++) {
       const uri = this.imageUris.get(id);
       console.log('Upload id', id);
 
@@ -177,6 +177,7 @@ export class Tab1Page {
   private async removeImage(id: number) {
     const state = this.uploadStates.get(id);
     const res = await this.uploader.removeUpload(id);
+    console.log(res);
     if (res) {
       console.log('Remove result:', res);
       this.zone.run(() => {
