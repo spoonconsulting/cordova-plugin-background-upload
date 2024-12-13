@@ -1,0 +1,12 @@
+diff --git a/node_modules/cordova-plugin-ionic-webview/plugin.xml b/node_modules/cordova-plugin-ionic-webview/plugin.xml
+index 846e12a..fe3c088 100644
+--- a/node_modules/cordova-plugin-ionic-webview/plugin.xml
++++ b/node_modules/cordova-plugin-ionic-webview/plugin.xml
+@@ -62,7 +62,6 @@
+ 
+     <config-file target="config.xml" parent="/*">
+         <allow-navigation href="ionic://*"/>
+-        <preference name="deployment-target" value="11.0"/>
+         <feature name="IonicWebView">
+             <param name="ios-package" value="CDVWKWebViewEngine"/>
+         </feature>

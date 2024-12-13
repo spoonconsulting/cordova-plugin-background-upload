@@ -1,0 +1,11 @@
+{
+  "ios": {
+    "debug": {
+      "codeSignIdentity": "iPhone Developer",
+      "packageType": "development",
+      "iCloudContainerEnvironment": "Development",
+      "automaticProvisioning": true,
+      "buildFlag":  ["-UseModernBuildSystem=0", "-quiet"]
+    }
+  }
+}
