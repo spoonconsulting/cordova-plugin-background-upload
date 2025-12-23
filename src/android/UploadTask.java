@@ -7,6 +7,7 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
+import androidx.work.ForegroundInfo;
 import androidx.work.Data;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -155,7 +156,7 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        if(!hasNetworkConnection()) {
+        if (!hasNetworkConnection()) {
             return Result.retry();
         }
 
@@ -395,10 +396,21 @@ public final class UploadTask extends Worker {
         Log.d(TAG, "Upload Notification");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             setForegroundAsync(uploadForegroundNotification.getForegroundInfo(getApplicationContext()));
-        } else  {
+        } else {
             uploadNotification.updateProgress();
         }
         Log.d(TAG, "Upload Notification Exit");
+    }
+
+    @NonNull
+    @Override
+    public ForegroundInfo getForegroundInfo() {
+        Log.d(TAG, "getForegroundInfo: Promoting to foreground service");
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return uploadForegroundNotification.getForegroundInfo(getApplicationContext());
+        } else {
+            return uploadNotification.getForegroundInfo();
+        }
     }
 
     private synchronized boolean hasNetworkConnection() {
