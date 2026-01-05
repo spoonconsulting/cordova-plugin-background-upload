@@ -408,9 +408,9 @@ public final class UploadTask extends Worker {
         Log.d(TAG, "getForegroundInfo: Promoting to foreground service");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             return uploadForegroundNotification.getForegroundInfo(getApplicationContext());
-        } else {
-            return uploadNotification.getForegroundInfo();
-        }
+        } 
+
+        return uploadNotification.getForegroundInfo();
     }
 
     private synchronized boolean hasNetworkConnection() {

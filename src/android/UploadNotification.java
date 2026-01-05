@@ -126,8 +126,8 @@ public class UploadNotification {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             return new ForegroundInfo(notificationId, notificationBuilder.build(),
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
-        } else {
-            return new ForegroundInfo(notificationId, notificationBuilder.build());
-        }
+        } 
+
+        return new ForegroundInfo(notificationId, notificationBuilder.build());
     }
 }
