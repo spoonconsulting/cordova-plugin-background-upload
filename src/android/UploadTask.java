@@ -405,7 +405,6 @@ public final class UploadTask extends Worker {
     @NonNull
     @Override
     public ForegroundInfo getForegroundInfo() {
-        Log.d(TAG, "getForegroundInfo: Promoting to foreground service");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             return uploadForegroundNotification.getForegroundInfo(getApplicationContext());
         } 
