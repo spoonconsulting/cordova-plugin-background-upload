@@ -195,9 +195,16 @@ public final class UploadTask extends Worker {
         }
 
         startTime = System.currentTimeMillis();
-        // Register me
-        uploadForegroundNotification.progress(getId(), 0f);
-        handleNotification();
+        // Register me and start foreground service IMMEDIATELY
+        // This must be done before any blocking operations to ensure uploads continue when app is killed
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            uploadForegroundNotification.progress(getId(), 0f);
+            setForegroundAsync(uploadForegroundNotification.getForegroundInfo(getApplicationContext()));
+        } else {
+            // Android 12+: Still need to start foreground service for WorkManager to continue after app kill
+            uploadNotification.updateProgress();
+            setForegroundAsync(uploadNotification.getForegroundInfo());
+        }
 
         // Start call
         currentCall = httpClient.newCall(request);
@@ -306,7 +313,10 @@ public final class UploadTask extends Worker {
         }
 
         float percent = (float) bytesWritten / (float) totalBytes;
-        UploadForegroundNotification.progress(getId(), percent);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            UploadForegroundNotification.progress(getId(), percent);
+        }
+        // On Android 12+, progress is tracked via WorkManager progress data
 
         Log.i(TAG, "handleProgress: " + getId() + " Progress: " + (int) (percent * 100f));
 

@@ -35,6 +35,8 @@
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
             <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
             <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <meta-data android:name="DATABASE" android:value="cordova-plugin-background-upload.db" />
