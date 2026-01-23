@@ -14,8 +14,10 @@ import android.util.Log;
 import androidx.annotation.IntegerRes;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
+import androidx.work.ForegroundInfo;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
+import android.content.pm.ServiceInfo;
 
 import java.util.Collections;
 import java.util.List;
@@ -82,7 +84,7 @@ public class UploadNotification {
         Notification notification = notificationBuilder.build();
         notification.flags |= Notification.FLAG_NO_CLEAR;
         notification.flags |= Notification.FLAG_ONGOING_EVENT;
-        return  notification;
+        return notification;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -103,7 +105,9 @@ public class UploadNotification {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, pendingIntentFlag);
 
         // TODO: click intent open app
-        @SuppressLint("ResourceType") NotificationCompat.Builder uploadNotificationBuilder = new NotificationCompat.Builder(context, UploadTask.NOTIFICATION_CHANNEL_ID)
+        @SuppressLint("ResourceType")
+        NotificationCompat.Builder uploadNotificationBuilder = new NotificationCompat.Builder(context,
+                UploadTask.NOTIFICATION_CHANNEL_ID)
                 .setContentTitle(notificationTitle)
                 .setTicker(notificationTitle)
                 .setSmallIcon(notificationIconRes)
@@ -116,5 +120,14 @@ public class UploadNotification {
                 .addAction(notificationIconRes, "Open", pendingIntent);
 
         return uploadNotificationBuilder;
+    }
+
+    public ForegroundInfo getForegroundInfo() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return new ForegroundInfo(notificationId, notificationBuilder.build(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } 
+
+        return new ForegroundInfo(notificationId, notificationBuilder.build());
     }
 }
