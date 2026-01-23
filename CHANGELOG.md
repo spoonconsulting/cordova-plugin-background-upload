@@ -1,3 +1,6 @@
+## [4.1.3](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.1.2...4.1.3) (2026-01-24)
+* **android:** Prevent background upload from stopping when the app is terminated
+
 ## [4.1.2](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.1.1...4.1.2) (2024-11-05)
 * **android:** Return upload start and end time in upload response
 * **iOS:** Return upload start and end time in upload response
