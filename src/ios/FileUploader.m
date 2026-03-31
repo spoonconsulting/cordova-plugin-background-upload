@@ -1,4 +1,5 @@
 #import "FileUploader.h"
+#import <MobileCoreServices/MobileCoreServices.h>
 @interface FileUploader()
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSDate *> *uploadStartTimes;
 @property (nonatomic, strong) NSMutableDictionary *responsesData;
@@ -61,6 +62,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                 @"errorCode" : @(error.code),
             }];
         }
+        [[NSFileManager defaultManager] removeItemAtURL:[weakSelf tempFilePathForUpload:uploadId] error:nil];
     }];
 
     [self.manager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {
@@ -126,7 +128,6 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
             }
         }
                                completionHandler:nil] resume];
-        [[NSFileManager defaultManager] removeItemAtURL:[weakSelf tempFilePathForUpload:payload[@"id"]] error:nil];
     }];
 }
 
@@ -152,8 +153,19 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                      constructingBodyWithBlock:^(id<AFMultipartFormData> formData)
      {
         NSString *filename = [fileURL.absoluteString lastPathComponent];
-        NSData * data = [NSData dataWithContentsOfURL:fileURL];
-        [formData appendPartWithFileData:data name:fileKey fileName:filename mimeType:@"application/octet-stream"];
+        NSString *extension = [fileURL pathExtension];
+        NSString *mimeType = @"application/octet-stream";
+        if (extension.length > 0) {
+            CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (__bridge CFStringRef)extension, NULL);
+            if (uti) {
+                CFStringRef mime = UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType);
+                if (mime) {
+                    mimeType = (__bridge_transfer NSString *)mime;
+                }
+                CFRelease(uti);
+            }
+        }
+        [formData appendPartWithFileURL:fileURL name:fileKey fileName:filename mimeType:mimeType error:nil];
     }
                                          error:&error];
     if (error)

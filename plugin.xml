@@ -66,6 +66,7 @@
                 <param name="ios-package" value="FileTransferBackground" />
             </feature>
         </config-file>
+        <framework src="MobileCoreServices.framework" />
         <header-file src="src/ios/FileTransferBackground.h" />
         <source-file src="src/ios/FileTransferBackground.m" />
         <header-file src="src/ios/UploadEvent.h" />
