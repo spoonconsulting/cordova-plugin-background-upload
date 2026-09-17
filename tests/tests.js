@@ -309,6 +309,82 @@ exports.defineAutoTests = function () {
       })
     })
 
+    describe('Raw upload', function () {
+      var rawUploadUrl = 'http://' + serverHost + ':3000/raw-upload'
+      var treeMd5 = '3d7df441c8a89a2ece66f6eb9f89a4f6'
+      var treeSize = 6404308
+
+      function header (headers, name) {
+        var key = Object.keys(headers || {}).find(function (k) { return k.toLowerCase() === name })
+        return key === undefined ? undefined : headers[key]
+      }
+
+      function rawUpload (payload, onUploaded) {
+        nativeUploader = FileTransferManager.init({}, function (upload) {
+          if (upload.state === 'UPLOADED' && upload.id === payload.id) {
+            onUploaded(upload)
+          }
+        })
+        nativeUploader.startUpload(Object.assign({ serverUrl: rawUploadUrl, filePath: path, uploadType: 'raw' }, payload))
+      }
+
+      it('sends the file bytes as the whole PUT body', function (done) {
+        rawUpload({ id: 'raw_body' }, function (upload) {
+          expect(upload.statusCode).toBe(201)
+          expect(header(upload.responseHeaders, 'x-echo-body-md5')).toBe(treeMd5)
+          expect(header(upload.responseHeaders, 'x-echo-body-length')).toBe(String(treeSize))
+          nativeUploader.acknowledgeEvent(upload.eventId, done)
+        })
+      })
+
+      it('sends a Content-Length without chunked encoding', function (done) {
+        rawUpload({ id: 'raw_length' }, function (upload) {
+          expect(header(upload.responseHeaders, 'x-echo-content-length')).toBe(String(treeSize))
+          expect(header(upload.responseHeaders, 'x-echo-transfer-encoding')).toBeUndefined()
+          nativeUploader.acknowledgeEvent(upload.eventId, done)
+        })
+      })
+
+      it('sends custom headers and no authorization header', function (done) {
+        rawUpload({ id: 'raw_headers', headers: { 'x-ms-meta-foo': 'bar' } }, function (upload) {
+          expect(header(upload.responseHeaders, 'x-echo-x-ms-meta-foo')).toBe('bar')
+          expect(header(upload.responseHeaders, 'x-echo-authorization')).toBeUndefined()
+          nativeUploader.acknowledgeEvent(upload.eventId, done)
+        })
+      })
+
+      it('keeps the server url verbatim', function (done) {
+        var query = '?sig=abc%2Bdef%3D&st=2026-09-16T11%3A55%3A00Z'
+        rawUpload({ id: 'raw_url', serverUrl: rawUploadUrl + query }, function (upload) {
+          expect(header(upload.responseHeaders, 'x-echo-original-url')).toBe('/raw-upload' + query)
+          nativeUploader.acknowledgeEvent(upload.eventId, done)
+        })
+      })
+
+      describe('with contentMd5', function () {
+        var helloFile = 'hello.txt'
+        var helloPath = ''
+
+        beforeEach(function (done) {
+          TestUtils.copyFileToDataDirectory(helloFile).then(function (newPath) {
+            helloPath = newPath
+            done()
+          })
+        })
+
+        afterEach(function (done) {
+          TestUtils.deleteFile(helloFile).then(done)
+        })
+
+        it('sends the base64 MD5 digest', function (done) {
+          rawUpload({ id: 'raw_md5', filePath: helloPath, contentMd5: true }, function (upload) {
+            expect(header(upload.responseHeaders, 'x-echo-content-md5')).toBe('XUFAKrxLKna5cZ2REBfFkg==')
+            nativeUploader.acknowledgeEvent(upload.eventId, done)
+          })
+        })
+      })
+    })
+
     describe('Acknowledge event', function () {
       it('should have acknowledgeEvent function', function (done) {
         nativeUploader = FileTransferManager.init({}, function () {

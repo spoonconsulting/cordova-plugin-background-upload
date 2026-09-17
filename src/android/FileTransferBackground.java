@@ -88,6 +88,7 @@ public class FileTransferBackground extends CordovaPlugin {
         int statusCode = (int) uploadData.get("statusCode");
         long uploadDuration = (long) uploadData.get("uploadDuration");
         long finishUploadTime = (long) uploadData.get("finishUploadTime");
+        JSONObject responseHeaders = (JSONObject) uploadData.get("responseHeaders");
 
         if (response != null && !response.isEmpty()) {
             logMessage("eventLabel='Uploader onSuccess' uploadId='" + id + "' response='" + response.substring(0, Math.min(2000, response.length() - 1)) + "'");
@@ -104,6 +105,7 @@ public class FileTransferBackground extends CordovaPlugin {
                     .put("statusCode", statusCode)
                     .put("uploadDuration", uploadDuration)
                     .put("finishUploadTime", finishUploadTime)
+                    .put("responseHeaders", responseHeaders != null ? responseHeaders : new JSONObject())
             );
         } catch (JSONException e) {
             // Can't really happen but just in case
@@ -316,6 +318,8 @@ public class FileTransferBackground extends CordovaPlugin {
                 .putString(UploadTask.KEY_INPUT_FILEPATH, (String) payload.get("filePath"))
                 .putString(UploadTask.KEY_INPUT_FILE_KEY, (String) payload.get("fileKey"))
                 .putString(UploadTask.KEY_INPUT_HTTP_METHOD, (String) payload.get("requestMethod"))
+                .putString(UploadTask.KEY_INPUT_UPLOAD_TYPE, (String) payload.get("uploadType"))
+                .putBoolean(UploadTask.KEY_INPUT_CONTENT_MD5, Boolean.TRUE.equals(payload.get("contentMd5")))
 
                 // Put headers
                 .putInt(UploadTask.KEY_INPUT_HEADERS_COUNT, headersNames.size())
@@ -416,6 +420,15 @@ public class FileTransferBackground extends CordovaPlugin {
                 response = readFileToStringNoThrow(ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
             }
 
+            JSONObject responseHeaders = null;
+            if (ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_HEADERS_FILE) != null) {
+                try {
+                    responseHeaders = new JSONObject(readFileToStringNoThrow(ackData.getString(UploadTask.KEY_OUTPUT_RESPONSE_HEADERS_FILE)));
+                } catch (JSONException | NullPointerException e) {
+                    logMessage("eventLabel='Uploader could not read response headers' error='" + e.getMessage() + "'");
+                }
+            }
+
             long startUploadTime = ackData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_START_TIME, 0);
             long finishUploadTime = ackData.getLong(UploadTask.KEY_OUTPUT_UPLOAD_FINISH_TIME, 0);
             long uploadDuration = finishUploadTime - startUploadTime;
@@ -426,6 +439,7 @@ public class FileTransferBackground extends CordovaPlugin {
             uploadData.put("statusCode", ackData.getInt(UploadTask.KEY_OUTPUT_STATUS_CODE, -1));
             uploadData.put("uploadDuration", uploadDuration);
             uploadData.put("finishUploadTime", finishUploadTime);
+            uploadData.put("responseHeaders", responseHeaders);
             sendSuccess(uploadData);
         } else {
             sendError(
@@ -443,9 +457,7 @@ public class FileTransferBackground extends CordovaPlugin {
         final UploadEvent ack = AckDatabase.getInstance(cordova.getContext()).uploadEventDao().getById(uploadId);
         // If the upload is done there is an ACK of it, so get file name from there
         if (ack != null) {
-            if (ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
-                cordova.getContext().deleteFile(ack.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
-            }
+            deleteCachedResponseFiles(ack.getOutputData());
 
             // Also delete it from database
             AckDatabase.getInstance(cordova.getContext()).uploadEventDao().delete(ack);
@@ -467,8 +479,16 @@ public class FileTransferBackground extends CordovaPlugin {
                 return;
             }
 
-            if (task.getOutputData() != Data.EMPTY && task.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE) != null) {
-                cordova.getContext().deleteFile(task.getOutputData().getString(UploadTask.KEY_OUTPUT_RESPONSE_FILE));
+            if (task.getOutputData() != Data.EMPTY) {
+                deleteCachedResponseFiles(task.getOutputData());
+            }
+        }
+    }
+
+    private void deleteCachedResponseFiles(final Data outputData) {
+        for (String key : new String[]{UploadTask.KEY_OUTPUT_RESPONSE_FILE, UploadTask.KEY_OUTPUT_RESPONSE_HEADERS_FILE}) {
+            if (outputData.getString(key) != null) {
+                cordova.getContext().deleteFile(outputData.getString(key));
             }
         }
     }

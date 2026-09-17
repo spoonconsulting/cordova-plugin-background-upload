@@ -1,3 +1,11 @@
+## [4.2.0](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.1.2...4.2.0) (2026-09-17)
+* **android:** Add `uploadType: "raw"` to send the file bytes as the whole request body, with optional `contentMd5`
+* **android:** Return `responseHeaders` in upload response
+* **iOS:** Add `uploadType: "raw"` to send the file bytes as the whole request body, with optional `contentMd5`
+* **iOS:** Honour `requestMethod`
+* **iOS:** Return `responseHeaders` in upload response
+* **iOS:** Stop logging the full server URL on upload completion
+
 ## [4.1.2](https://github.com/spoonconsulting/cordova-plugin-background-upload/compare/4.1.1...4.1.2) (2024-11-05)
 * **android:** Return upload start and end time in upload response
 * **iOS:** Return upload start and end time in upload response

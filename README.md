@@ -62,11 +62,33 @@ Param | Description
 -------- | -------
 id | a unique id of the file (UUID string)
 filePath | the absolute path for the file to upload
-fileKey | the name of the key to use for the file
+fileKey | the name of the key to use for the file (`multipart` only)
 serverUrl | remote server url
 headers | custom http headers
-parameters | custom parameters for multipart data
+parameters | custom parameters for multipart data (`multipart` only)
+uploadType | `multipart` (default) sends a multipart form. `raw` sends the file bytes as the whole request body
+requestMethod | HTTP method. Defaults to `POST` for `multipart` and `PUT` for `raw`
+contentMd5 | `raw` only. When `true`, the base64 MD5 digest of the file is sent in the `Content-MD5` header. Defaults to `false`
 notificationTitle | Notification title when file is being uploaded (Android only)
+
+#### Raw uploads
+With `uploadType: "raw"` the request body is only the file bytes, with an exact `Content-Length` and no chunked encoding. This is what, for example, Azure Blob Storage "Put Blob" expects with a SAS URL:
+```javascript
+uploader.startUpload({
+    id: "c3a4b4c7-4f1e-4c69-a951-773602e269fb",
+    filePath: "/storage/emulated/0/Download/photo.jpg",
+    serverUrl: "https://account.blob.core.windows.net/container/photo.jpg?sv=...&sig=...",
+    uploadType: "raw",
+    contentMd5: true,
+    headers: {
+        "x-ms-blob-type": "BlockBlob",
+        "Content-Type": "image/jpeg"
+    }
+});
+```
+- `serverUrl` is used verbatim and never logged beyond the part before `?`.
+- `parameters` and `fileKey` are ignored. `headers` are sent as given.
+- `Content-Type` comes from `headers["Content-Type"]`, otherwise from the file extension, otherwise `application/octet-stream`.
 
 
 ### uploader.removeUpload(uploadId, successCallback, errorCallback)
@@ -124,6 +146,7 @@ id | id of the upload
 state | state of the upload (either `UPLOADING`, `UPLOADED` or `FAILED`)
 statusCode | response code returned by server after upload is completed
 serverResponse | server response received after upload is completed
+responseHeaders | response headers received after upload is completed
 error | error message in case of failure
 errorCode | error code for any exception encountered
 progress | progress for ongoing upload

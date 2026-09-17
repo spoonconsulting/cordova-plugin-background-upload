@@ -44,6 +44,11 @@ public class ProgressRequestBody extends RequestBody {
     }
 
     @Override
+    public boolean isOneShot() {
+        return true;
+    }
+
+    @Override
     public void writeTo(@NonNull BufferedSink bufferedSink) throws IOException {
         byte[] buffer = new byte[8192];
         int read;
