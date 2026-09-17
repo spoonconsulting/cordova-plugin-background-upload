@@ -35,6 +35,16 @@ FileTransferManager.prototype.startUpload = function (payload) {
     return this.callback({ id: payload.id, state: 'FAILED', error: 'filePath is required' })
   }
 
+  if (!payload.uploadType) {
+    payload.uploadType = 'multipart'
+  }
+
+  if (payload.uploadType !== 'multipart' && payload.uploadType !== 'raw') {
+    return this.callback({ id: payload.id, state: 'FAILED', error: 'Invalid uploadType: ' + payload.uploadType })
+  }
+
+  payload.contentMd5 = payload.contentMd5 === true
+
   if (!payload.fileKey) {
     payload.fileKey = 'file'
   }

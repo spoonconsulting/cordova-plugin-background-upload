@@ -3,6 +3,8 @@ package com.spoon.backgroundfileupload;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.os.Build;
+import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -20,18 +22,25 @@ import java.net.ProtocolException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLException;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import okhttp3.Call;
+import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public final class UploadTask extends Worker {
@@ -55,6 +64,8 @@ public final class UploadTask extends Worker {
     public static final String KEY_INPUT_FILEPATH = "input_filepath";
     public static final String KEY_INPUT_FILE_KEY = "input_file_key";
     public static final String KEY_INPUT_HTTP_METHOD = "input_http_method";
+    public static final String KEY_INPUT_UPLOAD_TYPE = "input_upload_type";
+    public static final String KEY_INPUT_CONTENT_MD5 = "input_content_md5";
     public static final String KEY_INPUT_HEADERS_COUNT = "input_headers_count";
     public static final String KEY_INPUT_HEADERS_NAMES = "input_headers_names";
     public static final String KEY_INPUT_HEADER_VALUE_PREFIX = "input_header_";
@@ -76,6 +87,7 @@ public final class UploadTask extends Worker {
     public static final String KEY_OUTPUT_ID = "output_id";
     public static final String KEY_OUTPUT_IS_ERROR = "output_is_error";
     public static final String KEY_OUTPUT_RESPONSE_FILE = "output_response";
+    public static final String KEY_OUTPUT_RESPONSE_HEADERS_FILE = "output_response_headers";
     public static final String KEY_OUTPUT_STATUS_CODE = "output_status_code";
     public static final String KEY_OUTPUT_FAILURE_REASON = "output_failure_reason";
     public static final String KEY_OUTPUT_FAILURE_CANCELED = "output_failure_canceled";
@@ -189,6 +201,15 @@ public final class UploadTask extends Worker {
                     .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
                     .build()
             );
+        } catch (IOException e) {
+            Log.e(TAG, "doWork: Could not read file !", e);
+            return Result.success(new Data.Builder()
+                    .putString(KEY_OUTPUT_ID, id)
+                    .putBoolean(KEY_OUTPUT_IS_ERROR, true)
+                    .putString(KEY_OUTPUT_FAILURE_REASON, "Could not read file !")
+                    .putBoolean(KEY_OUTPUT_FAILURE_CANCELED, false)
+                    .build()
+            );
         } catch (NullPointerException e) {
             return Result.retry();
         }
@@ -288,6 +309,16 @@ public final class UploadTask extends Worker {
             outputData.putString(KEY_OUTPUT_RESPONSE_FILE, null);
         }
 
+        if (!DEBUG_SKIP_UPLOAD) {
+            final String headersFilename = "upload-response-headers-" + getId() + ".cached-response";
+            try (FileOutputStream fos = getApplicationContext().openFileOutput(headersFilename, Context.MODE_PRIVATE)) {
+                fos.write(headersToJson(response.headers()).toString().getBytes(StandardCharsets.UTF_8));
+                outputData.putString(KEY_OUTPUT_RESPONSE_HEADERS_FILE, headersFilename);
+            } catch (IOException | JSONException e) {
+                Log.e(TAG, "doWork: Error while writing the response headers", e);
+            }
+        }
+
         final Data data = outputData.build();
         AckDatabase.getInstance(getApplicationContext()).uploadEventDao().insert(new UploadEvent(id, data));
         return Result.success(data);
@@ -325,7 +356,11 @@ public final class UploadTask extends Worker {
      * @throws FileNotFoundException If the file to upload can't be found
      */
     @NonNull
-    private Request createRequest() throws FileNotFoundException {
+    private Request createRequest() throws IOException {
+        if ("raw".equals(getInputData().getString(KEY_INPUT_UPLOAD_TYPE))) {
+            return createRawRequest();
+        }
+
         final String filepath = getInputData().getString(KEY_INPUT_FILEPATH);
         assert filepath != null;
         final String fileKey = getInputData().getString(KEY_INPUT_FILE_KEY);
@@ -389,6 +424,94 @@ public final class UploadTask extends Worker {
 
         // Ok
         return requestBuilder.build();
+    }
+
+    @NonNull
+    private Request createRawRequest() throws IOException {
+        final String filepath = getInputData().getString(KEY_INPUT_FILEPATH);
+        assert filepath != null;
+
+        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(getInputData().getString(KEY_INPUT_URL)));
+
+        final int headersCount = getInputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);
+        final String[] headerNames = getInputData().getStringArray(KEY_INPUT_HEADERS_NAMES);
+        assert headerNames != null;
+
+        MediaType mediaType = null;
+        for (int i = 0; i < headersCount; i++) {
+            if (headerNames[i].equalsIgnoreCase("Content-Type")) {
+                mediaType = MediaType.parse(getInputData().getKeyValueMap().get(KEY_INPUT_HEADER_VALUE_PREFIX + i).toString());
+            }
+        }
+        if (mediaType == null) {
+            mediaType = mediaTypeFromExtension(filepath);
+        }
+
+        File file = new File(filepath);
+        final String contentMd5 = getInputData().getBoolean(KEY_INPUT_CONTENT_MD5, false) ? base64Md5(file) : null;
+        RequestBody body = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
+
+        String method = getInputData().getString(KEY_INPUT_HTTP_METHOD);
+        if (method == null) {
+            method = "PUT";
+        }
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(url)
+                .method(method.toUpperCase(), body);
+
+        for (int i = 0; i < headersCount; i++) {
+            final String key = headerNames[i];
+            if (key.equalsIgnoreCase("Content-Type")) {
+                continue;
+            }
+            requestBuilder.addHeader(key, getInputData().getKeyValueMap().get(KEY_INPUT_HEADER_VALUE_PREFIX + i).toString());
+        }
+
+        if (contentMd5 != null) {
+            requestBuilder.header("Content-MD5", contentMd5);
+        }
+
+        return requestBuilder.build();
+    }
+
+    @NonNull
+    private static MediaType mediaTypeFromExtension(String filepath) {
+        String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
+        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+        if (mimeType == null) {
+            return Objects.requireNonNull(MediaType.parse("application/octet-stream"));
+        }
+        if (extension.equals("json") || extension.equals("db")) {
+            mimeType += "; charset=utf-8";
+        }
+        return Objects.requireNonNull(MediaType.parse(mimeType));
+    }
+
+    @NonNull
+    private static String base64Md5(File file) throws IOException {
+        final MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+        try (FileInputStream stream = new FileInputStream(file)) {
+            byte[] buffer = new byte[1024 * 1024];
+            int read;
+            while ((read = stream.read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+        }
+        return Base64.encodeToString(digest.digest(), Base64.NO_WRAP);
+    }
+
+    @NonNull
+    private static JSONObject headersToJson(Headers headers) throws JSONException {
+        final JSONObject json = new JSONObject();
+        for (String name : headers.names()) {
+            json.put(name, TextUtils.join(", ", headers.values(name)));
+        }
+        return json;
     }
 
     private void handleNotification() {
