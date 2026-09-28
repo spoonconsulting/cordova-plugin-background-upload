@@ -92,7 +92,10 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
 }
 
 -(void)addUpload:(NSDictionary *)payload completionHandler:(void (^)(NSError* error))handler{
-    __weak FileUploader *weakSelf = self;
+    if ([payload[@"uploadType"] isEqualToString:@"raw"]) {
+        [self addRawUpload:payload completionHandler:handler];
+        return;
+    }
     NSURL *tempFilePath = [self tempFilePathForUpload:payload[@"id"]];
     [self writeMultipartDataToTempFile:tempFilePath
                                    url:[NSURL URLWithString:payload[@"serverUrl"]]
@@ -104,30 +107,53 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                      completionHandler:^(NSError *error, NSMutableURLRequest *request) {
         if (error)
             return handler(error);
-        
-        weakSelf.uploadStartTimes[payload[@"id"]] = [NSDate date];
-        
-        __block double lastProgressTimeStamp = 0;
-
-        [[weakSelf.manager uploadTaskWithRequest:request
-                                        fromFile:tempFilePath
-                                        progress:^(NSProgress * _Nonnull uploadProgress)
-          {
-            float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
-            NSLog(@"[BackgroundUpload] Task %@ progression %f", [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request], roundedProgress);
-            NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
-            if (currentTimestamp - lastProgressTimeStamp >= 1){
-                lastProgressTimeStamp = currentTimestamp;
-                [weakSelf sendEvent:@{
-                    @"progress" : @(roundedProgress),
-                    @"id" : [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request],
-                    @"state": @"UPLOADING"
-                }];
-            }
-        }
-                               completionHandler:nil] resume];
-        [[NSFileManager defaultManager] removeItemAtURL:[weakSelf tempFilePathForUpload:payload[@"id"]] error:nil];
+        [self startUploadTask:request fromFile:tempFilePath];
+        [[NSFileManager defaultManager] removeItemAtURL:[self tempFilePathForUpload:payload[@"id"]] error:nil];
     }];
+}
+
+-(void)addRawUpload:(NSDictionary *)payload completionHandler:(void (^)(NSError* error))handler{
+    NSURL *fileURL = [NSURL fileURLWithPath:payload[@"filePath"]];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:fileURL.path]) {
+        handler([NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadNoSuchFileError userInfo:nil]);
+        return;
+    }
+    NSString *method = payload[@"requestMethod"];
+    if (![method isKindOfClass:[NSString class]] || method.length == 0) {
+        method = @"PUT";
+    }
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:payload[@"serverUrl"]]];
+    request.HTTPMethod = method.uppercaseString;
+    NSDictionary *headers = payload[@"headers"];
+    for (NSString *key in headers) {
+        [request setValue:[headers objectForKey:key] forHTTPHeaderField:key];
+    }
+    [NSURLProtocol setProperty:payload[@"id"] forKey:kUploadUUIDStrPropertyKey inRequest:request];
+    [self startUploadTask:request fromFile:fileURL];
+}
+
+-(void)startUploadTask:(NSMutableURLRequest*)request fromFile:(NSURL*)fileURL {
+    NSString *uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request];
+    self.uploadStartTimes[uploadId] = [NSDate date];
+    __weak FileUploader *weakSelf = self;
+    __block double lastProgressTimeStamp = 0;
+    [[self.manager uploadTaskWithRequest:request
+                                fromFile:fileURL
+                                progress:^(NSProgress * _Nonnull uploadProgress)
+      {
+        float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
+        NSLog(@"[BackgroundUpload] Task %@ progression %f", [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request], roundedProgress);
+        NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
+        if (currentTimestamp - lastProgressTimeStamp >= 1){
+            lastProgressTimeStamp = currentTimestamp;
+            [weakSelf sendEvent:@{
+                @"progress" : @(roundedProgress),
+                @"id" : [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request],
+                @"state": @"UPLOADING"
+            }];
+        }
+    }
+                           completionHandler:nil] resume];
 }
 
 -(NSURL*)tempFilePathForUpload:(NSString*)uploadId{

@@ -32,6 +32,7 @@ import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public final class UploadTask extends Worker {
@@ -55,6 +56,7 @@ public final class UploadTask extends Worker {
     public static final String KEY_INPUT_FILEPATH = "input_filepath";
     public static final String KEY_INPUT_FILE_KEY = "input_file_key";
     public static final String KEY_INPUT_HTTP_METHOD = "input_http_method";
+    public static final String KEY_INPUT_UPLOAD_TYPE = "input_upload_type";
     public static final String KEY_INPUT_HEADERS_COUNT = "input_headers_count";
     public static final String KEY_INPUT_HEADERS_NAMES = "input_headers_names";
     public static final String KEY_INPUT_HEADER_VALUE_PREFIX = "input_header_";
@@ -335,6 +337,8 @@ public final class UploadTask extends Worker {
         HttpUrl url = Objects.requireNonNull(HttpUrl.parse(getInputData().getString(KEY_INPUT_URL))).newBuilder().build();
 
         // Build file reader
+        final boolean rawUpload = "raw".equals(getInputData().getString(KEY_INPUT_UPLOAD_TYPE));
+
         String extension = MimeTypeMap.getFileExtensionFromUrl(filepath);
         MediaType mediaType;
         if (extension.equals("json") || extension.equals("db")) {
@@ -344,37 +348,49 @@ public final class UploadTask extends Worker {
         } else {
             mediaType = MediaType.parse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension));
         }
+        if (rawUpload) {
+            MediaType headerType = contentTypeFromHeaders();
+            if (headerType != null) {
+                mediaType = headerType;
+            }
+        }
         File file = new File(filepath);
         ProgressRequestBody fileRequestBody = new ProgressRequestBody(mediaType, file.length(), new FileInputStream(file), this::handleProgress);
 
-        // Build body
-        final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
+        final RequestBody requestBody;
+        if (rawUpload) {
+            requestBody = fileRequestBody;
+        } else {
+            // Build body
+            final MultipartBody.Builder bodyBuilder = new MultipartBody.Builder();
 
-        // With the parameters
-        final int parametersCount = getInputData().getInt(KEY_INPUT_PARAMETERS_COUNT, 0);
-        if (parametersCount > 0) {
-            final String[] parameterNames = getInputData().getStringArray(KEY_INPUT_PARAMETERS_NAMES);
-            assert parameterNames != null;
+            // With the parameters
+            final int parametersCount = getInputData().getInt(KEY_INPUT_PARAMETERS_COUNT, 0);
+            if (parametersCount > 0) {
+                final String[] parameterNames = getInputData().getStringArray(KEY_INPUT_PARAMETERS_NAMES);
+                assert parameterNames != null;
 
-            for (int i = 0; i < parametersCount; i++) {
-                final String key = parameterNames[i];
-                final Object value = getInputData().getKeyValueMap().get(KEY_INPUT_PARAMETER_VALUE_PREFIX + i);
+                for (int i = 0; i < parametersCount; i++) {
+                    final String key = parameterNames[i];
+                    final Object value = getInputData().getKeyValueMap().get(KEY_INPUT_PARAMETER_VALUE_PREFIX + i);
 
-                bodyBuilder.addFormDataPart(key, value.toString());
+                    bodyBuilder.addFormDataPart(key, value.toString());
+                }
             }
-        }
 
-        bodyBuilder.addFormDataPart(fileKey, filepath, fileRequestBody);
-        bodyBuilder.setType(MultipartBody.FORM);
+            bodyBuilder.addFormDataPart(fileKey, filepath, fileRequestBody);
+            bodyBuilder.setType(MultipartBody.FORM);
+            requestBody = bodyBuilder.build();
+        }
 
         // Start build request
         String method = getInputData().getString(KEY_INPUT_HTTP_METHOD);
-        if (method == null) {
-            method = "POST";
+        if (method == null || method.isEmpty()) {
+            method = rawUpload ? "PUT" : "POST";
         }
         Request.Builder requestBuilder = new Request.Builder()
                 .url(url)
-                .method(method.toUpperCase(), bodyBuilder.build());
+                .method(method.toUpperCase(), requestBody);
 
         // Write headers
         final int headersCount = getInputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);
@@ -389,6 +405,20 @@ public final class UploadTask extends Worker {
 
         // Ok
         return requestBuilder.build();
+    }
+
+    private MediaType contentTypeFromHeaders() {
+        final int headersCount = getInputData().getInt(KEY_INPUT_HEADERS_COUNT, 0);
+        if (headersCount == 0) return null;
+        final String[] headerNames = getInputData().getStringArray(KEY_INPUT_HEADERS_NAMES);
+        if (headerNames == null) return null;
+        for (int i = 0; i < headersCount && i < headerNames.length; i++) {
+            if (!"content-type".equalsIgnoreCase(headerNames[i])) continue;
+            final Object value = getInputData().getKeyValueMap().get(KEY_INPUT_HEADER_VALUE_PREFIX + i);
+            if (value == null) return null;
+            return MediaType.parse(value.toString());
+        }
+        return null;
     }
 
     private void handleNotification() {
