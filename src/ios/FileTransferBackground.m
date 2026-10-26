@@ -40,6 +40,7 @@
                                completionHandler:^(NSError* error) {
             if (error){
                 [weakSelf sendCallback:@{
+                    @"state" : @"FAILED",
                     @"error" : error.localizedDescription,
                     @"id" : payload[@"id"],
                     @"errorCode" : @(error.code)
