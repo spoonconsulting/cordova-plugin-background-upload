@@ -2,6 +2,8 @@
 @interface FileUploader()
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSDate *> *uploadStartTimes;
 @property (nonatomic, strong) NSMutableDictionary *responsesData;
+@property (nonatomic, strong) NSMutableDictionary<NSNumber *, NSNumber *> *progressTimestamps;
+@property (nonatomic, strong) NSMutableDictionary<NSNumber *, NSNumber *> *lastProgresses;
 @property (nonatomic, strong) AFURLSessionManager *manager;
 @end
 
@@ -21,6 +23,8 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
         return nil;
     [UploadEvent setupStorage];
     self.responsesData = [[NSMutableDictionary alloc] init];
+    self.progressTimestamps = [[NSMutableDictionary alloc] init];
+    self.lastProgresses = [[NSMutableDictionary alloc] init];
     self.uploadStartTimes = [[NSMutableDictionary alloc] init];
     NSURLSessionConfiguration* configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[[NSBundle mainBundle] bundleIdentifier]];
     configuration.HTTPMaximumConnectionsPerHost = FileUploader.parallelUploadsLimit;
@@ -29,7 +33,21 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
     __weak FileUploader *weakSelf = self;
     [self.manager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
         NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
-        NSDate *startTime = weakSelf.uploadStartTimes[uploadId];
+ 
+        if (!uploadId){
+            NSLog(@"[BackgroundUpload] Unknown task %@ with error %@", @(task.taskIdentifier), error);
+            [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
+            return;
+        }
+
+        [weakSelf.progressTimestamps removeObjectForKey:@(task.taskIdentifier)];
+        NSNumber *lastProgress = weakSelf.lastProgresses[@(task.taskIdentifier)];
+        [weakSelf.lastProgresses removeObjectForKey:@(task.taskIdentifier)];
+        NSDate *startTime;
+        @synchronized (weakSelf.uploadStartTimes) {
+            startTime = weakSelf.uploadStartTimes[uploadId];
+            [weakSelf.uploadStartTimes removeObjectForKey:uploadId];
+        }
         NSDate *endUploadTime = [NSDate date];
         NSTimeInterval timeInterval = [endUploadTime timeIntervalSince1970];
         long long endUploadTimeInMS = (long long)(timeInterval * 1000);
@@ -39,6 +57,18 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
             NSData* serverData = weakSelf.responsesData[@(task.taskIdentifier)];
             NSString* serverResponse = serverData ? [[NSString alloc] initWithData:serverData encoding:NSUTF8StringEncoding] : @"";
             [weakSelf.responsesData removeObjectForKey:@(task.taskIdentifier)];
+            int64_t bytesSent = task.countOfBytesSent;
+            int64_t totalBytes = task.countOfBytesExpectedToSend > 0 ? task.countOfBytesExpectedToSend : bytesSent;
+            float finalProgress = totalBytes > 0 ? roundf(10 * (100.0 * bytesSent / totalBytes)) / 10.0 : 100;
+            if (!lastProgress || finalProgress > lastProgress.floatValue) {
+                [weakSelf sendEvent:@{
+                    @"progress" : @(finalProgress),
+                    @"bytesSent" : @(bytesSent),
+                    @"totalBytes" : @(totalBytes),
+                    @"id" : uploadId,
+                    @"state": @"UPLOADING"
+                }];
+            }
             NSMutableDictionary *event = [@{
                     @"id" : uploadId,
                     @"state" : @"UPLOADED",
@@ -71,6 +101,28 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
             [responseData appendData:data];
         }
     }];
+
+    [self.manager setTaskDidSendBodyDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, int64_t bytesSent, int64_t totalBytesSent, int64_t totalBytesExpectedToSend) {
+        NSString* uploadId = [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:task.originalRequest];
+        if (!uploadId || totalBytesExpectedToSend <= 0)
+            return;
+        BOOL allSent = totalBytesSent >= totalBytesExpectedToSend;
+        NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
+        NSNumber *lastProgressTimestamp = weakSelf.progressTimestamps[@(task.taskIdentifier)];
+        if (!allSent && lastProgressTimestamp && currentTimestamp - lastProgressTimestamp.doubleValue < 1)
+            return;
+        weakSelf.progressTimestamps[@(task.taskIdentifier)] = @(currentTimestamp);
+        float roundedProgress = roundf(10 * (100.0 * totalBytesSent / totalBytesExpectedToSend)) / 10.0;
+        weakSelf.lastProgresses[@(task.taskIdentifier)] = @(roundedProgress);
+        NSLog(@"[BackgroundUpload] Task %@ progression %.1f%% (%lld / %lld bytes)", uploadId, roundedProgress, totalBytesSent, totalBytesExpectedToSend);
+        [weakSelf sendEvent:@{
+            @"progress" : @(roundedProgress),
+            @"bytesSent" : @(totalBytesSent),
+            @"totalBytes" : @(totalBytesExpectedToSend),
+            @"id" : uploadId,
+            @"state": @"UPLOADING"
+        }];
+    }];
     return self;
 }
 
@@ -102,29 +154,18 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                             parameters:payload[@"parameters"]
                                fileKey:payload[@"fileKey"]
                      completionHandler:^(NSError *error, NSMutableURLRequest *request) {
-        if (error)
+        if (error){
+            [[NSFileManager defaultManager] removeItemAtURL:tempFilePath error:nil];
             return handler(error);
-        
-        weakSelf.uploadStartTimes[payload[@"id"]] = [NSDate date];
-        
-        __block double lastProgressTimeStamp = 0;
+        }
+
+        @synchronized (weakSelf.uploadStartTimes) {
+            weakSelf.uploadStartTimes[payload[@"id"]] = [NSDate date];
+        }
 
         [[weakSelf.manager uploadTaskWithRequest:request
                                         fromFile:tempFilePath
-                                        progress:^(NSProgress * _Nonnull uploadProgress)
-          {
-            float roundedProgress = roundf(10 * (uploadProgress.fractionCompleted*100)) / 10.0;
-            NSLog(@"[BackgroundUpload] Task %@ progression %f", [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request], roundedProgress);
-            NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
-            if (currentTimestamp - lastProgressTimeStamp >= 1){
-                lastProgressTimeStamp = currentTimestamp;
-                [weakSelf sendEvent:@{
-                    @"progress" : @(roundedProgress),
-                    @"id" : [NSURLProtocol propertyForKey:kUploadUUIDStrPropertyKey inRequest:request],
-                    @"state": @"UPLOADING"
-                }];
-            }
-        }
+                                        progress:nil
                                completionHandler:nil] resume];
         [[NSFileManager defaultManager] removeItemAtURL:[weakSelf tempFilePathForUpload:payload[@"id"]] error:nil];
     }];
@@ -145,6 +186,7 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                   completionHandler:(void (^)(NSError* error, NSMutableURLRequest* request))handler{
     AFHTTPRequestSerializer *serializer = [AFHTTPRequestSerializer serializer];
     NSError *error;
+    __block NSError *fileError;
     NSMutableURLRequest *request =
     [serializer multipartFormRequestWithMethod:@"POST"
                                      URLString:url.absoluteString
@@ -152,21 +194,55 @@ static NSString * kUploadUUIDStrPropertyKey = @"com.spoonconsulting.plugin-backg
                      constructingBodyWithBlock:^(id<AFMultipartFormData> formData)
      {
         NSString *filename = [fileURL.absoluteString lastPathComponent];
-        NSData * data = [NSData dataWithContentsOfURL:fileURL];
-        [formData appendPartWithFileData:data name:fileKey fileName:filename mimeType:@"application/octet-stream"];
+        NSError *appendError;
+        if (![formData appendPartWithFileURL:fileURL name:fileKey fileName:filename mimeType:@"application/octet-stream" error:&appendError])
+            fileError = appendError ?: [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadUnknownError userInfo:nil];
     }
                                          error:&error];
-    if (error)
-        return handler(error, nil);
+    if (error || fileError)
+        return handler(error ?: fileError, nil);
     for (NSString *key in headers) {
         [request setValue:[headers objectForKey:key] forHTTPHeaderField:key];
     }
     [NSURLProtocol setProperty:uploadId forKey:kUploadUUIDStrPropertyKey inRequest:request];
-    [serializer requestWithMultipartFormRequest:request writingStreamContentsToFile:tempFilePath completionHandler:^(NSError *error) {
+    [self writeBodyStream:request.HTTPBodyStream toFile:tempFilePath completionHandler:^(NSError *error) {
         if (!error && ![[NSFileManager defaultManager] fileExistsAtPath:tempFilePath.path])
             error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadNoSuchFileError userInfo:nil];
+        NSString *expectedSize = [request valueForHTTPHeaderField:@"Content-Length"];
+        NSNumber *writtenSize = [[NSFileManager defaultManager] attributesOfItemAtPath:tempFilePath.path error:nil][NSFileSize];
+        if (!error && expectedSize && writtenSize.longLongValue != expectedSize.longLongValue)
+            error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadUnknownError userInfo:nil];
         handler(error, request);
     }];
+}
+
+-(void)writeBodyStream:(NSInputStream*)inputStream toFile:(NSURL*)fileURL completionHandler:(void (^)(NSError* error))handler{
+    static const NSUInteger bufferSize = 1024 * 1024;
+    uint8_t *buffer = malloc(bufferSize);
+    NSOutputStream *outputStream = [[NSOutputStream alloc] initWithURL:fileURL append:NO];
+    NSError *error;
+    [inputStream open];
+    [outputStream open];
+    while (!error) {
+        NSInteger bytesRead = [inputStream read:buffer maxLength:bufferSize];
+        if (bytesRead < 0 || inputStream.streamError)
+            error = inputStream.streamError ?: [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadUnknownError userInfo:nil];
+        if (error || bytesRead <= 0)
+            break;
+        NSInteger offset = 0;
+        while (offset < bytesRead) {
+            NSInteger bytesWritten = [outputStream write:buffer + offset maxLength:(NSUInteger)(bytesRead - offset)];
+            if (bytesWritten <= 0) {
+                error = outputStream.streamError ?: [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileWriteUnknownError userInfo:nil];
+                break;
+            }
+            offset += bytesWritten;
+        }
+    }
+    [outputStream close];
+    [inputStream close];
+    free(buffer);
+    handler(error);
 }
 
 -(void)removeUpload:(NSString*)uploadId{
